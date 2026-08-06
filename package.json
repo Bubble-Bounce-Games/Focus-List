@@ -7,6 +7,8 @@
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
+    "icons": "node scripts/generate-icons.mjs",
+    "domain": "./scripts/local-domain.sh status",
     "check:imports": "./scripts/check-imports.sh",
     "typecheck": "tsc --noEmit",
     "test": "./scripts/test-logic.sh",
