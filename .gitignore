@@ -217,3 +217,26 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .env.secrets
+
+# ---- Next.js / Node / Bun (Focus List app) ----
+/node_modules/
+/.next/
+/out/
+/build
+/.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# Runtime artifacts & local data
+/dev.log
+/server.log
+*.log
+/db/
+.env.local
+.env.*.local
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
