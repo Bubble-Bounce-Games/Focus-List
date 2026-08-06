@@ -9,13 +9,13 @@ const inter = Inter({
   display: "swap",
 });
 
+// The tab icon comes from src/app/icon.png and src/app/apple-icon.png, which
+// Next wires up by file convention. They are generated from public/logo.png by
+// `yarn icons` — do not add an `icons` key here, it would override them.
 export const metadata: Metadata = {
   title: "Focus List — Personal Task Manager",
   description:
     "A calm, local-only personal task manager. Track progress with a slider and keep all your work in one unified list.",
-  icons: {
-    icon: "/logo.svg",
-  },
 };
 
 export default function RootLayout({
