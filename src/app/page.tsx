@@ -217,7 +217,7 @@ export default function Page() {
 
   const handleSubmit = useCallback(
     async (data: TaskFormData) => {
-      const project = await findOrCreateProject(data.projectName);
+      const project = await findOrCreateProject(data.projectName, data.projectColor);
       const tag = await findOrCreateTag(data.tagName);
       if (panelMode === "edit" && editingTask) {
         await updateTask(editingTask.id, {

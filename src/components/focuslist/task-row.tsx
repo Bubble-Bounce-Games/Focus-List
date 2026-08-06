@@ -105,61 +105,68 @@ function TaskRowBase({
           <TaskIcon name={iconName} className="h-5 w-5" strokeWidth={2} />
         </div>
 
-        {/* 2. Task title — occupies the first 60% of the row, ellipsised.
-            Basis rather than a fixed width: the card clips its overflow, so
-            when the viewport is too narrow for 60% plus the controls, the
-            title must be the thing that yields rather than the actions
-            button being cut off. */}
-        <div className="flex min-w-0 shrink grow-0 basis-[60%] items-center gap-2">
-          <p
-            className="truncate text-[15px] font-semibold text-foreground-strong"
-            title={task.title}
-          >
-            {task.title}
-          </p>
-          {blocked ? (
-            <AlertTriangle
-              className="h-3.5 w-3.5 shrink-0"
-              style={{ color: "#e5484d" }}
-              aria-label="Has a blocker"
+        {/* 2. Everything between the icon and the readout. Splitting 60/40
+            inside this region — rather than letting the slider be whatever is
+            left over in the row — is what keeps the slider the same width on
+            every row. The chevron, icon, percentage and actions are all fixed
+            widths, so this region is identical for every task, and a pill
+            appearing or disappearing can no longer move the track. */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          {/* 2a. Title, indicators and project on top; tag underneath. */}
+          <div className="flex min-w-0 shrink-0 basis-[60%] flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <p
+                className="truncate text-[15px] font-semibold text-foreground-strong"
+                title={task.title}
+              >
+                {task.title}
+              </p>
+              {blocked ? (
+                <AlertTriangle
+                  className="h-3.5 w-3.5 shrink-0"
+                  style={{ color: "#e5484d" }}
+                  aria-label="Has a blocker"
+                />
+              ) : annotated ? (
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50"
+                  aria-label="Has details"
+                />
+              ) : null}
+              {project && (
+                <span
+                  className="hidden shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium md:inline-flex"
+                  style={pillStyle(project.color)}
+                >
+                  {project.name}
+                </span>
+              )}
+            </div>
+
+            {/* Tag sits below the title. The row is always rendered, tag or
+                not, so cards keep a uniform height down the list. */}
+            <div className="flex h-[22px] min-w-0 items-center">
+              {tag && (
+                <span
+                  className="inline-flex max-w-full shrink-0 items-center truncate rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style={pillStyle(tag.color)}
+                >
+                  {tag.name}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 2b. Progress slider — the remaining 40% of the region. */}
+          <div className="flex min-w-0 flex-1 items-center">
+            <ProgressSlider
+              value={task.progress}
+              accent={accent}
+              onChange={(v) => onProgressChange(task.id, v)}
+              onCommit={handleCommit}
+              ariaLabel={`Progress for ${task.title}`}
             />
-          ) : annotated ? (
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50"
-              aria-label="Has details"
-            />
-          ) : null}
-        </div>
-
-        {/* 3. Project pill */}
-        {project && (
-          <span
-            className="hidden xl:inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium"
-            style={pillStyle(project.color)}
-          >
-            {project.name}
-          </span>
-        )}
-
-        {/* 4. Tag pill */}
-        {tag && (
-          <span
-            className="hidden 2xl:inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium"
-            style={pillStyle(tag.color)}
-          >
-            {tag.name}
-          </span>
-        )}
-
-        {/* 5. Progress slider */}
-        <div className="flex min-w-0 flex-1 items-center">
-          <ProgressSlider
-            value={task.progress}
-            accent={accent}
-            onChange={(v) => onProgressChange(task.id, v)}
-            onCommit={handleCommit}
-            ariaLabel={`Progress for ${task.title}`}
-          />
+          </div>
         </div>
 
         {/* 6. Percentage value */}

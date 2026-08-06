@@ -48,6 +48,17 @@ yarn build
 yarn start
 ```
 
+### Just open the app
+
+Double-click **`Focus-List.command`** in Finder, or run `./start.sh` from a
+terminal. It installs dependencies and rebuilds only when something changed,
+starts the server, and opens http://focus-list.local in your browser. The very
+first run asks for your password once to set the domain up; after that it goes
+straight to the app. Ctrl+C stops it.
+
+If the domain is not available it falls back to http://localhost:3000 and tells
+you the one command needed to fix it.
+
 ### Serving it at http://focus-list.local
 
 ```bash

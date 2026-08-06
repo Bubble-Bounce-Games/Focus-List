@@ -16,6 +16,27 @@ export type DoneGroup = {
   tasks: Task[];
 };
 
+/**
+ * Which project/tag a task edit may have orphaned.
+ *
+ * Only the *previous* label can be freed, and only when the patch actually
+ * moves the task somewhere else — reassigning to the same project must not put
+ * it up for deletion, and the incoming label obviously never qualifies.
+ */
+export function labelsFreedByPatch(
+  existing: Pick<Task, "projectId" | "tagId">,
+  patch: { projectId?: string; tagId?: string }
+): { projectId: string | null; tagId: string | null } {
+  return {
+    projectId:
+      patch.projectId && patch.projectId !== existing.projectId
+        ? existing.projectId
+        : null,
+    tagId:
+      patch.tagId && patch.tagId !== existing.tagId ? existing.tagId : null,
+  };
+}
+
 /** Shown when a completed task points at a project that no longer exists. */
 const UNASSIGNED: Project = {
   id: "__unassigned__",

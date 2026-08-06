@@ -12,6 +12,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { v4 as uuid } from "uuid";
 
 import { colorForName } from "./palette";
+import { labelsFreedByPatch } from "./selectors";
 import {
   EMPTY_DETAILS,
   MAX_PROGRESS,
@@ -164,20 +165,26 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
   const db = getDb();
   if (!db) return;
 
-  const existing = await db.tasks.get(id);
-  if (!existing) return;
+  await db.transaction("rw", db.tasks, db.projects, db.tags, async () => {
+    const existing = await db.tasks.get(id);
+    if (!existing) return;
 
-  const progress =
-    patch.progress === undefined
-      ? existing.progress
-      : clampProgress(patch.progress);
+    const progress =
+      patch.progress === undefined
+        ? existing.progress
+        : clampProgress(patch.progress);
 
-  await db.tasks.update(id, {
-    ...patch,
-    title: patch.title === undefined ? existing.title : patch.title.trim(),
-    progress,
-    completedAt: completionStamp(progress, existing.completedAt),
-    updatedAt: now(),
+    await db.tasks.update(id, {
+      ...patch,
+      title: patch.title === undefined ? existing.title : patch.title.trim(),
+      progress,
+      completedAt: completionStamp(progress, existing.completedAt),
+      updatedAt: now(),
+    });
+
+    // Moving the last task out of a project or tag orphans the old label.
+    const freed = labelsFreedByPatch(existing, patch);
+    await pruneOrphanLabels(db, freed.projectId, freed.tagId);
   });
 }
 
@@ -199,8 +206,37 @@ export async function setTaskDetail(
   await db.tasks.update(id, { [field]: value, updatedAt: now() });
 }
 
+/**
+ * Projects and tags exist only to label tasks — they are created implicitly
+ * when a task names one. So when the last task referencing one goes away, the
+ * label goes with it, rather than lingering in the filter menus forever.
+ * Callers must already hold a readwrite transaction over the three tables.
+ */
+async function pruneOrphanLabels(
+  db: FocusListDB,
+  projectId: string | null,
+  tagId: string | null
+): Promise<void> {
+  if (projectId) {
+    const remaining = await db.tasks.where("projectId").equals(projectId).count();
+    if (remaining === 0) await db.projects.delete(projectId);
+  }
+  if (tagId) {
+    const remaining = await db.tasks.where("tagId").equals(tagId).count();
+    if (remaining === 0) await db.tags.delete(tagId);
+  }
+}
+
 export async function deleteTask(id: string): Promise<void> {
-  await getDb()?.tasks.delete(id);
+  const db = getDb();
+  if (!db) return;
+
+  await db.transaction("rw", db.tasks, db.projects, db.tags, async () => {
+    const task = await db.tasks.get(id);
+    if (!task) return;
+    await db.tasks.delete(id);
+    await pruneOrphanLabels(db, task.projectId, task.tagId);
+  });
 }
 
 export async function duplicateTask(id: string): Promise<Task | undefined> {
@@ -229,13 +265,19 @@ export async function duplicateTask(id: string): Promise<Task | undefined> {
 /**
  * Look up a project by name, case-insensitively, creating it if absent. Runs
  * inside a transaction so two rapid submits cannot produce duplicate rows.
+ *
+ * `color` applies only when the project is created — an existing project keeps
+ * the colour it already has, so the same project never renders two ways.
  */
-export async function findOrCreateProject(name: string): Promise<Project> {
+export async function findOrCreateProject(
+  name: string,
+  color?: string
+): Promise<Project> {
   const trimmed = name.trim();
   const fallback: Project = {
     id: uuid(),
     name: trimmed,
-    color: colorForName(trimmed),
+    color: color ?? colorForName(trimmed),
   };
 
   const db = getDb();

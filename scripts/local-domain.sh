@@ -105,10 +105,10 @@ status() {
     echo "port:   (re-run with sudo to inspect the pf anchor)"
   fi
 
-  if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:$APP_PORT/"; then
-    echo "server: responding on 127.0.0.1:$APP_PORT"
+  if curl -sf -o /dev/null --max-time 2 "http://localhost:$APP_PORT/"; then
+    echo "server: responding on localhost:$APP_PORT"
   else
-    echo "server: nothing on 127.0.0.1:$APP_PORT — start it with 'yarn dev'"
+    echo "server: nothing on localhost:$APP_PORT — start it with 'yarn dev'"
   fi
 }
 

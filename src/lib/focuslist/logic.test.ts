@@ -5,7 +5,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
-import { groupDoneByProject, matchTask, sortTasks } from "./selectors";
+import {
+  groupDoneByProject,
+  labelsFreedByPatch,
+  matchTask,
+  sortTasks,
+} from "./selectors";
 import {
   DEFAULT_SORT,
   DETAIL_FIELDS,
@@ -235,6 +240,40 @@ test("all six documented sort options are offered and implemented", () => {
       `sort "${option.value}" dropped or duplicated tasks`
     );
   }
+});
+
+/* -------------------------- orphaned label pruning ------------------------ */
+
+test("a patch that changes nothing frees no labels", () => {
+  const freed = labelsFreedByPatch({ projectId: "p1", tagId: "t1" }, {});
+  assert.deepEqual(freed, { projectId: null, tagId: null });
+});
+
+test("reassigning to the same project frees nothing", () => {
+  const freed = labelsFreedByPatch(
+    { projectId: "p1", tagId: "t1" },
+    { projectId: "p1", tagId: "t1" }
+  );
+  assert.deepEqual(freed, { projectId: null, tagId: null });
+});
+
+test("moving a task frees the OLD label, never the incoming one", () => {
+  const freed = labelsFreedByPatch(
+    { projectId: "p1", tagId: "t1" },
+    { projectId: "p2", tagId: "t2" }
+  );
+  assert.deepEqual(freed, { projectId: "p1", tagId: "t1" });
+});
+
+test("project and tag are freed independently", () => {
+  assert.deepEqual(
+    labelsFreedByPatch({ projectId: "p1", tagId: "t1" }, { projectId: "p2" }),
+    { projectId: "p1", tagId: null }
+  );
+  assert.deepEqual(
+    labelsFreedByPatch({ projectId: "p1", tagId: "t1" }, { tagId: "t2" }),
+    { projectId: null, tagId: "t1" }
+  );
 });
 
 /* --------------------------- groupDoneByProject -------------------------- */
