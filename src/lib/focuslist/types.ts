@@ -24,7 +24,36 @@ export type Task = {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Free-text log of what has been done so far. */
+  progressNote: string;
+  /** What is currently standing in the way, if anything. */
+  blocker: string;
+  /** Anything else worth remembering about the task. */
+  notes: string;
 };
+
+/** The three free-text fields shown in a task's expandable detail panel. */
+export const DETAIL_FIELDS = ["progressNote", "blocker", "notes"] as const;
+
+export type DetailField = (typeof DETAIL_FIELDS)[number];
+
+export type TaskDetails = Pick<Task, DetailField>;
+
+export const EMPTY_DETAILS: TaskDetails = {
+  progressNote: "",
+  blocker: "",
+  notes: "",
+};
+
+/** True when any detail field has content — drives the collapsed-row marker. */
+export function hasDetails(task: Task): boolean {
+  return DETAIL_FIELDS.some((field) => (task[field] ?? "").trim() !== "");
+}
+
+/** A blocker is called out separately: it is the one detail that needs chasing. */
+export function isBlocked(task: Task): boolean {
+  return (task.blocker ?? "").trim() !== "";
+}
 
 export const MIN_PROGRESS = 0;
 export const MAX_PROGRESS = 100;

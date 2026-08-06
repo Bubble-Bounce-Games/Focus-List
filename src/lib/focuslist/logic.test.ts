@@ -6,7 +6,15 @@ import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
 import { groupDoneByProject, matchTask, sortTasks } from "./selectors";
-import { DEFAULT_SORT, isComplete, SORT_OPTIONS } from "./types";
+import {
+  DEFAULT_SORT,
+  DETAIL_FIELDS,
+  EMPTY_DETAILS,
+  hasDetails,
+  isBlocked,
+  isComplete,
+  SORT_OPTIONS,
+} from "./types";
 import type { Project, Tag, Task } from "./types";
 
 const projects: Record<string, Project> = {
@@ -28,6 +36,7 @@ function task(over: Partial<Task> & Pick<Task, "id">): Task {
     completedAt: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
+    ...EMPTY_DETAILS,
     ...over,
   };
 }
@@ -50,6 +59,44 @@ test("every sort label carries the 'Group: detail' shape the header splits on", 
       `"${option.label}" has no colon; the narrow-viewport header label would show it in full`
     );
   }
+});
+
+/* ----------------------------- task details ------------------------------ */
+
+test("a task with no details is neither annotated nor blocked", () => {
+  const t = task({ id: "a" });
+  assert.equal(hasDetails(t), false);
+  assert.equal(isBlocked(t), false);
+});
+
+test("whitespace-only details do not count as content", () => {
+  const t = task({ id: "a", notes: "   \n  ", blocker: "\t" });
+  assert.equal(hasDetails(t), false);
+  assert.equal(isBlocked(t), false);
+});
+
+test("any one populated detail field marks the task as annotated", () => {
+  for (const field of DETAIL_FIELDS) {
+    const t = task({ id: "a", [field]: "something" });
+    assert.equal(hasDetails(t), true, `${field} should mark the task annotated`);
+  }
+});
+
+test("only the blocker field marks a task as blocked", () => {
+  assert.equal(isBlocked(task({ id: "a", notes: "x" })), false);
+  assert.equal(isBlocked(task({ id: "a", progressNote: "x" })), false);
+  assert.equal(isBlocked(task({ id: "a", blocker: "waiting on finance" })), true);
+});
+
+// Rows written before the v2 migration can reach the UI with these fields
+// absent; the helpers must not throw on them.
+test("details helpers tolerate rows predating the v2 migration", () => {
+  const legacy = task({ id: "a" }) as Partial<Task> & Task;
+  delete (legacy as Partial<Task>).progressNote;
+  delete (legacy as Partial<Task>).blocker;
+  delete (legacy as Partial<Task>).notes;
+  assert.equal(hasDetails(legacy), false);
+  assert.equal(isBlocked(legacy), false);
 });
 
 /* -------------------------------- palette -------------------------------- */

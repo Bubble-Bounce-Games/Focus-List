@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ClipboardList, SearchX } from "lucide-react";
-import type { Project, Tag, Task } from "@/lib/focuslist/types";
+import type { DetailField, Project, Tag, Task } from "@/lib/focuslist/types";
 import { TaskRow } from "./task-row";
 import { EmptyState } from "./empty-state";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ type ActiveTaskListProps = {
   onDuplicate: (id: string) => void;
   onComplete: (id: string) => void;
   onDelete: (task: Task) => void;
+  onDetailSave: (id: string, field: DetailField, value: string) => void;
   onClearFilters: () => void;
   onAddTask: () => void;
 };
@@ -33,6 +34,7 @@ export function ActiveTaskList({
   onDuplicate,
   onComplete,
   onDelete,
+  onDetailSave,
   onClearFilters,
   onAddTask,
 }: ActiveTaskListProps) {
@@ -81,6 +83,7 @@ export function ActiveTaskList({
                 onDuplicate={onDuplicate}
                 onComplete={onComplete}
                 onDelete={onDelete}
+                onDetailSave={onDetailSave}
               />
             </motion.div>
           ))}

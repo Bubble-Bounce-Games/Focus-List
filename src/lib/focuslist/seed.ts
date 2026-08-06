@@ -13,15 +13,56 @@ import { MAX_PROGRESS, type Project, type Tag, type Task } from "./types";
 const SAMPLE_PROJECTS = ["Website Redesign", "Mobile App", "Research"] as const;
 const SAMPLE_TAGS = ["Design", "Engineering", "Writing"] as const;
 
-// [title, project index, tag index, progress]
-const SAMPLE_TASKS: ReadonlyArray<[string, number, number, number]> = [
-  ["Draft the new landing page copy", 0, 2, 65],
-  ["Rebuild the pricing section", 0, 0, 40],
-  ["Audit colour contrast for accessibility", 0, 0, 15],
-  ["Wire up offline task storage", 1, 1, 80],
-  ["Add pull-to-refresh gesture", 1, 1, 0],
-  ["Summarise competitor onboarding flows", 2, 2, 100],
-  ["Ship the icon set", 0, 0, 100],
+type SampleTask = {
+  title: string;
+  project: number;
+  tag: number;
+  progress: number;
+  progressNote?: string;
+  blocker?: string;
+  notes?: string;
+};
+
+const SAMPLE_TASKS: readonly SampleTask[] = [
+  {
+    title: "Draft the new landing page copy",
+    project: 0,
+    tag: 2,
+    progress: 65,
+    progressNote: "Hero and features sections drafted. Pricing copy still open.",
+    notes: "Keep the tone plain — no superlatives.",
+  },
+  {
+    title: "Rebuild the pricing section with the new three-tier layout and annual toggle",
+    project: 0,
+    tag: 0,
+    progress: 40,
+    progressNote: "Tier cards laid out; annual/monthly toggle not wired yet.",
+    blocker: "Waiting on final pricing numbers from finance.",
+  },
+  {
+    title: "Audit colour contrast for accessibility",
+    project: 0,
+    tag: 0,
+    progress: 15,
+    notes: "Target WCAG AA. The muted grey on white is the likely failure.",
+  },
+  {
+    title: "Wire up offline task storage",
+    project: 1,
+    tag: 1,
+    progress: 80,
+    progressNote: "IndexedDB layer done and migrating cleanly between versions.",
+  },
+  { title: "Add pull-to-refresh gesture", project: 1, tag: 1, progress: 0 },
+  {
+    title: "Summarise competitor onboarding flows",
+    project: 2,
+    tag: 2,
+    progress: 100,
+    notes: "Six products reviewed. Shortest flow was four screens.",
+  },
+  { title: "Ship the icon set", project: 0, tag: 0, progress: 100 },
 ];
 
 function daysAgo(days: number): string {
@@ -46,21 +87,22 @@ export async function seedIfEmpty(): Promise<void> {
     color: colorForName(name),
   }));
 
-  const tasks: Task[] = SAMPLE_TASKS.map(
-    ([title, projectIndex, tagIndex, progress], i) => {
-      const createdAt = daysAgo(SAMPLE_TASKS.length - i);
-      return {
-        id: uuid(),
-        title,
-        projectId: projects[projectIndex].id,
-        tagId: tags[tagIndex].id,
-        progress,
-        completedAt: progress >= MAX_PROGRESS ? daysAgo(1) : null,
-        createdAt,
-        updatedAt: createdAt,
-      };
-    }
-  );
+  const tasks: Task[] = SAMPLE_TASKS.map((sample, i) => {
+    const createdAt = daysAgo(SAMPLE_TASKS.length - i);
+    return {
+      id: uuid(),
+      title: sample.title,
+      projectId: projects[sample.project].id,
+      tagId: tags[sample.tag].id,
+      progress: sample.progress,
+      completedAt: sample.progress >= MAX_PROGRESS ? daysAgo(1) : null,
+      createdAt,
+      updatedAt: createdAt,
+      progressNote: sample.progressNote ?? "",
+      blocker: sample.blocker ?? "",
+      notes: sample.notes ?? "",
+    };
+  });
 
   await db.transaction("rw", db.projects, db.tags, db.tasks, async () => {
     // Re-check inside the transaction: two tabs opening at once must not

@@ -20,6 +20,7 @@ import {
   deleteTask,
   duplicateTask,
   setProgress,
+  setTaskDetail,
   updateTask,
   useAllTasks,
   useProjects,
@@ -37,6 +38,7 @@ import {
 import {
   DEFAULT_SORT,
   isComplete,
+  type DetailField,
   type SortKey,
   type Task,
 } from "@/lib/focuslist/types";
@@ -181,6 +183,15 @@ export default function Page() {
     setDeleteTarget(task);
   }, []);
 
+  // Autosaved from the row's detail panel — deliberately silent, since a toast
+  // on every pause in typing would be noise.
+  const handleDetailSave = useCallback(
+    (id: string, field: DetailField, value: string) => {
+      void setTaskDetail(id, field, value);
+    },
+    []
+  );
+
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
     await deleteTask(deleteTarget.id);
@@ -324,6 +335,7 @@ export default function Page() {
               onDuplicate={handleDuplicate}
               onComplete={handleComplete}
               onDelete={handleRequestDelete}
+              onDetailSave={handleDetailSave}
               onClearFilters={handleClearFilters}
               onAddTask={openCreate}
             />

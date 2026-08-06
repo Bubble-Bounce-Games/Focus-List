@@ -13,8 +13,10 @@ import { v4 as uuid } from "uuid";
 
 import { colorForName } from "./palette";
 import {
+  EMPTY_DETAILS,
   MAX_PROGRESS,
   MIN_PROGRESS,
+  type DetailField,
   type Project,
   type Tag,
   type Task,
@@ -27,11 +29,30 @@ class FocusListDB extends Dexie {
 
   constructor() {
     super("focuslist");
-    this.version(1).stores({
+
+    const schema = {
       tasks: "id, projectId, tagId, progress, createdAt, completedAt",
       projects: "id, name",
       tags: "id, name",
-    });
+    };
+
+    this.version(1).stores(schema);
+
+    // v2 adds progressNote / blocker / notes. They are not indexed, so the
+    // store definition is unchanged — but existing rows are backfilled so the
+    // detail editors never bind to undefined and turn into uncontrolled inputs.
+    this.version(2)
+      .stores(schema)
+      .upgrade((tx) =>
+        tx
+          .table<Task>("tasks")
+          .toCollection()
+          .modify((task) => {
+            task.progressNote ??= "";
+            task.blocker ??= "";
+            task.notes ??= "";
+          })
+      );
   }
 }
 
@@ -125,6 +146,7 @@ export async function createTask(input: NewTaskInput): Promise<Task | undefined>
     completedAt: completionStamp(progress, null),
     createdAt: timestamp,
     updatedAt: timestamp,
+    ...EMPTY_DETAILS,
   };
 
   await db.tasks.add(task);
@@ -132,7 +154,10 @@ export async function createTask(input: NewTaskInput): Promise<Task | undefined>
 }
 
 export type TaskPatch = Partial<
-  Pick<Task, "title" | "projectId" | "tagId" | "progress">
+  Pick<
+    Task,
+    "title" | "projectId" | "tagId" | "progress" | "progressNote" | "blocker" | "notes"
+  >
 >;
 
 export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
@@ -158,6 +183,20 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
 
 export async function setProgress(id: string, value: number): Promise<void> {
   await updateTask(id, { progress: value });
+}
+
+/**
+ * Writes one field of the detail panel. Called from a debounced autosave, so
+ * it stays a single narrow write rather than round-tripping the whole task.
+ */
+export async function setTaskDetail(
+  id: string,
+  field: DetailField,
+  value: string
+): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db.tasks.update(id, { [field]: value, updatedAt: now() });
 }
 
 export async function deleteTask(id: string): Promise<void> {
