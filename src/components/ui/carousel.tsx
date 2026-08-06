@@ -95,6 +95,10 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
+    // Reading embla's initial scroll state requires one synchronous setState
+    // before subscribing. Kept as-is to stay in step with upstream shadcn/ui;
+    // this component is scaffolding and is not mounted anywhere in the app.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)

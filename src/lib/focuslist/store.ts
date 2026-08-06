@@ -26,7 +26,7 @@ class FocusListDB extends Dexie {
   tags!: Table<Tag, string>;
 
   constructor() {
-    super("focus-list");
+    super("focuslist");
     this.version(1).stores({
       tasks: "id, projectId, tagId, progress, createdAt, completedAt",
       projects: "id, name",
@@ -76,30 +76,29 @@ export function tagMap(tags: Tag[]): Record<string, Tag> {
 /* -------------------------------- hooks --------------------------------- */
 
 export function useAllTasks(): Task[] {
-  const rows = useLiveQuery<Task[]>(
+  return useLiveQuery(
     async () => (await getDb()?.tasks.toArray()) ?? [],
     [],
-    []
+    [] as Task[]
   );
-  return rows ?? [];
 }
 
 export function useProjects(): Project[] {
-  const rows = useLiveQuery<Project[]>(
+  const rows = useLiveQuery(
     async () => (await getDb()?.projects.toArray()) ?? [],
     [],
-    []
+    [] as Project[]
   );
-  return (rows ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  return rows.slice().sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function useTags(): Tag[] {
-  const rows = useLiveQuery<Tag[]>(
+  const rows = useLiveQuery(
     async () => (await getDb()?.tags.toArray()) ?? [],
     [],
-    []
+    [] as Tag[]
   );
-  return (rows ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  return rows.slice().sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /* ------------------------------ mutations ------------------------------- */

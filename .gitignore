@@ -218,8 +218,15 @@ __marimo__/
 .streamlit/secrets.toml
 .env.secrets
 
-# ---- Next.js / Node / Bun (Focus List app) ----
+# ---- Next.js / Node / Yarn (Focus List app) ----
 /node_modules/
+
+# Yarn is the only supported package manager; a stray lockfile from another
+# one silently re-resolves every caret range and drifts the dependency tree.
+/package-lock.json
+/bun.lock
+/bun.lockb
+/pnpm-lock.yaml
 /.next/
 /out/
 /build

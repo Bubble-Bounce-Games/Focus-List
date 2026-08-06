@@ -32,14 +32,24 @@ no cloud sync, no accounts, and no telemetry.
 
 ## Getting started
 
-Requires [Node.js](https://nodejs.org/) 18+ and [Bun](https://bun.sh/).
+Requires [Node.js](https://nodejs.org/) 20+ and [Yarn](https://classic.yarnpkg.com/) 1.x.
 
 ```bash
-bun install
-bun run dev
+yarn install
+yarn dev
 ```
 
 Open http://localhost:3000 in your browser.
+
+To run a production build locally:
+
+```bash
+yarn build
+yarn start
+```
+
+`yarn verify` runs the full gate — import/tracking check, lint, and build —
+and is what CI runs on every push.
 
 On first launch the app seeds a few realistic sample tasks so you can see how
 it works. Delete them and they will not come back — seeding only happens when
