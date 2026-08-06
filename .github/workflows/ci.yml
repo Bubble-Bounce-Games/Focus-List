@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      # actions/checkout materialises only what git tracks. That is the whole
+      # point of this job: the app once compiled on a developer machine purely
+      # because src/lib existed on disk while being excluded by .gitignore, so
+      # it was never committed. A clean checkout is the cheapest possible
+      # reproduction of "does this actually build for anyone else?"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      # imports resolve + no source file ignored or untracked
+      - name: Check imports and tracking
+        run: yarn check:imports
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Test
+        run: yarn test
+
+      - name: Build
+        run: yarn build
+
+      # A production start that exits non-zero, or serves anything other than
+      # 200, fails the job. Catches a broken standalone output even when the
+      # build itself reports success.
+      - name: Smoke-test the production server
+        run: |
+          yarn start > server.log 2>&1 &
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://localhost:3000/; then
+              echo "server responded 200"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "server never became ready:"
+          cat server.log
+          exit 1

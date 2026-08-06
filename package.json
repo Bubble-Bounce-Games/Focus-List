@@ -8,7 +8,9 @@
     "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "check:imports": "./scripts/check-imports.sh",
-    "verify": "yarn check:imports && yarn lint && yarn build"
+    "typecheck": "tsc --noEmit",
+    "test": "./scripts/test-logic.sh",
+    "verify": "yarn check:imports && yarn typecheck && yarn lint && yarn test && yarn build"
   },
   "packageManager": "yarn@1.22.22",
   "engines": {
