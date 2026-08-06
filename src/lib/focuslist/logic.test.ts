@@ -157,16 +157,37 @@ test("project-asc orders by project name", () => {
   assert.deepEqual(sorted.map((t) => t.id), ["b", "a"]);
 });
 
-test("recent orders newest-created first", () => {
-  const sorted = sortTasks(
-    [
-      task({ id: "old", createdAt: "2026-01-01T00:00:00.000Z" }),
-      task({ id: "new", createdAt: "2026-06-01T00:00:00.000Z" }),
-    ],
-    "recent",
-    projects
-  );
-  assert.deepEqual(sorted.map((t) => t.id), ["new", "old"]);
+test("recent orders newest-created first, oldest is its mirror", () => {
+  const tasks = [
+    task({ id: "old", createdAt: "2026-01-01T00:00:00.000Z" }),
+    task({ id: "new", createdAt: "2026-06-01T00:00:00.000Z" }),
+  ];
+  assert.deepEqual(sortTasks(tasks, "recent", projects).map((t) => t.id), [
+    "new",
+    "old",
+  ]);
+  assert.deepEqual(sortTasks(tasks, "oldest", projects).map((t) => t.id), [
+    "old",
+    "new",
+  ]);
+});
+
+// README advertises sorting by progress (low/high), newest, oldest, project
+// and task name. Every one of those must be reachable from the header menu.
+test("all six documented sort options are offered and implemented", () => {
+  assert.equal(SORT_OPTIONS.length, 6);
+  const sample = [
+    task({ id: "a", title: "Beta", progress: 20 }),
+    task({ id: "b", title: "Alpha", progress: 80 }),
+  ];
+  for (const option of SORT_OPTIONS) {
+    const sorted = sortTasks(sample, option.value, projects);
+    assert.equal(
+      sorted.length,
+      2,
+      `sort "${option.value}" dropped or duplicated tasks`
+    );
+  }
 });
 
 /* --------------------------- groupDoneByProject -------------------------- */

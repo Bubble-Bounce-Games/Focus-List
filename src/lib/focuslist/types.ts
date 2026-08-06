@@ -34,16 +34,18 @@ export type SortKey =
   | "progress-asc"
   | "title-asc"
   | "project-asc"
-  | "recent";
+  | "recent"
+  | "oldest";
 
 // Labels are "Group: detail" — the header shows the part before the colon
 // when the viewport is too narrow for the full label.
 export const SORT_OPTIONS: ReadonlyArray<{ value: SortKey; label: string }> = [
   { value: "progress-desc", label: "Progress: High to low" },
   { value: "progress-asc", label: "Progress: Low to high" },
-  { value: "title-asc", label: "Title: A to Z" },
+  { value: "recent", label: "Created: Newest first" },
+  { value: "oldest", label: "Created: Oldest first" },
   { value: "project-asc", label: "Project: A to Z" },
-  { value: "recent", label: "Recent: Newest first" },
+  { value: "title-asc", label: "Title: A to Z" },
 ];
 
 export const DEFAULT_SORT: SortKey = "progress-desc";

@@ -86,6 +86,11 @@ export function sortTasks(
         (a, b) => b.createdAt.localeCompare(a.createdAt) || byTitle(a, b)
       );
       break;
+    case "oldest":
+      sorted.sort(
+        (a, b) => a.createdAt.localeCompare(b.createdAt) || byTitle(a, b)
+      );
+      break;
   }
 
   return sorted;
