@@ -48,6 +48,36 @@ yarn build
 yarn start
 ```
 
+### Serving it at http://focus-list.local
+
+```bash
+sudo ./scripts/local-domain.sh install
+```
+
+That does two things: points `focus-list.local` at `127.0.0.1` via a marked
+block in `/etc/hosts`, and adds a pf rule redirecting port 80 to port 3000, so
+the bare URL works without running the server as root. Start the app as usual
+and open http://focus-list.local.
+
+The pf redirect is cleared by a reboot — `sudo ./scripts/local-domain.sh port`
+restores it. `./scripts/local-domain.sh status` reports what is currently in
+place, and `uninstall` reverses everything.
+
+If you would rather not touch the firewall, run only the name half with
+`sudo ./scripts/local-domain.sh host` and use http://focus-list.local:3000.
+
+### Icons
+
+The browser-tab icon is generated from `public/logo.png`:
+
+```bash
+yarn icons
+```
+
+This crops the logo down to its mark — the full lockup is unreadable at 16px —
+and writes `src/app/icon.png` and `src/app/apple-icon.png`, which Next picks up
+by file convention. Re-run it whenever the logo changes, and commit the output.
+
 `yarn verify` runs the full gate — import/tracking check, lint, and build —
 and is what CI runs on every push.
 
