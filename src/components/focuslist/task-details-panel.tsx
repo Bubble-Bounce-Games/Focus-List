@@ -54,7 +54,9 @@ type TaskDetailsPanelProps = {
 
 export function TaskDetailsPanel({ task, onSave }: TaskDetailsPanelProps) {
   return (
-    <div className="fl-scroll max-h-[248px] overflow-y-auto border-t border-border bg-app/70 px-3 sm:px-4">
+    // No scroll container here on purpose. Each field owns its own scrollbar,
+    // so reaching the bottom of one never carries on into the next.
+    <div className="border-t border-border bg-app/70 px-3 sm:px-4">
       <div className="divide-y divide-border/70">
         {FIELDS.map((spec) => (
           <DetailRow
@@ -129,33 +131,33 @@ function DetailRow({ spec, initialValue, onSave }: DetailRowProps) {
   const Icon = spec.icon;
 
   return (
-    <div className="flex items-start gap-3 py-2.5">
-      <div className="flex w-[92px] shrink-0 items-center gap-1.5 pt-1.5">
+    // Label above the field, not beside it, so each section reads as one
+    // vertical block and the text gets the full width of the panel.
+    <div className="flex flex-col gap-1.5 py-3">
+      <div className="flex items-center gap-1.5">
         <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: spec.tone }} />
-        <span
-          className="text-xs font-semibold"
-          style={{ color: spec.tone }}
-        >
+        <span className="text-xs font-semibold" style={{ color: spec.tone }}>
           {spec.label}
+        </span>
+        <span
+          aria-live="polite"
+          className="ml-auto text-[11px] tabular-nums text-muted-foreground"
+        >
+          {status === "saved" ? "Saved" : status === "pending" ? "…" : ""}
         </span>
       </div>
 
+      {/* A fixed height plus overflow-y makes the textarea scroll its own
+          content. That is what keeps the three fields independent: there is no
+          shared scroll container for a gesture to escape into. */}
       <textarea
         value={draft}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={commit}
-        rows={2}
         placeholder={spec.placeholder}
         aria-label={spec.label}
-        className="min-w-0 flex-1 resize-none rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-sm leading-relaxed text-foreground-strong outline-none transition-colors placeholder:text-muted-foreground hover:border-border focus:border-[#6252e8] focus:bg-card"
+        className="fl-scroll h-[84px] w-full resize-none overflow-y-auto rounded-lg border border-border bg-card px-2.5 py-2 text-sm leading-relaxed text-foreground-strong outline-none transition-colors placeholder:text-muted-foreground focus:border-[#6252e8]"
       />
-
-      <span
-        aria-live="polite"
-        className="w-11 shrink-0 pt-2 text-right text-[11px] tabular-nums text-muted-foreground"
-      >
-        {status === "saved" ? "Saved" : status === "pending" ? "…" : ""}
-      </span>
     </div>
   );
 }

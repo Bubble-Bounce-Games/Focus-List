@@ -58,36 +58,13 @@ tests, and build — and is what CI runs on every push.
 bash start.sh          # start it and open the browser
 bash start.sh stop     # stop it
 bash start.sh status   # is it running, and where
-bash start.sh setup    # one-time, asks for your password
 ```
 
 `bash start.sh` installs and rebuilds only when something actually changed,
-starts the server on port 9000, and opens the browser. The server is detached,
-so the command returns to your prompt instead of sitting there — stop it later
-with `bash start.sh stop`. You can also double-click **`Focus-List.command`** in
-Finder.
-
-The default path never asks for a password. Run `bash start.sh setup` once to
-make the short URL http://focus-list.local work; until then the launcher opens
-http://localhost:9000 and tells you so.
-
-### Serving it at http://focus-list.local
-
-```bash
-bash start.sh setup     # or: sudo ./scripts/local-domain.sh install
-```
-
-That does two things: points `focus-list.local` at `127.0.0.1` via a marked
-block in `/etc/hosts`, and adds a pf rule redirecting port 80 to port 9000, so
-the bare URL works without running the server as root. Start the app as usual
-and open http://focus-list.local.
-
-The pf redirect is cleared by a reboot — `sudo ./scripts/local-domain.sh port`
-restores it. `./scripts/local-domain.sh status` reports what is currently in
-place, and `uninstall` reverses everything.
-
-If you would rather not touch the firewall, run only the name half with
-`sudo ./scripts/local-domain.sh host` and use http://focus-list.local:9000.
+starts the server on port 9000, and opens http://localhost:9000. The server is
+detached, so the command returns to your prompt instead of sitting there — stop
+it later with `bash start.sh stop`. It never needs sudo. You can also
+double-click **`Focus-List.command`** in Finder.
 
 ### Icons
 
