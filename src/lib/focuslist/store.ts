@@ -23,13 +23,19 @@ import {
   type Task,
 } from "./types";
 
-class FocusListDB extends Dexie {
+export type MetaRow = { key: string; value: unknown };
+
+/** Set once the sample data has been inserted, so it is never inserted twice. */
+export const SEEDED_KEY = "seeded";
+
+export class FocusListDB extends Dexie {
   tasks!: Table<Task, string>;
   projects!: Table<Project, string>;
   tags!: Table<Tag, string>;
+  meta!: Table<MetaRow, string>;
 
-  constructor() {
-    super("focuslist");
+  constructor(name = "focuslist") {
+    super(name);
 
     const schema = {
       tasks: "id, projectId, tagId, progress, createdAt, completedAt",
@@ -54,6 +60,19 @@ class FocusListDB extends Dexie {
             task.notes ??= "";
           })
       );
+
+    // v3 records whether the samples have been inserted. Previously that was
+    // inferred from "are there zero tasks?", which meant deleting every task
+    // brought the sample data back on the next reload — the app silently
+    // undoing a deliberate deletion.
+    //
+    // upgrade() runs only when migrating from an older version, never on a
+    // fresh database. So an existing install is marked as already seeded (it
+    // has either its samples or the user's own data, and in both cases must be
+    // left alone), while a brand-new database has no flag and gets seeded once.
+    this.version(3)
+      .stores({ ...schema, meta: "key" })
+      .upgrade((tx) => tx.table<MetaRow>("meta").put({ key: SEEDED_KEY, value: true }));
   }
 }
 

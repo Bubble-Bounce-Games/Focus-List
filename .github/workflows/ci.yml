@@ -19,35 +19,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: yarn
+          cache: npm
 
       - name: Install
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       # imports resolve + no source file ignored or untracked
       - name: Check imports and tracking
-        run: yarn check:imports
+        run: npm run check:imports
 
       - name: Typecheck
-        run: yarn typecheck
+        run: npm run typecheck
 
       - name: Lint
-        run: yarn lint
+        run: npm run lint
 
       - name: Test
-        run: yarn test
+        run: npm test
 
       - name: Build
-        run: yarn build
+        run: npm run build
 
       # A production start that exits non-zero, or serves anything other than
       # 200, fails the job. Catches a broken standalone output even when the
       # build itself reports success.
       - name: Smoke-test the production server
         run: |
-          yarn start > server.log 2>&1 &
+          npm start > server.log 2>&1 &
           for _ in $(seq 1 30); do
-            if curl -sf -o /dev/null http://localhost:3000/; then
+            if curl -sf -o /dev/null http://localhost:9000/; then
               echo "server responded 200"
               exit 0
             fi

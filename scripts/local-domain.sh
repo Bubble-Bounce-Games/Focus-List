@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Serves the app at http://focus-list.local instead of http://localhost:3000.
+# Serves the app at http://focus-list.local instead of http://localhost:9000.
 #
 # Two separate problems, handled independently so you can take just the first:
 #
@@ -7,7 +7,7 @@
 #              /etc/hosts. Permanent, survives reboots.
 #   2. Port    A bare http:// URL means port 80, and only root may bind ports
 #              below 1024. Rather than running the whole Next server as root,
-#              a pf rule redirects 127.0.0.1:80 to 127.0.0.1:3000.
+#              a pf rule redirects 127.0.0.1:80 to 127.0.0.1:9000.
 #
 # The pf rule is loaded into a nested anchor under "com.apple", which the stock
 # /etc/pf.conf already references with `rdr-anchor "com.apple/*"`. That means
@@ -25,7 +25,7 @@
 set -euo pipefail
 
 DOMAIN="focus-list.local"
-APP_PORT="${APP_PORT:-3000}"
+APP_PORT="${APP_PORT:-9000}"
 HOSTS_FILE="/etc/hosts"
 ANCHOR="com.apple/focus-list"
 BEGIN="# BEGIN focus-list"
@@ -108,7 +108,7 @@ status() {
   if curl -sf -o /dev/null --max-time 2 "http://localhost:$APP_PORT/"; then
     echo "server: responding on localhost:$APP_PORT"
   else
-    echo "server: nothing on localhost:$APP_PORT — start it with 'yarn dev'"
+    echo "server: nothing on localhost:$APP_PORT — start it with 'bash start.sh'"
   fi
 }
 

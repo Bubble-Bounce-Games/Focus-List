@@ -7,7 +7,7 @@
 import { v4 as uuid } from "uuid";
 
 import { colorForName } from "./palette";
-import { getDb } from "./store";
+import { getDb, SEEDED_KEY } from "./store";
 import { MAX_PROGRESS, type Project, type Tag, type Task } from "./types";
 
 const SAMPLE_PROJECTS = ["Website Redesign", "Mobile App", "Research"] as const;
@@ -73,7 +73,9 @@ export async function seedIfEmpty(): Promise<void> {
   const db = getDb();
   if (!db) return;
 
-  if ((await db.tasks.count()) > 0) return;
+  // Guarded by a recorded flag, not by "is the task list empty?" — otherwise
+  // deleting every task would resurrect the samples on the next reload.
+  if (await db.meta.get(SEEDED_KEY)) return;
 
   const projects: Project[] = SAMPLE_PROJECTS.map((name) => ({
     id: uuid(),
@@ -104,12 +106,22 @@ export async function seedIfEmpty(): Promise<void> {
     };
   });
 
-  await db.transaction("rw", db.projects, db.tags, db.tasks, async () => {
-    // Re-check inside the transaction: two tabs opening at once must not
-    // both decide the database is empty and seed it twice.
-    if ((await db.tasks.count()) > 0) return;
-    await db.projects.bulkAdd(projects);
-    await db.tags.bulkAdd(tags);
-    await db.tasks.bulkAdd(tasks);
-  });
+  await db.transaction(
+    "rw",
+    db.projects,
+    db.tags,
+    db.tasks,
+    db.meta,
+    async () => {
+      // Re-check inside the transaction: two tabs opening at once must not
+      // both decide the database is unseeded and insert the samples twice.
+      if (await db.meta.get(SEEDED_KEY)) return;
+      await db.projects.bulkAdd(projects);
+      await db.tags.bulkAdd(tags);
+      await db.tasks.bulkAdd(tasks);
+      // Same transaction as the inserts, so a crash midway cannot leave the
+      // database marked seeded but empty.
+      await db.meta.put({ key: SEEDED_KEY, value: true });
+    }
+  );
 }

@@ -18,7 +18,7 @@
 //   src/app/icon.png        -> <link rel="icon">
 //   src/app/apple-icon.png  -> <link rel="apple-touch-icon">
 //
-// Re-run with `yarn icons` whenever public/logo.png changes.
+// Re-run with `npm run icons` whenever public/logo.png changes.
 
 import { stat } from "node:fs/promises";
 import path from "node:path";

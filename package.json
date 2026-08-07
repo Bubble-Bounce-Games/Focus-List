@@ -3,18 +3,18 @@
   "version": "0.3.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "dev": "next dev -p 9000 2>&1 | tee dev.log",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
-    "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
+    "start": "NODE_ENV=production PORT=9000 node .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "icons": "node scripts/generate-icons.mjs",
     "domain": "./scripts/local-domain.sh status",
     "check:imports": "./scripts/check-imports.sh",
     "typecheck": "tsc --noEmit",
     "test": "./scripts/test-logic.sh",
-    "verify": "yarn check:imports && yarn typecheck && yarn lint && yarn test && yarn build"
+    "verify": "npm run check:imports && npm run typecheck && npm run lint && npm test && npm run build"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "npm@11.4.2",
   "engines": {
     "node": ">=20"
   },
@@ -90,6 +90,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
+    "fake-indexeddb": "^6.2.5",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"

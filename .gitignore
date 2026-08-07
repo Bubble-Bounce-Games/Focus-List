@@ -218,12 +218,13 @@ __marimo__/
 .streamlit/secrets.toml
 .env.secrets
 
-# ---- Next.js / Node / Yarn (Focus List app) ----
+# ---- Next.js / Node / npm (Focus List app) ----
 /node_modules/
 
-# Yarn is the only supported package manager; a stray lockfile from another
-# one silently re-resolves every caret range and drifts the dependency tree.
-/package-lock.json
+# npm is the only supported package manager; a stray lockfile from another one
+# silently re-resolves every caret range and drifts the dependency tree.
+# package-lock.json is committed on purpose — do not ignore it.
+/yarn.lock
 /bun.lock
 /bun.lockb
 /pnpm-lock.yaml
@@ -247,3 +248,6 @@ next-env.d.ts
 .idea/
 .vscode/
 *.swp
+
+# Compiled output for the test runner (scripts/test-logic.sh)
+/.test-build/
