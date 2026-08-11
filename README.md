@@ -1,11 +1,12 @@
 # Focus List
 
-A calm, local-only personal task manager. Track each task's progress with a
+A calm task manager with a persistent local SQL backend. Track each task's progress with a
 slider — when a task reaches 100% it automatically moves into the Done
 section, grouped by its original project and tag.
 
-All data lives entirely in your browser via IndexedDB. There is no backend,
-no cloud sync, no accounts, and no telemetry.
+Tasks, projects, tags, and sign-in sessions are stored by the local server in
+SQLite. Open the same running server from another browser or device and you
+will see the same saved list.
 
 ## Features
 
@@ -18,21 +19,22 @@ no cloud sync, no accounts, and no telemetry.
 - **Sorting** by progress (low/high), newest, oldest, project, or task name.
 - **Done section** grouped by project, collapsible, with completion dates.
 - **Add/Edit slide-over panel** with unsaved-changes guard.
-- **Persistence** — IndexedDB for all tasks/projects/tags; localStorage for
-  small UI preferences (filters, sort).
+- **Persistence** — SQLite for all tasks, projects, and tags; localStorage
+  only for small UI preferences (filters, sort).
+- **Explicit projects** — create a project first, then assign tasks to it.
 - **Desktop-optimized, fixed viewport** — no full-page scrolling.
 
 ## Tech stack
 
 - [Next.js 16](https://nextjs.org/) (App Router) + TypeScript
 - [Tailwind CSS 4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
-- [Dexie](https://dexie.org/) (IndexedDB wrapper) for local persistence
+- SQLite through Node.js for persistent local storage
 - [Framer Motion](https://www.framer.com/motion/) for restrained animations
 - [Lucide](https://lucide.dev/) icons
 
 ## Getting started
 
-Requires [Node.js](https://nodejs.org/) 20+ and npm. The quickest way in is the
+Requires [Node.js](https://nodejs.org/) 22.5+ and npm. The quickest way in is the
 launcher below; the raw commands are:
 
 ```bash
@@ -48,6 +50,11 @@ To run a production build locally:
 npm run build
 npm start
 ```
+
+`npm start` keeps the SQLite database and credential CSV in this project's
+`data/` folder, outside the standalone build output. If you run
+`.next/standalone/server.js` directly, set `FOCUS_LIST_DATA_DIR` to the
+directory that contains your persistent `data` folder first.
 
 `npm run verify` runs the full gate — import/tracking check, typecheck, lint,
 tests, and build — and is what CI runs on every push.
@@ -78,23 +85,23 @@ This crops the logo down to its mark — the full lockup is unreadable at 16px �
 and writes `src/app/icon.png` and `src/app/apple-icon.png`, which Next picks up
 by file convention. Re-run it whenever the logo changes, and commit the output.
 
-On first launch the app seeds a few realistic sample tasks so you can see how
-it works. Delete them and they stay deleted: seeding is recorded once in the
-database, so an empty list is treated as a deliberate choice rather than a
-reason to re-seed.
-
-Deleting the last task in a project (or tag) also removes that project, so the
-filter menus do not fill up with labels that no longer apply.
+The database begins empty. Use **New Project** first; every task must be
+assigned to one of those existing projects.
 
 ## Local data
 
-- **IndexedDB** (`focuslist` database) stores all tasks, projects, and tags.
-  Everything you create, edit or delete is written straight to it and survives
-  restarts. The persistence layer is covered by tests that run against a real
-  IndexedDB implementation (`npm test`).
+- **SQLite** (`data/focus-list.sqlite`) stores all tasks, projects, tags, and
+  sessions. Everything you create, edit, or delete is written to this database
+  and survives restarts. It is ignored by Git so it is never committed.
 - **localStorage** stores only UI preferences (search text, selected filters,
   sort order) under the `fl.*` keys.
-- Clearing your browser's site data resets the app to a fresh state.
+- **Credentials** live only in `data/no-credentials/credential.csv`, which is
+  ignored by Git. Copy `credential.csv.example` to that name, then set the
+  `username,password` row. The server reads this file for sign-in; passwords
+  are intentionally plain text at your request, so keep the server private.
+- To use the list from another device, run one copy of the server on a machine
+  with persistent storage and open that machine's address from the other device.
+  A separately started copy has its own local database.
 
 ## Project conventions
 

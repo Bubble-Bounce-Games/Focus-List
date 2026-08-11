@@ -14,59 +14,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
-import type { Project, Tag, Task } from "@/lib/focuslist/types";
-import { clampProgress } from "@/lib/focuslist/store";
-import { colorForName, PALETTE, pillStyle } from "@/lib/focuslist/palette";
+import { MAX_PROGRESS, MIN_PROGRESS, type Project, type Tag, type Task } from "@/lib/focuslist/types";
 import { Combobox } from "./combobox";
 import { ProgressSlider } from "./progress-slider";
 
+function clampProgress(value: number) {
+  if (!Number.isFinite(value)) return MIN_PROGRESS;
+  return Math.min(MAX_PROGRESS, Math.max(MIN_PROGRESS, Math.round(value)));
+}
+
 export type TaskFormData = {
   title: string;
-  projectName: string;
+  projectId: string;
   tagName: string;
   progress: number;
-  /** Only applied when the project is new; existing projects keep their colour. */
-  projectColor: string;
 };
-
-function ColorChoice({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (color: string) => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Project colour"
-      className="mt-2 flex flex-wrap items-center gap-2"
-    >
-      {PALETTE.map((color) => {
-        const selected = color.toLowerCase() === value.toLowerCase();
-        return (
-          <button
-            key={color}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            aria-label={`Project colour ${color}`}
-            onClick={() => onChange(color)}
-            className="h-6 w-6 rounded-full transition-transform hover:scale-110"
-            style={{
-              backgroundColor: color,
-              // Ring drawn as a shadow so the swatch keeps its exact size
-              // whether or not it is the selected one.
-              boxShadow: selected
-                ? `0 0 0 2px #ffffff, 0 0 0 4px ${color}`
-                : "inset 0 0 0 1px rgba(23,26,43,0.08)",
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
 
 type AddTaskPanelProps = {
   open: boolean;
@@ -102,18 +64,16 @@ function PanelBody({
       const tag = tags.find((t) => t.id === editingTask.tagId);
       return {
         title: editingTask.title,
-        projectName: project?.name ?? "",
+        projectId: project?.id ?? "",
         tagName: tag?.name ?? "",
         progress: editingTask.progress,
-        projectColor: project?.color ?? "",
       };
     }
     return {
       title: "",
-      projectName: "",
+      projectId: "",
       tagName: "",
       progress: 0,
-      projectColor: "",
     };
   });
   const [touched, setTouched] = useState(false);
@@ -129,35 +89,23 @@ function PanelBody({
   const dirty =
     mode === "edit" && editingTask
       ? (() => {
-          const project = projects.find((p) => p.id === editingTask.projectId);
           const tag = tags.find((t) => t.id === editingTask.tagId);
           return (
             form.title.trim() !== editingTask.title ||
-            form.projectName.trim() !== (project?.name ?? "") ||
+            form.projectId !== editingTask.projectId ||
             form.tagName.trim() !== (tag?.name ?? "") ||
             form.progress !== editingTask.progress
           );
         })()
       : form.title.trim() !== "" ||
-        form.projectName.trim() !== "" ||
+        form.projectId !== "" ||
         form.tagName.trim() !== "" ||
         form.progress !== 0;
 
   const titleValid = form.title.trim().length > 0;
-  const projectValid = form.projectName.trim().length > 0;
+  const projectValid = projects.some((project) => project.id === form.projectId);
   const tagValid = form.tagName.trim().length > 0;
   const formValid = titleValid && projectValid && tagValid;
-
-  // A project already in the list keeps its colour; only a brand-new name gets
-  // to pick one, so the same project never renders two different ways.
-  const trimmedProject = form.projectName.trim();
-  const existingProject = projects.find(
-    (p) => p.name.toLowerCase() === trimmedProject.toLowerCase()
-  );
-  const isNewProject = trimmedProject !== "" && existingProject === undefined;
-  const projectColor = existingProject
-    ? existingProject.color
-    : form.projectColor || colorForName(trimmedProject);
 
   const requestClose = useCallback(() => {
     if (dirty) {
@@ -185,14 +133,12 @@ function PanelBody({
     if (!formValid) return;
     onSubmit({
       title: form.title.trim(),
-      projectName: trimmedProject,
+      projectId: form.projectId,
       tagName: form.tagName.trim(),
       progress: clampProgress(form.progress),
-      projectColor,
     });
   }
 
-  const projectOptions = projects.map((p) => p.name);
   const tagOptions = tags.map((t) => t.name);
 
   return (
@@ -282,45 +228,27 @@ function PanelBody({
                     htmlFor="fl-project"
                     className="mb-1.5 block text-sm font-medium text-foreground-strong"
                   >
-                    Project name
+                    Project
                   </label>
-                  <Combobox
+                  <select
                     id="fl-project"
-                    value={form.projectName}
-                    onChange={(v) => setForm((f) => ({ ...f, projectName: v }))}
-                    options={projectOptions}
-                    placeholder="Select or create a project"
-                    invalid={touched && !projectValid}
-                  />
+                    value={form.projectId}
+                    onChange={(event) => setForm((form) => ({ ...form, projectId: event.target.value }))}
+                    aria-invalid={touched && !projectValid}
+                    className={`h-11 w-full rounded-xl border bg-card px-3.5 text-sm text-foreground-strong outline-none transition-colors focus:border-[#6252e8] ${
+                      touched && !projectValid ? "border-destructive" : "border-border"
+                    }`}
+                  >
+                    <option value="">Select a project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>{project.name}</option>
+                    ))}
+                  </select>
                   {touched && !projectValid && (
                     <p className="mt-1 text-xs text-destructive">
-                      Project name is required.
+                      Select a project. Create one before adding a task.
                     </p>
                   )}
-
-                  {isNewProject ? (
-                    <>
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        New project — pick a colour
-                      </p>
-                      <ColorChoice
-                        value={projectColor}
-                        onChange={(color) =>
-                          setForm((f) => ({ ...f, projectColor: color }))
-                        }
-                      />
-                    </>
-                  ) : existingProject ? (
-                    <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        style={pillStyle(existingProject.color)}
-                      >
-                        {existingProject.name}
-                      </span>
-                      already has a colour
-                    </p>
-                  ) : null}
                 </div>
                 <div>
                   <label

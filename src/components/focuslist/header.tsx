@@ -26,6 +26,7 @@ type HeaderProps = {
   sort: SortKey;
   onSortChange: (sort: SortKey) => void;
   onAddTask: () => void;
+  onAddProject: () => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 };
 
@@ -35,6 +36,7 @@ export function Header({
   sort,
   onSortChange,
   onAddTask,
+  onAddProject,
   searchInputRef,
 }: HeaderProps) {
   const currentLabel =
@@ -111,6 +113,15 @@ export function Header({
         </DropdownMenu>
 
         {/* Add Task */}
+        <Button
+          variant="outline"
+          onClick={onAddProject}
+          className="h-11 gap-2 rounded-xl border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
+        >
+          <Plus className="h-4 w-4" />
+          <span className="hidden xl:inline">New Project</span>
+        </Button>
+
         <Button
           onClick={onAddTask}
           className="h-11 w-[150px] gap-2 rounded-xl bg-[#6252e8] text-[15px] font-semibold text-white shadow-sm hover:bg-[#5444d6] hover:shadow"

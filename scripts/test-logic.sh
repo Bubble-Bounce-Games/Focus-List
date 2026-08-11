@@ -2,7 +2,7 @@
 # Runs the test suite under node:test.
 #
 # Two kinds of test live here: pure derivations (filter/sort/group), and the
-# real Dexie persistence layer driven against fake-indexeddb.
+# real SQLite persistence layer that powers the server API.
 #
 # The app's tsconfig targets a bundler (extensionless relative imports), which
 # Node cannot resolve on its own, so the relevant modules are compiled to
@@ -19,12 +19,11 @@ trap 'rm -rf "$OUT"' EXIT
 
 npx --no-install tsc \
   src/lib/focuslist/logic.test.ts \
-  src/lib/focuslist/store.test.ts \
+  src/lib/focuslist/server-db.test.ts \
   src/lib/focuslist/selectors.ts \
   src/lib/focuslist/palette.ts \
   src/lib/focuslist/types.ts \
-  src/lib/focuslist/store.ts \
-  src/lib/focuslist/seed.ts \
+  src/lib/focuslist/server-db.ts \
   --outDir "$OUT" \
   --module commonjs \
   --moduleResolution node \

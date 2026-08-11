@@ -13,22 +13,21 @@ import {
   type TaskFormData,
 } from "@/components/focuslist/add-task-panel";
 import { DeleteConfirm } from "@/components/focuslist/delete-confirm";
+import { LoginForm } from "@/components/focuslist/login-form";
+import { CreateProjectDialog } from "@/components/focuslist/create-project-dialog";
 
-import { seedIfEmpty } from "@/lib/focuslist/seed";
 import {
+  createProject,
   createTask,
   deleteTask,
   duplicateTask,
   setProgress,
   setTaskDetail,
   updateTask,
-  useAllTasks,
-  useProjects,
-  useTags,
-  findOrCreateProject,
-  findOrCreateTag,
   projectMap,
   tagMap,
+  useAuthentication,
+  useFocusListData,
 } from "@/lib/focuslist/store";
 import {
   groupDoneByProject,
@@ -45,11 +44,9 @@ import {
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
 
 export default function Page() {
-  const projects = useProjects();
-  const tags = useTags();
-  const allTasks = useAllTasks();
+  const auth = useAuthentication();
+  const { projects, tags, tasks: allTasks, ready: dataReady } = useFocusListData(auth.authenticated);
 
-  const [ready, setReady] = useState(false);
   const [search, setSearch] = usePersistentState("fl.search", "");
   const [sort, setSort] = usePersistentState<SortKey>("fl.sort", DEFAULT_SORT);
   const [selectedProjectId, setSelectedProjectId] = usePersistentState<
@@ -67,21 +64,9 @@ export default function Page() {
   const [panelMode, setPanelMode] = useState<"create" | "edit">("create");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
-
-  // Seed once on first launch.
-  useEffect(() => {
-    let cancelled = false;
-    seedIfEmpty()
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setReady(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // ⌘K / Ctrl+K focuses search.
   useEffect(() => {
@@ -202,10 +187,17 @@ export default function Page() {
   /* ----------------------------- Panel flow ------------------------------ */
 
   const openCreate = useCallback(() => {
+    if (projects.length === 0) {
+      toast.message("Create a project first", {
+        description: "Every new task is assigned to an existing project.",
+      });
+      setProjectDialogOpen(true);
+      return;
+    }
     setEditingTask(null);
     setPanelMode("create");
     setPanelOpen(true);
-  }, []);
+  }, [projects.length]);
 
   const openEdit = useCallback((task: Task) => {
     setEditingTask(task);
@@ -217,13 +209,11 @@ export default function Page() {
 
   const handleSubmit = useCallback(
     async (data: TaskFormData) => {
-      const project = await findOrCreateProject(data.projectName, data.projectColor);
-      const tag = await findOrCreateTag(data.tagName);
       if (panelMode === "edit" && editingTask) {
         await updateTask(editingTask.id, {
           title: data.title,
-          projectId: project.id,
-          tagId: tag.id,
+          projectId: data.projectId,
+          tagName: data.tagName,
           progress: data.progress,
         });
         const becameComplete =
@@ -238,12 +228,7 @@ export default function Page() {
           toast.success("Task updated", { description: data.title });
         }
       } else {
-        await createTask({
-          title: data.title,
-          projectId: project.id,
-          tagId: tag.id,
-          progress: data.progress,
-        });
+        await createTask(data);
         if (data.progress >= 100) {
           toast.success("Task added to Done", { description: data.title });
         } else {
@@ -261,9 +246,14 @@ export default function Page() {
     setSelectedTagId(null);
   }, [setSearch, setSelectedProjectId, setSelectedTagId]);
 
+  const handleCreateProject = useCallback(async (name: string) => {
+    const project = await createProject(name);
+    toast.success("Project created", { description: project.name });
+  }, []);
+
   /* ------------------------------- Render -------------------------------- */
 
-  if (!ready) {
+  if (!auth.ready || (auth.authenticated && !dataReady)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-app">
         <div className="flex items-center gap-3 text-muted-foreground">
@@ -279,6 +269,10 @@ export default function Page() {
     );
   }
 
+  if (!auth.authenticated) {
+    return <LoginForm configured={auth.configured} onSubmit={auth.signIn} />;
+  }
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-app">
       <Header
@@ -287,6 +281,7 @@ export default function Page() {
         sort={sort}
         onSortChange={setSort}
         onAddTask={openCreate}
+        onAddProject={() => setProjectDialogOpen(true)}
         searchInputRef={searchRef}
       />
 
@@ -363,6 +358,12 @@ export default function Page() {
         tags={tags}
         onClose={closePanel}
         onSubmit={handleSubmit}
+      />
+
+      <CreateProjectDialog
+        open={projectDialogOpen}
+        onOpenChange={setProjectDialogOpen}
+        onCreate={handleCreateProject}
       />
 
       <DeleteConfirm

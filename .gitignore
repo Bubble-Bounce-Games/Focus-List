@@ -238,6 +238,9 @@ next-env.d.ts
 # Runtime artifacts & local data
 /dev.log
 /server.log
+/data/focus-list.sqlite
+/data/focus-list.sqlite-*
+/data/no-credentials/credential.csv
 *.log
 /db/
 .env.local
