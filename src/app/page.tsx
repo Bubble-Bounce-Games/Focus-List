@@ -42,9 +42,10 @@ import {
   type Task,
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
-import { AuthPage } from "@/components/auth-page";
 import { useAuth } from "@/components/auth-provider";
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
+import Link from "next/link";
+import { ArrowRight, CalendarDays, CheckCircle2, Circle, Clock3 } from "lucide-react";
 
 function AuthenticatedPage({
   user,
@@ -388,8 +389,42 @@ function AuthenticatedPage({
 
 export default function Page() {
   const { configured, loading, user, signOut } = useAuth();
-  if (!configured || loading || !user) {
-    return <AuthPage configured={configured} />;
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center bg-app text-sm text-muted-foreground">Loading Focus List...</div>;
+  }
+  if (!user) {
+    return <LandingPage configured={configured} />;
   }
   return <AuthenticatedPage user={user} signOut={signOut} />;
+}
+
+function LandingPage({ configured }: { configured: boolean }) {
+  return (
+    <main className="landing-page min-h-screen overflow-auto bg-app">
+      <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4 lg:px-12">
+        <div className="flex items-center gap-3 text-lg font-semibold text-foreground-strong">
+          <img src="/Favicon.png" alt="" className="h-9 w-9 object-contain" />
+          Focus List
+        </div>
+        <Link href={configured ? "/login" : "#setup"} className="flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-[#0353e9]">
+          Sign in <ArrowRight className="h-4 w-4" />
+        </Link>
+      </header>
+      <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:px-12 lg:py-20">
+        <div className="max-w-xl">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.16em] text-primary">A clearer workday</p>
+          <h1 className="max-w-lg text-5xl font-semibold leading-[1.05] text-foreground-strong sm:text-6xl">Your work, in focus.</h1>
+          <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">Capture what matters, see your momentum, and make steady progress without losing the thread.</p>
+          <Link href={configured ? "/login" : "#setup"} className="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgb(15_98_254_/_20%)] hover:bg-[#0353e9]">Start your workspace <ArrowRight className="h-4 w-4" /></Link>
+          <div className="mt-8 flex flex-wrap gap-5 text-sm text-muted-foreground"><span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#198038]" /> Progress you can see</span><span className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" /> Less mental overhead</span></div>
+        </div>
+        <div className="landing-board relative mx-auto w-full max-w-2xl border border-[#cbd5df] bg-white p-5 shadow-[0_24px_70px_rgb(32_48_64_/_12%)] sm:p-8">
+          <div className="mb-7 flex items-center justify-between border-b border-border pb-5"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Today</p><p className="mt-1 text-2xl font-semibold text-foreground-strong">Active Tasks</p></div><CalendarDays className="h-6 w-6 text-muted-foreground" /></div>
+          <div className="space-y-3"><div className="landing-task"><Circle className="text-primary" /><div className="min-w-0 flex-1"><p>Prepare the project brief</p><span>Planning</span><i><em className="w-[72%]" /></i></div><b>72%</b></div><div className="landing-task"><Circle className="text-[#8a3ffc]" /><div className="min-w-0 flex-1"><p>Review the week’s priorities</p><span>Personal</span><i><em className="w-[48%] bg-[#8a3ffc]" /></i></div><b>48%</b></div><div className="landing-task"><Circle className="text-[#198038]" /><div className="min-w-0 flex-1"><p>Make time for deep work</p><span>Focus</span><i><em className="w-[24%] bg-[#198038]" /></i></div><b>24%</b></div></div>
+          <div className="mt-8 flex items-center justify-between border-t border-border pt-5 text-sm"><span className="text-muted-foreground">Completed today</span><strong className="text-[#198038]">2 tasks</strong></div>
+        </div>
+      </section>
+      {!configured && <p id="setup" className="mx-auto max-w-xl px-6 pb-8 text-center text-sm text-muted-foreground">Your workspace connection needs to be configured before you can sign in.</p>}
+    </main>
+  );
 }
