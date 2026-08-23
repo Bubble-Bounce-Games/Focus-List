@@ -154,6 +154,99 @@
   animation: task-board-drift 12s ease-in-out infinite;
 }
 
+.task-board-backdrop {
+  isolation: isolate;
+  border-right: 1px solid #e0e0e0;
+  background:
+    radial-gradient(circle at 78% 22%, rgb(15 98 254 / 45%), transparent 22%),
+    radial-gradient(circle at 18% 78%, rgb(82 96 115 / 28%), transparent 30%),
+    linear-gradient(135deg, #e9eef4 0%, #f4f5f6 52%, #e3eaf2 100%);
+}
+
+.task-icon {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid #d0d0d0;
+  background: rgb(255 255 255 / 85%);
+  color: #0f62fe;
+  box-shadow: 0 12px 28px rgb(22 22 22 / 8%);
+  animation: task-icon-float 8s ease-in-out infinite;
+}
+
+.task-icon-one { top: 18%; right: 18%; transform: rotate(-8deg); }
+.task-icon-two { top: 39%; right: 40%; color: #8a3ffc; transform: rotate(7deg); animation-delay: -2.5s; }
+.task-icon-three { bottom: 19%; right: 13%; color: #198038; transform: rotate(-5deg); animation-delay: -5s; }
+.task-icon-four { top: 34%; right: 8%; color: #da1e28; transform: rotate(8deg); animation-delay: -1.5s; }
+.task-icon-five { bottom: 34%; right: 30%; color: #005d5d; transform: rotate(-7deg); animation-delay: -4s; }
+.task-icon-six { top: 62%; right: 9%; color: #8a3800; transform: rotate(5deg); animation-delay: -6s; }
+.task-icon-seven { bottom: 13%; right: 43%; color: #525252; transform: rotate(-4deg); animation-delay: -3s; }
+
+.task-preview {
+  width: min(100%, 540px);
+  padding: 18px 20px;
+  border: 1px solid rgb(82 96 115 / 22%);
+  background: rgb(255 255 255 / 62%);
+  box-shadow: 0 20px 45px rgb(22 22 22 / 9%);
+  backdrop-filter: blur(8px);
+}
+
+.task-preview-top {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.task-preview-top span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a6b2c2;
+}
+
+.task-preview-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid rgb(82 96 115 / 14%);
+}
+
+.task-preview-row svg {
+  width: 18px;
+  height: 18px;
+  color: #0f62fe;
+}
+
+.task-preview-row b,
+.task-preview-row strong {
+  display: block;
+  color: #343a40;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.task-preview-row strong { text-align: right; color: #525252; }
+
+.task-preview-row i {
+  display: block;
+  height: 5px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: #d9e2ec;
+}
+
+.task-preview-row em {
+  display: block;
+  height: 100%;
+  background: #0f62fe;
+}
+
 .task-board-backdrop::before {
   right: 12%;
   top: 18%;
@@ -174,6 +267,11 @@
 @keyframes task-board-drift {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -14px; }
+}
+
+@keyframes task-icon-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -12px; }
 }
 
 /* ---- Custom range slider ---- */
