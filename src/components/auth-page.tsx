@@ -11,7 +11,7 @@ const faviconPath = `${basePath}/Favicon.png`;
 
 function getAuthErrorMessage(error: AuthError) {
   if (error.code === "email_not_confirmed") {
-    return "This account is still marked unconfirmed in Supabase. Confirm or recreate this user in Authentication > Users, then sign in again.";
+    return "Check your email and confirm your account before signing in.";
   }
   if (error.code === "invalid_credentials") {
     return "That email and password do not match.";
@@ -22,7 +22,7 @@ function getAuthErrorMessage(error: AuthError) {
 
   const text = error.message.toLowerCase();
   if (text.includes("email not confirmed")) {
-    return "This account is still marked unconfirmed in Supabase. Confirm or recreate this user in Authentication > Users, then sign in again.";
+    return "Check your email and confirm your account before signing in.";
   }
   if (text.includes("invalid login credentials")) {
     return "That email and password do not match.";
@@ -66,13 +66,9 @@ export function AuthPage() {
         setMessageType("error");
         setMessage(getAuthErrorMessage(result.error));
       } else if (mode === "signup" && !result.data.session) {
-        const loginResult = await supabase.auth.signInWithPassword({ email, password });
-        if (loginResult.error) {
-          setMessageType("error");
-          setMessage(getAuthErrorMessage(loginResult.error));
-        } else {
-          router.push("/");
-        }
+        setMessageType("success");
+        setMessage("Check your email and confirm your account before signing in.");
+        setMode("login");
       } else {
         router.push("/");
       }
