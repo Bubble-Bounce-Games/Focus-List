@@ -26,6 +26,8 @@ type HeaderProps = {
   sort: SortKey;
   onSortChange: (sort: SortKey) => void;
   onAddTask: () => void;
+  userEmail?: string;
+  onSignOut?: () => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 };
 
@@ -35,6 +37,8 @@ export function Header({
   sort,
   onSortChange,
   onAddTask,
+  userEmail,
+  onSignOut,
   searchInputRef,
 }: HeaderProps) {
   const currentLabel =
@@ -130,17 +134,24 @@ export function Header({
         </Button>
 
         {/* Local profile badge */}
-        <div
-          className="flex h-10 w-10 items-center justify-center text-sm font-semibold"
-          style={{
-            backgroundColor: "#d0e2ff",
-            color: "#0043ce",
-          }}
-          aria-label="Local profile"
-          title="Local profile"
-        >
-          AK
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex h-10 w-10 items-center justify-center bg-[#d0e2ff] text-sm font-semibold text-[#0043ce]"
+              aria-label="Account settings"
+            >
+              {(userEmail?.[0] ?? "A").toUpperCase()}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="font-normal">
+              <span className="block text-xs text-muted-foreground">Signed in as</span>
+              <span className="block truncate text-sm text-foreground-strong">{userEmail}</span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onSignOut}>Sign out</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

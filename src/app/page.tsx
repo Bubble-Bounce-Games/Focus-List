@@ -14,7 +14,6 @@ import {
 } from "@/components/focuslist/add-task-panel";
 import { DeleteConfirm } from "@/components/focuslist/delete-confirm";
 
-import { seedIfEmpty } from "@/lib/focuslist/seed";
 import {
   createTask,
   deleteTask,
@@ -43,13 +42,21 @@ import {
   type Task,
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
+import { AuthPage } from "@/components/auth-page";
+import { useAuth } from "@/components/auth-provider";
 
-export default function Page() {
+function AuthenticatedPage({
+  user,
+  signOut,
+}: {
+  user: NonNullable<ReturnType<typeof useAuth>["user"]>;
+  signOut: () => Promise<void>;
+}) {
   const projects = useProjects();
   const tags = useTags();
   const allTasks = useAllTasks();
 
-  const [ready, setReady] = useState(false);
+  const [ready] = useState(true);
   const [search, setSearch] = usePersistentState("fl.search", "");
   const [sort, setSort] = usePersistentState<SortKey>("fl.sort", DEFAULT_SORT);
   const [selectedProjectId, setSelectedProjectId] = usePersistentState<
@@ -69,19 +76,6 @@ export default function Page() {
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
-
-  // Seed once on first launch.
-  useEffect(() => {
-    let cancelled = false;
-    seedIfEmpty()
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setReady(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // ⌘K / Ctrl+K focuses search.
   useEffect(() => {
@@ -287,6 +281,8 @@ export default function Page() {
         sort={sort}
         onSortChange={setSort}
         onAddTask={openCreate}
+        userEmail={user.email}
+        onSignOut={() => void signOut()}
         searchInputRef={searchRef}
       />
 
@@ -373,4 +369,12 @@ export default function Page() {
       />
     </div>
   );
+}
+
+export default function Page() {
+  const { configured, loading, user, signOut } = useAuth();
+  if (!configured || loading || !user) {
+    return <AuthPage configured={configured} />;
+  }
+  return <AuthenticatedPage user={user} signOut={signOut} />;
 }

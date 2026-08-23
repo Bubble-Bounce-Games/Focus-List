@@ -51,9 +51,19 @@ yarn start
 `yarn verify` runs the full gate — import/tracking check, lint, and build —
 and is what CI runs on every push.
 
-On first launch the app seeds a few realistic sample tasks so you can see how
-it works. Delete them and they will not come back — seeding only happens when
-the local database is empty.
+## Supabase accounts
+
+The account sign-in screen is enabled when `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set. Create a Supabase project, copy those
+values from **Project Settings > API**, and run [`supabase/schema.sql`](./supabase/schema.sql)
+in the SQL Editor. The schema creates user-owned projects, tags, and tasks with
+Row Level Security policies.
+
+In **Authentication > Providers**, enable Email. For local development add
+`http://localhost:3000` to **Authentication > URL Configuration > Redirect URLs**.
+For production, add the deployed HTTPS origin and set the Site URL to that
+origin. Never expose a Supabase service-role key in this app; the browser uses
+only the publishable/anon key and RLS.
 
 ## Local data
 
