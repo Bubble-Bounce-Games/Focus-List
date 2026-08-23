@@ -3,7 +3,33 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, UserRound } from "lucide-react";
+import type { AuthError } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+
+function getAuthErrorMessage(error: AuthError) {
+  if (error.code === "email_not_confirmed") {
+    return "This account is still marked unconfirmed in Supabase. Confirm or recreate this user in Authentication > Users, then sign in again.";
+  }
+  if (error.code === "invalid_credentials") {
+    return "That email and password do not match.";
+  }
+  if (error.code === "user_already_exists") {
+    return "An account with this email already exists. Sign in instead.";
+  }
+
+  const text = error.message.toLowerCase();
+  if (text.includes("email not confirmed")) {
+    return "This account is still marked unconfirmed in Supabase. Confirm or recreate this user in Authentication > Users, then sign in again.";
+  }
+  if (text.includes("invalid login credentials")) {
+    return "That email and password do not match.";
+  }
+  if (text.includes("user already registered")) {
+    return "An account with this email already exists. Sign in instead.";
+  }
+
+  return error.message;
+}
 
 export function AuthPage() {
   const router = useRouter();
@@ -30,10 +56,15 @@ export function AuthPage() {
         : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
       if (result.error) {
         setMessageType("error");
-        const text = result.error.message.toLowerCase();
-        setMessage(text.includes("email not confirmed") ? "Please confirm your email before signing in." : text.includes("invalid login credentials") ? "That email and password do not match." : result.error.message);
+        setMessage(getAuthErrorMessage(result.error));
       } else if (mode === "signup" && !result.data.session) {
-        setMessageType("success"); setMessage("Account created. Check your inbox to confirm your email, then sign in.");
+        const loginResult = await supabase.auth.signInWithPassword({ email, password });
+        if (loginResult.error) {
+          setMessageType("error");
+          setMessage(getAuthErrorMessage(loginResult.error));
+        } else {
+          router.push("/");
+        }
       } else {
         router.push("/");
       }

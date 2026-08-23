@@ -58,6 +58,8 @@ The account sign-in screen is enabled when `NEXT_PUBLIC_SUPABASE_URL` and
 values from **Project Settings > API**, and run [`supabase/schema.sql`](./supabase/schema.sql)
 in the SQL Editor. The schema creates user-owned projects, tags, and tasks with
 Row Level Security policies.
+The same schema creates a private profile record automatically for each new
+account and backfills accounts that already exist.
 
 In **Authentication > Providers**, enable Email. For local development add
 `http://localhost:3000` to **Authentication > URL Configuration > Redirect URLs**.

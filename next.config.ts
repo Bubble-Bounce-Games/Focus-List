@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["focus-list.local"],
   devIndicators: false,
   /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   reactStrictMode: false,
 };
 
