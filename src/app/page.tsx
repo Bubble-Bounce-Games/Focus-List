@@ -47,6 +47,9 @@ import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, Circle, Clock3 } from "lucide-react";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const faviconPath = `${basePath}/Favicon.png`;
+
 function AuthenticatedPage({
   user,
   signOut,
@@ -403,7 +406,7 @@ function LandingPage({ configured }: { configured: boolean }) {
     <main className="landing-page min-h-screen overflow-auto bg-app">
       <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4 lg:px-12">
         <div className="flex items-center gap-3 text-lg font-semibold text-foreground-strong">
-          <img src="/Favicon.png" alt="" className="h-9 w-9 object-contain" />
+          <img src={faviconPath} alt="" className="h-9 w-9 object-contain" />
           Focus List
         </div>
         <Link href={configured ? "/login" : "#setup"} className="flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-[#0353e9]">

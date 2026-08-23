@@ -6,6 +6,9 @@ import { ArrowRight, CheckCircle2, Eye, EyeOff, UserRound } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const faviconPath = `${basePath}/Favicon.png`;
+
 function getAuthErrorMessage(error: AuthError) {
   if (error.code === "email_not_confirmed") {
     return "This account is still marked unconfirmed in Supabase. Confirm or recreate this user in Authentication > Users, then sign in again.";
@@ -76,7 +79,7 @@ export function AuthPage() {
     <main className="auth-page flex min-h-screen items-center justify-center px-5 py-10">
       <section className="auth-form-surface w-full max-w-[520px]">
         <div className="auth-form-wrap">
-          <div className="mb-10 flex items-center gap-3 text-lg font-semibold text-foreground-strong"><img src="/Favicon.png" alt="" className="h-9 w-9 object-contain" /> Focus List</div>
+          <div className="mb-10 flex items-center gap-3 text-lg font-semibold text-foreground-strong"><img src={faviconPath} alt="" className="h-9 w-9 object-contain" /> Focus List</div>
           <div className="mb-8"><p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-primary">Focus List workspace</p><div className="mb-4 flex h-10 w-10 items-center justify-center bg-[#d0e2ff] text-primary"><UserRound className="h-5 w-5" /></div><h1 className="text-3xl font-semibold text-foreground-strong">{mode === "login" ? "Welcome back" : "Create your account"}</h1><p className="mt-2 text-sm text-muted-foreground">{mode === "login" ? "Pick up where your best work begins." : "Build a calmer way to organize your day."}</p></div>
           <form onSubmit={submit} noValidate className="space-y-5">
             <label className="block text-sm font-medium text-foreground-strong">Email<input required type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} onBlur={() => setTouched((current) => ({ ...current, email: true }))} aria-invalid={touched.email && !emailValid} className="mt-2 h-11 w-full border border-[#8d8d8d] bg-card px-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary" />{touched.email && !emailValid && <span className="mt-1 block text-xs text-destructive">Enter a valid email address.</span>}</label>

@@ -3,12 +3,14 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth-provider";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "Focus List — Personal Task Manager",
   description:
     "A calm, local-only personal task manager. Track progress with a slider and keep all your work in one unified list.",
   icons: {
-    icon: "/Favicon.png",
+    icon: `${basePath}/Favicon.png`,
   },
 };
 

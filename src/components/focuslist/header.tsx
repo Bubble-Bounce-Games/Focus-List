@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { SORT_OPTIONS, type SortKey } from "@/lib/focuslist/types";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const faviconPath = `${basePath}/Favicon.png`;
+
 type HeaderProps = {
   search: string;
   onSearchChange: (value: string) => void;
@@ -53,7 +56,7 @@ export function Header({
       {/* Logo + title */}
       <div className="flex items-center gap-3">
         <img
-          src="/Favicon.png"
+          src={faviconPath}
           alt=""
           className="h-9 w-9 object-contain"
           aria-hidden
