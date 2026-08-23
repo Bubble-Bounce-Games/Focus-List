@@ -1,5 +1,5 @@
-// Core domain types for Focus List. Everything is local-first: these shapes
-// are what lives in IndexedDB and what the components render.
+// Core domain types for Focus List. These shapes map to the Supabase rows that
+// the components render.
 
 export type Project = {
   id: string;

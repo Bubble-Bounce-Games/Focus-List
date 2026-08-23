@@ -1,11 +1,11 @@
 # Focus List
 
-A calm, local-only personal task manager. Track each task's progress with a
+A calm, cloud-synced personal task manager. Track each task's progress with a
 slider — when a task reaches 100% it automatically moves into the Done
 section, grouped by its original project and tag.
 
-All data lives entirely in your browser via IndexedDB. There is no backend,
-no cloud sync, no accounts, and no telemetry.
+Tasks, projects, and tags are stored in Supabase per signed-in account, so the
+same workspace is available when you log in from another device or location.
 
 ## Features
 
@@ -18,15 +18,15 @@ no cloud sync, no accounts, and no telemetry.
 - **Sorting** by progress (low/high), newest, oldest, project, or task name.
 - **Done section** grouped by project, collapsible, with completion dates.
 - **Add/Edit slide-over panel** with unsaved-changes guard.
-- **Persistence** — IndexedDB for all tasks/projects/tags; localStorage for
-  small UI preferences (filters, sort).
+- **Cloud persistence** — Supabase stores tasks/projects/tags per account;
+  localStorage stores small UI preferences (filters, sort).
 - **Desktop-optimized, fixed viewport** — no full-page scrolling.
 
 ## Tech stack
 
 - [Next.js 16](https://nextjs.org/) (App Router) + TypeScript
 - [Tailwind CSS 4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
-- [Dexie](https://dexie.org/) (IndexedDB wrapper) for local persistence
+- [Supabase](https://supabase.com/) for authentication and per-user cloud data
 - [Framer Motion](https://www.framer.com/motion/) for restrained animations
 - [Lucide](https://lucide.dev/) icons
 
@@ -62,10 +62,12 @@ The same schema creates a private profile record automatically for each new
 account and backfills accounts that already exist.
 
 In **Authentication > Providers**, enable Email. For local development add
-`http://localhost:3000` to **Authentication > URL Configuration > Redirect URLs**.
-For production, add the deployed HTTPS origin and set the Site URL to that
-origin. Never expose a Supabase service-role key in this app; the browser uses
-only the publishable/anon key and RLS.
+`http://localhost:3000/**` to **Authentication > URL Configuration > Redirect URLs**.
+For GitHub Pages, set the Site URL to
+`https://bubble-bounce-games.github.io/Focus-List` and add
+`https://bubble-bounce-games.github.io/Focus-List/**` to Redirect URLs. Never
+expose a Supabase service-role key in this app; the browser uses only the
+publishable/anon key and RLS.
 
 After running the schema, each new account starts with an empty workspace. The
 app reads and writes tasks, projects, and tags in Supabase, scoped by the
@@ -79,7 +81,8 @@ devices refresh when data changes.
 - **Supabase** stores tasks, projects, and tags per authenticated user.
 - **localStorage** stores only UI preferences (search text, selected filters,
   sort order) under the `fl.*` keys.
-- Clearing your browser's site data resets the app to a fresh state.
+- Clearing your browser's site data signs out and resets UI preferences, but
+  tasks, projects, and tags return after signing in again.
 
 ## Project conventions
 

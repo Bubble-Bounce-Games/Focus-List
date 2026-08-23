@@ -14,7 +14,7 @@ type ProgressSliderProps = {
 
 // Long horizontal range slider with a colored fill and round thumb.
 // Controlled + keyboard accessible. Calls onCommit when the drag ends
-// so we persist to IndexedDB once per change instead of on every pixel.
+// so we persist to Supabase once per change instead of on every pixel.
 export function ProgressSlider({
   value,
   accent,

@@ -10,7 +10,7 @@ import {
 
 import type { DetailField, Task } from "@/lib/focuslist/types";
 
-// Typing writes straight to IndexedDB after a short pause. There is no save
+// Typing writes straight to Supabase after a short pause. There is no save
 // button, so each row reports its own state instead.
 const SAVE_DELAY_MS = 400;
 const SAVED_FLASH_MS = 1600;

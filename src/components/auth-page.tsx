@@ -9,6 +9,10 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const faviconPath = `${basePath}/Favicon.png`;
 
+function getEmailRedirectUrl() {
+  return `${window.location.origin}${basePath}/login`;
+}
+
 function getAuthErrorMessage(error: AuthError) {
   if (error.code === "email_not_confirmed") {
     return "Check your email and confirm your account before signing in.";
@@ -61,7 +65,7 @@ export function AuthPage() {
     try {
       const result = mode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: getEmailRedirectUrl() } });
       if (result.error) {
         setMessageType("error");
         setMessage(getAuthErrorMessage(result.error));

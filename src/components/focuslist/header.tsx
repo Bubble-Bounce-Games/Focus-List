@@ -129,7 +129,7 @@ export function Header({
           <span className="hidden sm:inline">Add Task</span>
         </Button>
 
-        {/* Notification bell (decorative, local-only) */}
+        {/* Notification bell (decorative for now) */}
         <Button
           variant="outline"
           size="icon"
