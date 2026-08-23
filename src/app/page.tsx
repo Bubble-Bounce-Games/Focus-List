@@ -312,9 +312,9 @@ function AuthenticatedPage({
         onProjectSortChange={setProjectSort}
       />
 
-      <main className="flex min-h-0 flex-1 flex-col">
+      <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-2">
         {/* Active Tasks section */}
-        <section className="flex min-h-0 flex-1 flex-col px-6 xl:px-10">
+        <section className="flex min-h-0 flex-1 flex-col border-b border-border px-6 xl:px-10 md:border-b-0 md:border-r">
           <div className="flex items-center gap-2.5 py-3">
             <ClipboardList className="h-5 w-5 text-muted-foreground" />
             <h1 className="text-base font-bold text-foreground-strong">
@@ -353,8 +353,7 @@ function AuthenticatedPage({
           </div>
         </section>
 
-        {/* Done section */}
-        <div className="border-t border-border" />
+        {/* Completed Tasks section */}
         <DoneSection
           groups={doneGroups}
           totalCount={doneTasks.length}

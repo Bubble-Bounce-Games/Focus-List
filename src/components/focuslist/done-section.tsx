@@ -26,7 +26,7 @@ export function DoneSection({
   onDelete,
 }: DoneSectionProps) {
   return (
-    <section className="flex min-h-0 max-h-[42%] shrink-0 flex-col">
+    <section className="flex min-h-0 flex-1 flex-col">
       {/* Heading */}
       <div className="flex items-center gap-2.5 px-6 pb-2.5 pt-3 xl:px-10">
         <span
@@ -36,7 +36,7 @@ export function DoneSection({
         >
           <CheckCircle2 className="h-4 w-4" />
         </span>
-        <h2 className="text-base font-bold text-foreground-strong">Done</h2>
+        <h2 className="text-base font-bold text-foreground-strong">Completed Tasks</h2>
         <p className="hidden text-sm text-muted-foreground sm:inline">
           Completed tasks are grouped by project and tag.
         </p>
