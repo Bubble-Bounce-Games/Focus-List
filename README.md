@@ -65,9 +65,16 @@ For production, add the deployed HTTPS origin and set the Site URL to that
 origin. Never expose a Supabase service-role key in this app; the browser uses
 only the publishable/anon key and RLS.
 
+After running the schema, each new account starts with an empty workspace. The
+app reads and writes tasks, projects, and tags in Supabase, scoped by the
+signed-in user's `auth.uid()`. Supabase keeps the browser session across tab
+closes; signing out clears the session, and signing in again restores the same
+cloud data. Realtime is enabled by the final statements in the schema so open
+devices refresh when data changes.
+
 ## Local data
 
-- **IndexedDB** (`focuslist` database) stores all tasks, projects, and tags.
+- **Supabase** stores tasks, projects, and tags per authenticated user.
 - **localStorage** stores only UI preferences (search text, selected filters,
   sort order) under the `fl.*` keys.
 - Clearing your browser's site data resets the app to a fresh state.

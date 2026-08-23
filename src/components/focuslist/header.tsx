@@ -149,6 +149,11 @@ export function Header({
               <span className="block truncate text-sm text-foreground-strong">{userEmail}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <div className="px-2 py-2 text-xs leading-5 text-muted-foreground">
+              <span className="block font-medium text-foreground-strong">Personal workspace</span>
+              <span className="block">Cloud sync is active across your devices.</span>
+            </div>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onSignOut}>Sign out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

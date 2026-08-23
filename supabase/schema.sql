@@ -48,3 +48,21 @@ create policy "Users manage their own tasks" on public.tasks for all using (auth
 create index if not exists tasks_user_updated_idx on public.tasks(user_id, updated_at desc);
 create index if not exists projects_user_idx on public.projects(user_id);
 create index if not exists tags_user_idx on public.tags(user_id);
+
+do $$
+begin
+  alter publication supabase_realtime add table public.projects;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.tags;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.tasks;
+exception when duplicate_object then null;
+end $$;

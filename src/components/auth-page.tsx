@@ -52,7 +52,7 @@ export function AuthPage({ configured }: { configured: boolean }) {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1fr_520px]">
-      <section className="hidden bg-primary p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="task-board-backdrop relative hidden overflow-hidden bg-primary p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-3 text-lg font-semibold"><img src="/logo.png" alt="" className="h-10 w-10 object-contain" /> Focus List</div>
         <div className="max-w-md"><p className="text-4xl font-semibold leading-tight">Your work, wherever you are.</p><p className="mt-5 text-blue-100">Sign in to keep tasks synchronized across browsers and devices.</p></div>
         <p className="text-sm text-blue-100">Private by default. Your account owns your data.</p>
