@@ -38,13 +38,13 @@ export function FilterToolbar({
   const selectedTag = tags.find((t) => t.id === selectedTagId);
 
   return (
-    <div className="flex h-[68px] shrink-0 items-center gap-3 border-b border-border bg-app px-6 xl:px-10">
+    <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-app px-6 xl:px-10">
       {/* Project filter */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 gap-2 rounded-xl border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
+            className="h-10 gap-2 rounded-none border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
           >
             <Folder className="h-4 w-4 text-muted-foreground" />
             {selectedProject ? (
@@ -100,7 +100,7 @@ export function FilterToolbar({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 gap-2 rounded-xl border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
+            className="h-10 gap-2 rounded-none border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
           >
             <TagIcon className="h-4 w-4 text-muted-foreground" />
             {selectedTag ? (
@@ -156,7 +156,7 @@ export function FilterToolbar({
         variant="ghost"
         onClick={onClear}
         disabled={!isFiltering}
-        className="h-10 gap-1.5 rounded-xl px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground-strong disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+        className="h-10 gap-1.5 rounded-none px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground-strong disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
       >
         <X className="h-4 w-4" />
         Clear filters

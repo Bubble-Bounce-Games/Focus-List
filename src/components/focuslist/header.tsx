@@ -42,23 +42,22 @@ export function Header({
   const isAsc = sort === "progress-asc";
 
   return (
-    <header className="flex h-[86px] shrink-0 items-center gap-4 border-b border-border bg-card px-6 xl:px-10">
+    <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3 sm:h-16 sm:flex-nowrap sm:gap-6 sm:px-6 xl:px-10 sm:py-0">
       {/* Logo + title */}
       <div className="flex items-center gap-3">
         <div
-          className="flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm"
-          style={{ backgroundColor: "#6252e8" }}
+          className="flex h-9 w-9 items-center justify-center bg-primary text-white"
           aria-hidden
         >
           <Check className="h-5 w-5" strokeWidth={3} />
         </div>
-        <span className="text-[21px] font-bold tracking-tight text-foreground-strong">
+        <span className="text-lg font-semibold text-foreground-strong">
           Focus List
         </span>
       </div>
 
       {/* Search */}
-      <div className="relative ml-2">
+      <div className="relative order-3 min-w-0 basis-full sm:order-none sm:flex-1 sm:basis-auto sm:max-w-[520px]">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           ref={searchInputRef}
@@ -67,9 +66,9 @@ export function Header({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search tasks..."
           aria-label="Search tasks"
-          className="h-11 w-[320px] rounded-xl border border-border bg-[#f4f5fa] pl-10 pr-16 text-sm text-foreground-strong outline-none transition-colors placeholder:text-muted-foreground focus:border-[#c7c9d8] focus:bg-card"
+          className="h-10 w-full border-0 border-b-2 border-[#8d8d8d] bg-[#f4f4f4] pl-10 pr-16 text-sm text-foreground-strong outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-card"
         />
-        <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-border bg-card px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 border border-border bg-card px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
           ⌘ K
         </kbd>
       </div>
@@ -80,7 +79,8 @@ export function Header({
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="h-11 gap-2 rounded-xl border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
+              aria-label="Sort tasks"
+              className="hidden h-10 gap-2 rounded-none border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary sm:inline-flex"
             >
               {isAsc ? (
                 <ArrowUpWideNarrow className="h-4 w-4 text-muted-foreground" />
@@ -113,17 +113,17 @@ export function Header({
         {/* Add Task */}
         <Button
           onClick={onAddTask}
-          className="h-11 w-[150px] gap-2 rounded-xl bg-[#6252e8] text-[15px] font-semibold text-white shadow-sm hover:bg-[#5444d6] hover:shadow"
+          className="h-10 w-10 gap-2 rounded-none bg-primary text-sm font-semibold text-white shadow-none hover:bg-[#0353e9] sm:w-[132px]"
         >
           <Plus className="h-4 w-4" />
-          Add Task
+          <span className="hidden sm:inline">Add Task</span>
         </Button>
 
         {/* Notification bell (decorative, local-only) */}
         <Button
           variant="outline"
           size="icon"
-          className="h-11 w-11 rounded-xl border-border bg-card text-muted-foreground hover:bg-secondary"
+          className="h-10 w-10 rounded-none border-border bg-card text-muted-foreground hover:bg-secondary"
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
@@ -131,10 +131,10 @@ export function Header({
 
         {/* Local profile badge */}
         <div
-          className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold"
+          className="flex h-10 w-10 items-center justify-center text-sm font-semibold"
           style={{
-            backgroundColor: "color-mix(in srgb, #6252e8 14%, #ffffff)",
-            color: "#6252e8",
+            backgroundColor: "#d0e2ff",
+            color: "#0043ce",
           }}
           aria-label="Local profile"
           title="Local profile"

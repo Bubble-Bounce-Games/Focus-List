@@ -10,8 +10,8 @@
   --color-foreground-strong: var(--foreground-strong);
   --color-foreground-muted: var(--foreground-muted);
   --color-success: var(--success);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-inter);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,32 +48,32 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0;
 
   /* App surfaces */
-  --app: #f8f9fc;
+  --app: #f4f4f4;
   --card: #ffffff;
-  --card-foreground: #171a2b;
+  --card-foreground: #161616;
   --popover: #ffffff;
-  --popover-foreground: #171a2b;
-  --foreground-strong: #171a2b;
-  --foreground-muted: #7a8194;
+  --popover-foreground: #161616;
+  --foreground-strong: #161616;
+  --foreground-muted: #525252;
 
   /* Primary purple */
-  --primary: #6252e8;
+  --primary: #0f62fe;
   --primary-foreground: #ffffff;
 
   --secondary: #f1f2f8;
-  --secondary-foreground: #171a2b;
-  --muted: #f1f2f8;
-  --muted-foreground: #7a8194;
-  --accent: #f1f2f8;
-  --accent-foreground: #171a2b;
+  --secondary-foreground: #161616;
+  --muted: #e8e8e8;
+  --muted-foreground: #525252;
+  --accent: #e8e8e8;
+  --accent-foreground: #161616;
 
   --destructive: #e5484d;
-  --border: #e7e9f0;
-  --input: #e7e9f0;
-  --ring: #6252e8;
+  --border: #e0e0e0;
+  --input: #8d8d8d;
+  --ring: #0f62fe;
 
   --success: #42a65a;
 

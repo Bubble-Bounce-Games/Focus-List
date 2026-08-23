@@ -66,14 +66,14 @@ function TaskRowBase({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, transition: { duration: 0.25 } }}
       transition={{ type: "spring", stiffness: 380, damping: 32 }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(23,26,43,0.04)] transition-colors hover:border-[#d7dae6] hover:shadow-[0_4px_14px_rgba(23,26,43,0.06)]"
+      className="group relative flex flex-col overflow-hidden border border-border bg-card transition-colors hover:border-[#8d8d8d] hover:bg-[#f4f4f4]"
       style={
         justCompleted
           ? { borderColor: "color-mix(in srgb, #42a65a 60%, #ffffff)" }
           : undefined
       }
     >
-      <div className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+      <div className="grid grid-cols-[28px_44px_minmax(0,1fr)] items-center gap-2 px-3 py-3 sm:flex sm:gap-3 sm:px-4 sm:py-2.5">
         {/* 0. Expand toggle — points right when closed, down when open */}
         <button
           type="button"
@@ -85,7 +85,7 @@ function TaskRowBase({
               ? `Hide details for ${task.title}`
               : `Show details for ${task.title}`
           }
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground-strong"
+          className="col-start-1 row-start-1 flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground-strong sm:col-auto sm:row-auto"
         >
           <motion.span
             animate={{ rotate: expanded ? 0 : -90 }}
@@ -98,7 +98,7 @@ function TaskRowBase({
 
         {/* 1. Task icon */}
         <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+          className="col-start-2 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center sm:col-auto sm:row-auto"
           style={iconTileStyle(accent)}
           aria-hidden
         >
@@ -110,7 +110,7 @@ function TaskRowBase({
             when the viewport is too narrow for 60% plus the controls, the
             title must be the thing that yields rather than the actions
             button being cut off. */}
-        <div className="flex min-w-0 shrink grow-0 basis-[60%] items-center gap-2">
+        <div className="col-start-3 row-start-1 flex min-w-0 items-center gap-2 sm:flex-1">
           <p
             className="truncate text-[15px] font-semibold text-foreground-strong"
             title={task.title}
@@ -152,7 +152,7 @@ function TaskRowBase({
         )}
 
         {/* 5. Progress slider */}
-        <div className="flex min-w-0 flex-1 items-center">
+        <div className="col-span-2 col-start-2 row-start-3 flex w-full shrink-0 items-center sm:col-auto sm:row-auto sm:flex-1">
           <ProgressSlider
             value={task.progress}
             accent={accent}
@@ -163,7 +163,7 @@ function TaskRowBase({
         </div>
 
         {/* 6. Percentage value */}
-        <div className="flex w-[64px] shrink-0 items-center justify-end">
+        <div className="col-start-3 row-start-2 flex w-full shrink-0 items-center justify-end sm:w-[64px] sm:col-auto sm:row-auto">
           <AnimatePresence mode="wait" initial={false}>
             {justCompleted ? (
               <motion.span
@@ -191,13 +191,15 @@ function TaskRowBase({
         </div>
 
         {/* 7. More actions */}
-        <MoreActions
-          onEdit={() => onEdit(task)}
-          onDuplicate={() => onDuplicate(task.id)}
-          onComplete={() => onComplete(task.id)}
-          onDelete={() => onDelete(task)}
-          label={`Actions for ${task.title}`}
-        />
+        <div className="col-start-2 row-start-2 sm:col-auto sm:row-auto">
+          <MoreActions
+            onEdit={() => onEdit(task)}
+            onDuplicate={() => onDuplicate(task.id)}
+            onComplete={() => onComplete(task.id)}
+            onDelete={() => onDelete(task)}
+            label={`Actions for ${task.title}`}
+          />
+        </div>
       </div>
 
       {/* 8. Detail panel: progress log, blocker, notes */}
