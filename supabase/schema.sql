@@ -29,9 +29,16 @@ create table if not exists public.tasks (
   progress_note text not null default '',
   blocker text not null default '',
   notes text not null default '',
+  due_date date,
+  archived_at timestamptz,
+  deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.tasks add column if not exists due_date date;
+alter table public.tasks add column if not exists archived_at timestamptz;
+alter table public.tasks add column if not exists deleted_at timestamptz;
 
 alter table public.projects enable row level security;
 alter table public.tags enable row level security;

@@ -19,7 +19,7 @@ type Row = Record<string, unknown>;
 function mapProject(row: Row): Project { return { id: String(row.id), name: String(row.name), color: String(row.color) }; }
 function mapTag(row: Row): Tag { return { id: String(row.id), name: String(row.name), color: String(row.color) }; }
 function mapTask(row: Row): Task {
-  return { id: String(row.id), title: String(row.title), projectId: String(row.project_id), tagId: String(row.tag_id), progress: Number(row.progress), completedAt: row.completed_at ? String(row.completed_at) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at), progressNote: String(row.progress_note ?? ""), blocker: String(row.blocker ?? ""), notes: String(row.notes ?? "") };
+  return { id: String(row.id), title: String(row.title), projectId: String(row.project_id), tagId: String(row.tag_id), progress: Number(row.progress), completedAt: row.completed_at ? String(row.completed_at) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at), progressNote: String(row.progress_note ?? ""), blocker: String(row.blocker ?? ""), notes: String(row.notes ?? ""), dueDate: row.due_date ? String(row.due_date) : null, archivedAt: row.archived_at ? String(row.archived_at) : null, deletedAt: row.deleted_at ? String(row.deleted_at) : null };
 }
 
 function useCloudRows<T>(table: "tasks" | "projects" | "tags"): T[] {
@@ -46,7 +46,7 @@ async function context() {
   return data.user ? { client, userId: data.user.id } : null;
 }
 export type NewTaskInput = { title: string; projectId: string; tagId: string; progress: number };
-export type TaskPatch = Partial<Pick<Task, "title" | "projectId" | "tagId" | "progress" | "progressNote" | "blocker" | "notes">>;
+export type TaskPatch = Partial<Pick<Task, "title" | "projectId" | "tagId" | "progress" | "progressNote" | "blocker" | "notes" | "dueDate">>;
 
 export async function createTask(input: NewTaskInput): Promise<Task | undefined> {
   const c = await context(); if (!c) return undefined;
@@ -58,11 +58,12 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
   const c = await context(); if (!c) return;
   const { data: existing } = await c.client.from("tasks").select("*").eq("id", id).single(); if (!existing) return;
   const progress = patch.progress === undefined ? Number(existing.progress) : clampProgress(patch.progress);
-  await c.client.from("tasks").update({ ...(patch.title === undefined ? {} : { title: patch.title.trim() }), ...(patch.projectId === undefined ? {} : { project_id: patch.projectId }), ...(patch.tagId === undefined ? {} : { tag_id: patch.tagId }), ...(patch.progressNote === undefined ? {} : { progress_note: patch.progressNote }), ...(patch.blocker === undefined ? {} : { blocker: patch.blocker }), ...(patch.notes === undefined ? {} : { notes: patch.notes }), progress, completed_at: completionStamp(progress, existing.completed_at), updated_at: now() }).eq("id", id);
+  await c.client.from("tasks").update({ ...(patch.title === undefined ? {} : { title: patch.title.trim() }), ...(patch.projectId === undefined ? {} : { project_id: patch.projectId }), ...(patch.tagId === undefined ? {} : { tag_id: patch.tagId }), ...(patch.progressNote === undefined ? {} : { progress_note: patch.progressNote }), ...(patch.blocker === undefined ? {} : { blocker: patch.blocker }), ...(patch.notes === undefined ? {} : { notes: patch.notes }), ...(patch.dueDate === undefined ? {} : { due_date: patch.dueDate }), progress, completed_at: completionStamp(progress, existing.completed_at), updated_at: now() }).eq("id", id);
 }
 export async function setProgress(id: string, value: number) { await updateTask(id, { progress: value }); }
 export async function setTaskDetail(id: string, field: DetailField, value: string) { await updateTask(id, { [field]: value }); }
-export async function deleteTask(id: string) { const c = await context(); if (c) await c.client.from("tasks").delete().eq("id", id); }
+export async function deleteTask(id: string) { const c = await context(); if (c) await c.client.from("tasks").update({ deleted_at: now(), updated_at: now() }).eq("id", id); }
+export async function archiveTask(id: string) { const c = await context(); if (c) await c.client.from("tasks").update({ archived_at: now(), updated_at: now() }).eq("id", id); }
 export async function duplicateTask(id: string): Promise<Task | undefined> {
   const c = await context(); if (!c) return undefined;
   const { data: source } = await c.client.from("tasks").select("*").eq("id", id).single(); if (!source) return undefined;

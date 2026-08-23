@@ -13,6 +13,7 @@ import {
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
   Bell,
+  CalendarDays,
   Check,
   ChevronDown,
   Plus,
@@ -28,6 +29,7 @@ type HeaderProps = {
   onAddTask: () => void;
   userEmail?: string;
   onSignOut?: () => void;
+  onOpenTool?: (view: "calendar" | "notifications" | "archive" | "trash") => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 };
 
@@ -39,6 +41,7 @@ export function Header({
   onAddTask,
   userEmail,
   onSignOut,
+  onOpenTool,
   searchInputRef,
 }: HeaderProps) {
   const currentLabel =
@@ -128,7 +131,17 @@ export function Header({
           variant="outline"
           size="icon"
           className="h-10 w-10 rounded-none border-border bg-card text-muted-foreground hover:bg-secondary"
+          aria-label="Task calendar"
+          onClick={() => onOpenTool?.("calendar")}
+        >
+          <CalendarDays className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-10 w-10 rounded-none border-border bg-card text-muted-foreground hover:bg-secondary"
           aria-label="Notifications"
+          onClick={() => onOpenTool?.("notifications")}
         >
           <Bell className="h-5 w-5" />
         </Button>
@@ -153,6 +166,9 @@ export function Header({
               <span className="block font-medium text-foreground-strong">Personal workspace</span>
               <span className="block">Cloud sync is active across your devices.</span>
             </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => onOpenTool?.("archive")}>Archive</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onOpenTool?.("trash")}>Deleted items</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onSignOut}>Sign out</DropdownMenuItem>
           </DropdownMenuContent>

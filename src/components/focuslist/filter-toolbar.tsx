@@ -22,6 +22,8 @@ type FilterToolbarProps = {
   onSelectTag: (id: string | null) => void;
   onClear: () => void;
   isFiltering: boolean;
+  projectSort: "name" | "color";
+  onProjectSortChange: (sort: "name" | "color") => void;
 };
 
 export function FilterToolbar({
@@ -33,6 +35,8 @@ export function FilterToolbar({
   onSelectTag,
   onClear,
   isFiltering,
+  projectSort,
+  onProjectSortChange,
 }: FilterToolbarProps) {
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const selectedTag = tags.find((t) => t.id === selectedTagId);
@@ -148,6 +152,23 @@ export function FilterToolbar({
               No tags yet.
             </div>
           )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Clear filters */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="h-10 gap-2 rounded-none border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary">
+            <Folder className="h-4 w-4 text-muted-foreground" />
+            Folders: {projectSort === "name" ? "A to Z" : "Color"}
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuLabel>Sort folders</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => onProjectSortChange("name")}>Name: A to Z</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onProjectSortChange("color")}>Color code</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

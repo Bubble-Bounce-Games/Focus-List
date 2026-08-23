@@ -44,6 +44,7 @@ import {
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
 import { AuthPage } from "@/components/auth-page";
 import { useAuth } from "@/components/auth-provider";
+import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 
 function AuthenticatedPage({
   user,
@@ -66,6 +67,10 @@ function AuthenticatedPage({
     "fl.tag",
     null
   );
+  const [projectSort, setProjectSort] = usePersistentState<"name" | "color">(
+    "fl.projectSort",
+    "name"
+  );
 
   const [progressOverride, setProgressOverride] = useState<
     Record<string, number>
@@ -74,6 +79,7 @@ function AuthenticatedPage({
   const [panelMode, setPanelMode] = useState<"create" | "edit">("create");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
+  const [toolView, setToolView] = useState<"calendar" | "notifications" | "archive" | "trash" | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -92,12 +98,18 @@ function AuthenticatedPage({
 
   const pMap = projectMap(projects);
   const tMap = tagMap(tags);
+  const sortedProjects = projects.slice().sort((a, b) =>
+    projectSort === "color"
+      ? a.color.localeCompare(b.color) || a.name.localeCompare(b.name)
+      : a.name.localeCompare(b.name)
+  );
 
   const isFiltering =
     search.trim() !== "" || selectedProjectId !== null || selectedTagId !== null;
 
   // Derived active list (compiler auto-memoizes).
-  const activeTasks = allTasks
+  const visibleTasks = allTasks.filter((task) => !task.archivedAt && !task.deletedAt);
+  const activeTasks = visibleTasks
     .filter((t) => !isComplete(t))
     .filter((t) =>
       matchTask(
@@ -110,7 +122,7 @@ function AuthenticatedPage({
   const activeTasksSorted = sortTasks(activeTasks, sort, pMap);
 
   // Derived done list (compiler auto-memoizes).
-  const doneTasks = allTasks
+  const doneTasks = visibleTasks
     .filter((t) => isComplete(t))
     .filter((t) =>
       matchTask(
@@ -283,11 +295,12 @@ function AuthenticatedPage({
         onAddTask={openCreate}
         userEmail={user.email}
         onSignOut={() => void signOut()}
+        onOpenTool={setToolView}
         searchInputRef={searchRef}
       />
 
       <FilterToolbar
-        projects={projects}
+        projects={sortedProjects}
         tags={tags}
         selectedProjectId={selectedProjectId}
         selectedTagId={selectedTagId}
@@ -295,6 +308,8 @@ function AuthenticatedPage({
         onSelectTag={setSelectedTagId}
         onClear={handleClearFilters}
         isFiltering={isFiltering}
+        projectSort={projectSort}
+        onProjectSortChange={setProjectSort}
       />
 
       <main className="flex min-h-0 flex-1 flex-col">
@@ -367,6 +382,7 @@ function AuthenticatedPage({
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
       />
+      {toolView && <DashboardTools view={toolView} tasks={allTasks} onClose={() => setToolView(null)} />}
     </div>
   );
 }

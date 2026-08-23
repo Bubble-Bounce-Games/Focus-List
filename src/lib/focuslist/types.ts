@@ -30,6 +30,9 @@ export type Task = {
   blocker: string;
   /** Anything else worth remembering about the task. */
   notes: string;
+  dueDate?: string | null;
+  archivedAt?: string | null;
+  deletedAt?: string | null;
 };
 
 /** The three free-text fields shown in a task's expandable detail panel. */
