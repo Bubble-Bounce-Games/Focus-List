@@ -45,12 +45,12 @@ export function Header({
     <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3 sm:h-16 sm:flex-nowrap sm:gap-6 sm:px-6 xl:px-10 sm:py-0">
       {/* Logo + title */}
       <div className="flex items-center gap-3">
-        <div
-          className="flex h-9 w-9 items-center justify-center bg-primary text-white"
+        <img
+          src="/logo.png"
+          alt=""
+          className="h-9 w-9 object-contain"
           aria-hidden
-        >
-          <Check className="h-5 w-5" strokeWidth={3} />
-        </div>
+        />
         <span className="text-lg font-semibold text-foreground-strong">
           Focus List
         </span>

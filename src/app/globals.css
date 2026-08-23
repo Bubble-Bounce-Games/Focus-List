@@ -138,6 +138,9 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+  nextjs-portal {
+    display: none !important;
+  }
 }
 
 /* ---- Custom range slider ---- */
