@@ -51,7 +51,12 @@ export function AuthPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setTouched({ email: true, password: true });
-    if (!supabase || !emailValid || !passwordValid) return;
+    if (!supabase) {
+      setMessageType("error");
+      setMessage("This deployment is missing the Supabase connection settings.");
+      return;
+    }
+    if (!emailValid || !passwordValid) return;
     setBusy(true); setMessage("");
     try {
       const result = mode === "login"

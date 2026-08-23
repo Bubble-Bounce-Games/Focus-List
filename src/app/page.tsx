@@ -391,17 +391,17 @@ function AuthenticatedPage({
 }
 
 export default function Page() {
-  const { configured, loading, user, signOut } = useAuth();
+  const { loading, user, signOut } = useAuth();
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-app text-sm text-muted-foreground">Loading Focus List...</div>;
   }
   if (!user) {
-    return <LandingPage configured={configured} />;
+    return <LandingPage />;
   }
   return <AuthenticatedPage user={user} signOut={signOut} />;
 }
 
-function LandingPage({ configured }: { configured: boolean }) {
+function LandingPage() {
   return (
     <main className="landing-page min-h-screen overflow-auto bg-app">
       <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4 lg:px-12">
@@ -409,7 +409,7 @@ function LandingPage({ configured }: { configured: boolean }) {
           <img src={faviconPath} alt="" className="h-9 w-9 object-contain" />
           Focus List
         </div>
-        <Link href={configured ? "/login" : "#setup"} className="flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-[#0353e9]">
+        <Link href="/login" className="flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-[#0353e9]">
           Sign in <ArrowRight className="h-4 w-4" />
         </Link>
       </header>
@@ -418,7 +418,7 @@ function LandingPage({ configured }: { configured: boolean }) {
           <p className="mb-5 text-xs font-semibold uppercase tracking-[0.16em] text-primary">A clearer workday</p>
           <h1 className="max-w-lg text-5xl font-semibold leading-[1.05] text-foreground-strong sm:text-6xl">Your work, in focus.</h1>
           <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">Capture what matters, see your momentum, and make steady progress without losing the thread.</p>
-          <Link href={configured ? "/login" : "#setup"} className="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgb(15_98_254_/_20%)] hover:bg-[#0353e9]">Start your workspace <ArrowRight className="h-4 w-4" /></Link>
+          <Link href="/login" className="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgb(15_98_254_/_20%)] hover:bg-[#0353e9]">Start your workspace <ArrowRight className="h-4 w-4" /></Link>
           <div className="mt-8 flex flex-wrap gap-5 text-sm text-muted-foreground"><span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#198038]" /> Progress you can see</span><span className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" /> Less mental overhead</span></div>
         </div>
         <div className="landing-board relative mx-auto w-full max-w-2xl border border-[#cbd5df] bg-white p-5 shadow-[0_24px_70px_rgb(32_48_64_/_12%)] sm:p-8">
@@ -427,7 +427,6 @@ function LandingPage({ configured }: { configured: boolean }) {
           <div className="mt-8 flex items-center justify-between border-t border-border pt-5 text-sm"><span className="text-muted-foreground">Completed today</span><strong className="text-[#198038]">2 tasks</strong></div>
         </div>
       </section>
-      {!configured && <p id="setup" className="mx-auto max-w-xl px-6 pb-8 text-center text-sm text-muted-foreground">Your workspace connection needs to be configured before you can sign in.</p>}
     </main>
   );
 }
