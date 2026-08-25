@@ -48,14 +48,10 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Circle,
   Clock3,
   Highlighter,
   Pin,
-  Play,
-  Square,
   StickyNote,
 } from "lucide-react";
 
@@ -70,9 +66,11 @@ type PinnedNote = {
 };
 
 const markerColors = ["#111827", "#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
-const melodyNotes = [261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 392];
 
 function FocusSidePanel() {
+  const tasks = useAllTasks();
+  const projects = useProjects();
+  const projectsById = projectMap(projects);
   const [note, setNote] = usePersistentState(
     "fl.noteDraft",
     "Pin quick notes here while you plan your next task."
@@ -82,76 +80,26 @@ function FocusSidePanel() {
     []
   );
   const [marker, setMarker] = usePersistentState("fl.markerColor", markerColors[0]);
-  const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = usePersistentState("fl.vinylVolume", 0.28);
-  const audioRef = useRef<{
-    context: AudioContext;
-    lead: OscillatorNode;
-    pad: OscillatorNode;
-    gain: GainNode;
-    timer: number;
-  } | null>(null);
+  const activeSideTasks = tasks
+    .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
+    .slice();
+  const focusTasks = activeSideTasks
+    .sort((a, b) => b.progress - a.progress || a.title.localeCompare(b.title))
+    .slice(0, 3);
+  const completedToday = tasks.filter((task) => {
+    if (!task.completedAt) return false;
+    return new Date(task.completedAt).toDateString() === new Date().toDateString();
+  }).length;
+  const nextTask = focusTasks[0];
 
-  const stopMusic = useCallback(() => {
-    const current = audioRef.current;
-    if (!current) return;
-    window.clearInterval(current.timer);
-    current.gain.gain.setTargetAtTime(0, current.context.currentTime, 0.08);
-    window.setTimeout(() => {
-      current.lead.stop();
-      current.pad.stop();
-      void current.context.close();
-    }, 180);
-    audioRef.current = null;
-    setPlaying(false);
+  const handleNudgeTask = useCallback((task: Task) => {
+    void setProgress(task.id, Math.min(95, task.progress + 10));
   }, []);
 
-  const toggleMusic = useCallback(() => {
-    if (audioRef.current) {
-      stopMusic();
-      return;
-    }
-    const AudioCtor =
-      window.AudioContext ??
-      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (!AudioCtor) return;
-    const context = new AudioCtor();
-    const lead = context.createOscillator();
-    const pad = context.createOscillator();
-    const gain = context.createGain();
-    let step = 0;
-    const readNote = () => {
-      const note = melodyNotes[step % melodyNotes.length] ?? 261.63;
-      step += 1;
-      return note;
-    };
-
-    lead.type = "sine";
-    pad.type = "triangle";
-    lead.frequency.value = readNote();
-    pad.frequency.value = 130.81;
-    gain.gain.value = volume * 0.12;
-    lead.connect(gain);
-    pad.connect(gain);
-    gain.connect(context.destination);
-    lead.start();
-    pad.start();
-    const timer = window.setInterval(() => {
-      const next = readNote();
-      lead.frequency.setTargetAtTime(next, context.currentTime, 0.18);
-      pad.frequency.setTargetAtTime(next / 2, context.currentTime, 0.3);
-    }, 900);
-    audioRef.current = { context, lead, pad, gain, timer };
-    setPlaying(true);
-  }, [stopMusic, volume]);
-
-  useEffect(() => stopMusic, [stopMusic]);
-  useEffect(() => {
-    const current = audioRef.current;
-    if (!current) return;
-    current.gain.gain.setTargetAtTime(volume * 0.12, current.context.currentTime, 0.08);
-  }, [volume]);
+  const handleFinishTask = useCallback((task: Task) => {
+    void setProgress(task.id, 100);
+    toast.success("Task completed", { description: task.title });
+  }, []);
 
   const handleSaveNote = useCallback(() => {
     const text = note.trim();
@@ -262,97 +210,116 @@ function FocusSidePanel() {
           </div>
         </section>
 
-        <section className="relative h-[260px] min-h-[260px] shrink-0 overflow-hidden xl:h-[280px] xl:min-h-[280px]">
-          <div className="relative h-full overflow-hidden rounded-[2rem] bg-[#3f3f3d] shadow-[0_20px_0_rgb(28_28_27_/_18%)]">
-            <button
-              type="button"
-              onClick={toggleMusic}
-              className="absolute left-[4%] top-[6%] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-[#9c9c9a] text-[#3f3f3d] hover:bg-[#c4c4c2]"
-              aria-label={playing ? "Stop music" : "Start music"}
-              aria-pressed={playing}
-            >
-              {playing ? (
-                <Square className="h-5 w-5 fill-current" />
+        <section className="shrink-0 border border-border bg-[#f7f9fc] p-4">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock3 className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground-strong">Focus Queue</h3>
+            <span className="ml-auto rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              {activeSideTasks.length} active
+            </span>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="border border-border bg-white p-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Next task
+              </p>
+              {nextTask ? (
+                <>
+                  <p className="mt-2 line-clamp-2 text-sm font-bold leading-5 text-foreground-strong">
+                    {nextTask.title}
+                  </p>
+                  <div className="mt-3 h-2 overflow-hidden bg-[#dfe5ec]">
+                    <div
+                      className="h-full bg-primary"
+                      style={{ width: `${nextTask.progress}%` }}
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {nextTask.progress}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeTask(nextTask)}
+                      className="h-8 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </>
               ) : (
-                <Play className="ml-0.5 h-5 w-5 fill-current" />
+                <div className="mt-3 flex h-[104px] items-center border border-dashed border-border px-3 text-xs leading-5 text-muted-foreground">
+                  Add a task and it will appear here.
+                </div>
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleMusic}
-              className={`absolute left-[8%] top-1/2 flex aspect-square h-[68%] -translate-y-1/2 items-center justify-center rounded-full bg-[#2c2c2a] ring-[0.75rem] ring-[#777] ${
-                playing ? "animate-spin" : ""
-              }`}
-              aria-label={playing ? "Pause melody" : "Play melody"}
-              aria-pressed={playing}
-            >
-              <span className="absolute inset-[7%] rounded-full border border-[#222]" />
-              <span className="absolute inset-[24%] rounded-full border border-[#191919]" />
-              <span className="absolute flex h-[30%] w-[30%] items-center justify-center rounded-full bg-[#f7b71b]">
-                <span className="h-3 w-3 rounded-full bg-[#151515]" />
-              </span>
-            </button>
-
-            <div className="absolute right-[9%] top-[11%] h-[25%] w-[18%] rounded-full bg-[#d9d9d9]">
-              <div className="absolute left-1/2 top-[-20%] h-[134%] w-2.5 -translate-x-1/2 rounded-full bg-[#efefef]" />
-              <div className="absolute left-1/2 top-[35%] h-[25%] w-[42%] -translate-x-1/2 rounded-full bg-[#f15a24]" />
-              <div className="absolute left-1/2 top-[42%] h-7 w-7 -translate-x-1/2 rounded-full bg-[#2a2a2a]" />
             </div>
 
-            <div className="absolute right-[19%] top-[28%] h-[39%] w-[4%] rotate-[8deg] rounded-full bg-[#efefef]" />
-            <div className="absolute bottom-[18%] right-[21%] h-[25%] w-[4%] rotate-[43deg] rounded-full bg-[#efefef]" />
-            <div className="absolute bottom-[10%] right-[28%] h-[13%] w-[6%] rotate-[43deg] bg-[#efefef]" />
-            <div className="absolute bottom-[8%] right-[33%] h-[9%] w-[8%] rotate-[43deg] bg-[#efefef]" />
-
-            <button
-              type="button"
-              onClick={toggleMusic}
-              className="absolute bottom-[5%] left-[55%] flex h-9 w-20 items-end justify-center gap-1"
-              aria-label={playing ? "Pause stabilizer" : "Start stabilizer"}
-              aria-pressed={playing}
-            >
-              {[0, 1, 2, 3, 4].map((bar) => (
-                <span
-                  key={bar}
-                  className={`w-2 rounded-full bg-[#f7b71b] ${
-                    playing ? "animate-pulse" : ""
-                  }`}
-                  style={{
-                    height: playing ? `${12 + ((bar * 7) % 18)}px` : "8px",
-                    animationDelay: `${bar * 80}ms`,
-                  }}
-                />
-              ))}
-            </button>
-
-            <div className="absolute bottom-[10%] right-[7%] h-[30%] w-2 bg-[#262626]">
-              <button
-                type="button"
-                onClick={() =>
-                  setVolume((current) => Math.min(1, Number((current + 0.1).toFixed(2))))
-                }
-                className="absolute -top-8 left-1/2 flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-full bg-[#dedede] text-[#555] hover:bg-white"
-                aria-label="Volume up"
-              >
-                <ChevronUp className="h-4 w-4" />
-              </button>
-              <div
-                className="absolute left-1/2 h-8 w-7 -translate-x-1/2 bg-[#efefef]"
-                style={{ bottom: `${volume * 70}%` }}
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setVolume((current) => Math.max(0, Number((current - 0.1).toFixed(2))))
-                }
-                className="absolute -bottom-8 left-1/2 flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-full bg-[#dedede] text-[#555] hover:bg-white"
-                aria-label="Volume down"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
+            <div className="grid gap-3">
+              <div className="border border-border bg-white p-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  Completed today
+                </p>
+                <div className="mt-2 flex items-end gap-2">
+                  <span className="text-3xl font-bold text-[#198038]">
+                    {completedToday}
+                  </span>
+                  <CheckCircle2 className="mb-1 h-5 w-5 text-[#198038]" />
+                </div>
+              </div>
+              <div className="border border-border bg-white p-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  Momentum
+                </p>
+                <div className="mt-3 grid grid-cols-5 gap-1">
+                  {[20, 40, 60, 80, 100].map((level) => (
+                    <span
+                      key={level}
+                      className={`h-8 ${
+                        nextTask && nextTask.progress >= level
+                          ? "bg-primary"
+                          : "bg-[#dfe5ec]"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
+
+          {focusTasks.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {focusTasks.map((task) => {
+                const project = projectsById[task.projectId];
+                return (
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-3 border border-border bg-white px-3 py-2"
+                  >
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: project?.color ?? "#8d8d99" }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-foreground-strong">
+                        {task.title}
+                      </p>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {project?.name ?? "Unassigned"} - {task.progress}%
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleFinishTask(task)}
+                      className="h-7 shrink-0 bg-[#198038] px-2.5 text-xs font-semibold text-white hover:bg-[#14662d]"
+                    >
+                      Done
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
     </aside>
