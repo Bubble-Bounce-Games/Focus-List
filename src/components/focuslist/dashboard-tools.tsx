@@ -72,19 +72,19 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
         <div className="border border-border bg-app p-4">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-primary" />
             <p className="text-sm font-semibold text-foreground-strong">{year} Calendar</p>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Choose a date, add a note, then attach that date to a task reminder.
+            {dateTitle(selectedDate)}
           </p>
         </div>
 
         <div className="border border-border bg-[#f7f9fc] p-4">
-          <p className="text-sm font-semibold text-foreground-strong">{dateTitle(selectedDate)}</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Date notes</p>
           <textarea
             value={selectedNote}
             onChange={(event) => saveSelectedNote(event.target.value)}
@@ -92,83 +92,45 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
             placeholder="Add date notes..."
             aria-label={`Notes for ${dateTitle(selectedDate)}`}
           />
-          {selectedReminders.length > 0 && (
-            <div className="mt-3 space-y-2">
-              {selectedReminders.slice(0, 3).map((task) => (
-                <div key={task.id} className="flex items-center gap-2 border border-border bg-white px-3 py-2">
-                  <p className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground-strong">{task.title}</p>
-                  <button
-                    type="button"
-                    onClick={() => onSetReminder?.(task.id, null)}
-                    className="text-xs font-medium text-muted-foreground hover:text-destructive"
-                  >
-                    Clear
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="space-y-3">
         {Array.from({ length: 12 }, (_, monthIndex) => {
           const month = new Date(year, monthIndex, 1);
-          const first = new Date(year, monthIndex, 1);
           const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-          const leading = first.getDay();
-          const calendarCells = [
-            ...Array.from({ length: leading }, () => null),
-            ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, monthIndex, index + 1)),
-          ];
+          const monthName = new Intl.DateTimeFormat("en", { month: "long" }).format(month);
 
           return (
-            <section key={monthIndex} className="border border-border bg-card p-3">
-              <p className="mb-2 text-sm font-semibold text-foreground-strong">
-                {new Intl.DateTimeFormat("en", { month: "long" }).format(month)}
+            <section
+              key={monthIndex}
+              className="grid gap-3 border border-border bg-card p-3 sm:grid-cols-[112px_minmax(0,1fr)]"
+            >
+              <p className="pt-2 text-sm font-semibold text-foreground-strong">
+                {monthName}
               </p>
-              <div className="grid grid-cols-7 gap-1 text-center text-[11px]">
-                {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
-                  <div key={`${day}-${index}`} className="py-1 font-semibold text-muted-foreground">
-                    {day}
-                  </div>
-                ))}
-                {calendarCells.map((cell, index) => {
-                  const key = cell ? toDateKey(cell) : `blank-${monthIndex}-${index}`;
-                  const dayTasks = cell ? reminders.get(key) ?? [] : [];
+              <div className="fl-scroll flex gap-1 overflow-x-auto pb-1">
+                {Array.from({ length: daysInMonth }, (_, index) => {
+                  const cell = new Date(year, monthIndex, index + 1);
+                  const key = toDateKey(cell);
+                  const dayTasks = reminders.get(key) ?? [];
                   const isToday = key === todayKey;
                   const isSelected = key === selectedDate;
-                  const note = cell ? calendarNotes[key] : "";
                   return (
-                    <div key={key} className="min-h-[50px]">
-                      {cell && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedDate(key)}
-                          className={`flex h-full min-h-[50px] w-full flex-col border p-1.5 text-left transition hover:border-primary hover:bg-[#edf5ff] ${
-                            dayTasks.length > 0 || note ? "border-[#f1c21b] bg-[#fff8d6]" : "border-border bg-white"
-                          } ${isToday ? "ring-2 ring-primary" : ""} ${
-                            isSelected ? "border-primary bg-[#d0e2ff]" : ""
-                          }`}
-                          aria-label={`Open ${dateTitle(key)}`}
-                        >
-                          <span
-                            className={`inline-flex h-5 min-w-5 items-center justify-center self-start text-xs font-bold ${
-                              isToday ? "bg-primary px-1 text-white" : "text-foreground-strong"
-                            }`}
-                          >
-                            {cell.getDate()}
-                          </span>
-                          {(dayTasks.length > 0 || note) && (
-                            <span className="mt-auto line-clamp-2 text-[10px] font-semibold leading-3 text-muted-foreground">
-                              {dayTasks.length > 1
-                                ? `${dayTasks.length} reminders`
-                                : dayTasks[0]?.title ?? "Note"}
-                            </span>
-                          )}
-                        </button>
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSelectedDate(key)}
+                      className={`relative flex h-10 w-10 shrink-0 items-center justify-center border text-sm font-semibold transition hover:border-primary hover:bg-[#edf5ff] ${
+                        isToday ? "border-primary bg-primary text-white" : "border-border bg-white text-foreground-strong"
+                      } ${isSelected && !isToday ? "border-primary bg-[#d0e2ff]" : ""}`}
+                      aria-label={`Open ${dateTitle(key)}`}
+                    >
+                      {cell.getDate()}
+                      {dayTasks.length > 0 && (
+                        <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-[#da1e28]" />
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -178,9 +140,19 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-          Set reminder for {dateTitle(selectedDate)}
-        </p>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Create reminder
+          </p>
+          <span className="text-xs font-medium text-foreground-strong">
+            {dateTitle(selectedDate)}
+          </span>
+          {selectedReminders.length > 0 && (
+            <span className="ml-auto rounded-full bg-[#fff1f1] px-2 py-1 text-[11px] font-bold text-[#da1e28]">
+              {selectedReminders.length} set
+            </span>
+          )}
+        </div>
         {activeTasks.length === 0 ? (
           <div className="border border-border bg-card p-4 text-sm text-muted-foreground">
             Add an active task first, then set its reminder date here.
