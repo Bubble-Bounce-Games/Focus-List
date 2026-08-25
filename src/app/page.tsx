@@ -146,7 +146,7 @@ function FocusSidePanel() {
     .filter((task) => task.dueDate)
     .slice()
     .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
-    .slice(0, 4);
+    .slice(0, 5);
   const overdueCount = reminderTasks.filter(
     (task) => task.dueDate && task.dueDate < toDateKey(new Date())
   ).length;

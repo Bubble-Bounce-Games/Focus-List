@@ -1,7 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, Clock3, FolderArchive, Trash2, X } from "lucide-react";
 import type { Task } from "@/lib/focuslist/types";
+import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
 
 type ToolView = "calendar" | "archive" | "trash";
 type DashboardToolsProps = {
@@ -20,96 +22,186 @@ function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function dateTitle(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function asCalendarNotes(value: unknown): Record<string, string> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+  );
+}
+
 function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks" | "onSetReminder">) {
-  const month = new Date();
-  const year = month.getFullYear();
-  const monthIndex = month.getMonth();
-  const first = new Date(year, monthIndex, 1);
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const leading = first.getDay();
   const todayKey = toDateKey(new Date());
-  const calendarCells = [
-    ...Array.from({ length: leading }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, monthIndex, index + 1)),
-  ];
+  const year = new Date().getFullYear();
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [notesValue, setNotes] = usePersistentState<unknown>("fl.calendarNotes", {});
+  const calendarNotes = asCalendarNotes(notesValue);
   const activeTasks = tasks.filter((task) => !task.completedAt && !task.archivedAt && !task.deletedAt);
-  const reminders = new Map<string, Task[]>();
-  for (const task of activeTasks) {
-    if (!task.dueDate) continue;
-    const rows = reminders.get(task.dueDate) ?? [];
-    rows.push(task);
-    reminders.set(task.dueDate, rows);
+  const reminders = useMemo(() => {
+    const rows = new Map<string, Task[]>();
+    for (const task of activeTasks) {
+      if (!task.dueDate) continue;
+      const dayRows = rows.get(task.dueDate) ?? [];
+      dayRows.push(task);
+      rows.set(task.dueDate, dayRows);
+    }
+    return rows;
+  }, [activeTasks]);
+  const selectedReminders = reminders.get(selectedDate) ?? [];
+  const selectedNote = calendarNotes[selectedDate] ?? "";
+
+  function saveSelectedNote(value: string) {
+    setNotes((current) => {
+      const next = { ...asCalendarNotes(current) };
+      if (value.trim()) {
+        next[selectedDate] = value;
+      } else {
+        delete next[selectedDate];
+      }
+      return next;
+    });
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="border border-border bg-app p-4">
-        <p className="text-sm font-semibold text-foreground-strong">
-          {new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(month)}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Pick a date on a task row below to mark a reminder.
-        </p>
-      </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="py-1 font-semibold text-muted-foreground">
-            {day}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)]">
+        <div className="border border-border bg-app p-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold text-foreground-strong">{year} Calendar</p>
           </div>
-        ))}
-        {calendarCells.map((cell, index) => {
-          const key = cell ? toDateKey(cell) : `blank-${index}`;
-          const dayTasks = cell ? reminders.get(key) ?? [] : [];
-          const isToday = key === todayKey;
-          return (
-            <div
-              key={key}
-              className={`min-h-12 border p-1 text-left ${
-                cell ? "border-border bg-card" : "border-transparent"
-              } ${dayTasks.length > 0 ? "ring-2 ring-[#f1c21b]" : ""} ${
-                isToday ? "bg-[#d0e2ff] ring-2 ring-primary" : ""
-              }`}
-            >
-              {cell && (
-                <>
-                  <span
-                    className={`inline-flex h-5 min-w-5 items-center justify-center text-xs font-semibold ${
-                      isToday ? "bg-primary px-1 text-white" : "text-foreground-strong"
-                    }`}
+          <p className="mt-1 text-xs text-muted-foreground">
+            Choose a date, add a note, then attach that date to a task reminder.
+          </p>
+        </div>
+
+        <div className="border border-border bg-[#f7f9fc] p-4">
+          <p className="text-sm font-semibold text-foreground-strong">{dateTitle(selectedDate)}</p>
+          <textarea
+            value={selectedNote}
+            onChange={(event) => saveSelectedNote(event.target.value)}
+            className="mt-3 h-24 w-full resize-none border border-border bg-white p-3 text-sm text-foreground-strong outline-none focus:border-primary"
+            placeholder="Add date notes..."
+            aria-label={`Notes for ${dateTitle(selectedDate)}`}
+          />
+          {selectedReminders.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {selectedReminders.slice(0, 3).map((task) => (
+                <div key={task.id} className="flex items-center gap-2 border border-border bg-white px-3 py-2">
+                  <p className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground-strong">{task.title}</p>
+                  <button
+                    type="button"
+                    onClick={() => onSetReminder?.(task.id, null)}
+                    className="text-xs font-medium text-muted-foreground hover:text-destructive"
                   >
-                    {cell.getDate()}
-                  </span>
-                  {dayTasks.length > 0 && (
-                    <div className="mt-1 h-1.5 rounded-full bg-[#f1c21b]" />
-                  )}
-                </>
-              )}
+                    Clear
+                  </button>
+                </div>
+              ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {Array.from({ length: 12 }, (_, monthIndex) => {
+          const month = new Date(year, monthIndex, 1);
+          const first = new Date(year, monthIndex, 1);
+          const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+          const leading = first.getDay();
+          const calendarCells = [
+            ...Array.from({ length: leading }, () => null),
+            ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, monthIndex, index + 1)),
+          ];
+
+          return (
+            <section key={monthIndex} className="border border-border bg-card p-3">
+              <p className="mb-2 text-sm font-semibold text-foreground-strong">
+                {new Intl.DateTimeFormat("en", { month: "long" }).format(month)}
+              </p>
+              <div className="grid grid-cols-7 gap-1 text-center text-[11px]">
+                {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                  <div key={`${day}-${index}`} className="py-1 font-semibold text-muted-foreground">
+                    {day}
+                  </div>
+                ))}
+                {calendarCells.map((cell, index) => {
+                  const key = cell ? toDateKey(cell) : `blank-${monthIndex}-${index}`;
+                  const dayTasks = cell ? reminders.get(key) ?? [] : [];
+                  const isToday = key === todayKey;
+                  const isSelected = key === selectedDate;
+                  const note = cell ? calendarNotes[key] : "";
+                  return (
+                    <div key={key} className="min-h-[50px]">
+                      {cell && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDate(key)}
+                          className={`flex h-full min-h-[50px] w-full flex-col border p-1.5 text-left transition hover:border-primary hover:bg-[#edf5ff] ${
+                            dayTasks.length > 0 || note ? "border-[#f1c21b] bg-[#fff8d6]" : "border-border bg-white"
+                          } ${isToday ? "ring-2 ring-primary" : ""} ${
+                            isSelected ? "border-primary bg-[#d0e2ff]" : ""
+                          }`}
+                          aria-label={`Open ${dateTitle(key)}`}
+                        >
+                          <span
+                            className={`inline-flex h-5 min-w-5 items-center justify-center self-start text-xs font-bold ${
+                              isToday ? "bg-primary px-1 text-white" : "text-foreground-strong"
+                            }`}
+                          >
+                            {cell.getDate()}
+                          </span>
+                          {(dayTasks.length > 0 || note) && (
+                            <span className="mt-auto line-clamp-2 text-[10px] font-semibold leading-3 text-muted-foreground">
+                              {dayTasks.length > 1
+                                ? `${dayTasks.length} reminders`
+                                : dayTasks[0]?.title ?? "Note"}
+                            </span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           );
         })}
       </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto">
         <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-          Reminder tasks
+          Set reminder for {dateTitle(selectedDate)}
         </p>
         {activeTasks.length === 0 ? (
           <div className="border border-border bg-card p-4 text-sm text-muted-foreground">
-            Add an active task first, then mark its reminder date here.
+            Add an active task first, then set its reminder date here.
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {activeTasks.map((task) => (
               <div key={task.id} className="border border-border bg-card p-3">
                 <p className="truncate text-sm font-medium text-foreground-strong">{task.title}</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={task.dueDate ?? ""}
-                    onChange={(event) => onSetReminder?.(task.id, event.target.value || null)}
-                    className="h-9 flex-1 border border-border bg-app px-2 text-sm text-foreground-strong outline-none focus:border-primary"
-                    aria-label={`Reminder date for ${task.title}`}
-                  />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onSetReminder?.(task.id, selectedDate)}
+                    className="h-9 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                  >
+                    {task.dueDate === selectedDate ? "Reminder set" : "Set reminder"}
+                  </button>
                   {task.dueDate && (
+                    <span className="text-xs font-medium text-muted-foreground">{dateTitle(task.dueDate)}</span>
+                  )}
+                  {task.dueDate && task.dueDate !== selectedDate && (
                     <button
                       type="button"
                       onClick={() => onSetReminder?.(task.id, null)}
@@ -133,9 +225,10 @@ export function DashboardTools({ view, tasks, onClose, onRestore, onSetReminder 
   const title = view === "calendar" ? "Reminder calendar" : view === "archive" ? "Archive" : "Deleted items";
   const Icon = view === "calendar" ? CalendarDays : view === "archive" ? FolderArchive : Trash2;
   const rows = view === "archive" ? tasks.filter((task) => task.archivedAt) : view === "trash" ? tasks.filter((task) => task.deletedAt) : dueTasks;
+  const widthClass = view === "calendar" ? "w-[860px]" : "w-[420px]";
 
   return (
-    <aside className="fixed right-0 top-0 z-50 flex h-full w-[420px] max-w-[100vw] flex-col border-l border-border bg-card shadow-2xl" aria-label={title}>
+    <aside className={`fixed right-0 top-0 z-50 flex h-full ${widthClass} max-w-[100vw] flex-col border-l border-border bg-card shadow-2xl`} aria-label={title}>
       <header className="flex items-center gap-3 border-b border-border px-6 py-5"><Icon className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold text-foreground-strong">{title}</h2><button onClick={onClose} aria-label="Close panel" className="ml-auto p-2 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button></header>
       <div className="fl-scroll flex-1 overflow-y-auto p-6">
         {view === "calendar" ? (
