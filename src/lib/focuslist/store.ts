@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { colorForName } from "./palette";
@@ -24,13 +24,14 @@ function mapTask(row: Row): Task {
 
 function useCloudRows<T>(table: "tasks" | "projects" | "tags"): T[] {
   const [rows, setRows] = useState<T[]>([]);
+  const channelName = useRef(`focus-list-${table}-${uuid()}`);
   useEffect(() => {
     const client = getSupabaseBrowserClient();
     if (!client) return;
     let active = true;
     const load = async () => { const { data } = await client.from(table).select("*"); if (active && data) setRows(data as T[]); };
     void load();
-    const channel = client.channel(`focus-list-${table}`).on("postgres_changes", { event: "*", schema: "public", table }, () => void load()).subscribe();
+    const channel = client.channel(channelName.current).on("postgres_changes", { event: "*", schema: "public", table }, () => void load()).subscribe();
     return () => { active = false; void client.removeChannel(channel); };
   }, [table]);
   return rows;
