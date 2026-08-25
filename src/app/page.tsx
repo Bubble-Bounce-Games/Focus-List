@@ -52,10 +52,11 @@ import {
   Clock3,
   Highlighter,
   Pin,
+  Play,
   Square,
   StickyNote,
-  Volume1,
   Volume2,
+  VolumeX,
 } from "lucide-react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -82,7 +83,8 @@ function FocusSidePanel() {
   );
   const [marker, setMarker] = usePersistentState("fl.markerColor", markerColors[0]);
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = usePersistentState("fl.vinylVolume", 0.28);
+  const [volume] = usePersistentState("fl.vinylVolume", 0.28);
+  const [muted, setMuted] = usePersistentState("fl.vinylMuted", false);
   const audioRef = useRef<{
     context: AudioContext;
     lead: OscillatorNode;
@@ -130,7 +132,7 @@ function FocusSidePanel() {
     pad.type = "triangle";
     lead.frequency.value = readNote();
     pad.frequency.value = 130.81;
-    gain.gain.value = volume * 0.12;
+    gain.gain.value = muted ? 0 : volume * 0.12;
     lead.connect(gain);
     pad.connect(gain);
     gain.connect(context.destination);
@@ -143,14 +145,18 @@ function FocusSidePanel() {
     }, 900);
     audioRef.current = { context, lead, pad, gain, timer };
     setPlaying(true);
-  }, [stopMusic, volume]);
+  }, [muted, stopMusic, volume]);
 
   useEffect(() => stopMusic, [stopMusic]);
   useEffect(() => {
     const current = audioRef.current;
     if (!current) return;
-    current.gain.gain.setTargetAtTime(volume * 0.12, current.context.currentTime, 0.08);
-  }, [volume]);
+    current.gain.gain.setTargetAtTime(
+      muted ? 0 : volume * 0.12,
+      current.context.currentTime,
+      0.08
+    );
+  }, [muted, volume]);
 
   const handleSaveNote = useCallback(() => {
     const text = note.trim();
@@ -261,22 +267,26 @@ function FocusSidePanel() {
           </div>
         </section>
 
-        <section className="relative aspect-[1.12/1] min-h-[360px] overflow-hidden bg-[#f7941d] p-5">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_0_58%,rgb(231_98_18_/_45%)_58%_100%)]" />
-          <div className="relative h-full rounded-[2rem] bg-[#3f3f3d] p-[4%] shadow-[0_20px_0_rgb(28_28_27_/_18%)]">
+        <section className="relative aspect-[1.12/1] min-h-[360px] overflow-hidden">
+          <div className="relative h-full overflow-hidden rounded-[2rem] bg-[#3f3f3d] shadow-[0_20px_0_rgb(28_28_27_/_18%)]">
             <button
               type="button"
-              onClick={stopMusic}
-              className="absolute left-[3%] top-[5%] z-10 flex h-12 w-12 items-center justify-center rounded-full bg-[#969696] text-[#3f3f3d] hover:bg-[#b7b7b7]"
-              aria-label="Stop music"
+              onClick={toggleMusic}
+              className="absolute left-[3%] top-[4%] z-20 flex h-12 w-12 items-center justify-center rounded-full bg-[#969696] text-[#3f3f3d] hover:bg-[#b7b7b7]"
+              aria-label={playing ? "Stop music" : "Start music"}
+              aria-pressed={playing}
             >
-              <Square className="h-5 w-5 fill-current" />
+              {playing ? (
+                <Square className="h-5 w-5 fill-current" />
+              ) : (
+                <Play className="ml-0.5 h-5 w-5 fill-current" />
+              )}
             </button>
 
             <button
               type="button"
               onClick={toggleMusic}
-              className={`absolute left-[6%] top-[8%] flex aspect-square w-[68%] items-center justify-center rounded-full bg-[#2c2c2a] ring-[1.15rem] ring-[#777] ${
+              className={`absolute left-[8%] top-[12%] flex aspect-square w-[62%] items-center justify-center rounded-full bg-[#2c2c2a] ring-[0.95rem] ring-[#777] ${
                 playing ? "animate-spin" : ""
               }`}
               aria-label={playing ? "Pause melody" : "Play melody"}
@@ -289,38 +299,44 @@ function FocusSidePanel() {
               </span>
             </button>
 
-            <div className="absolute right-[8%] top-[14%] h-[26%] w-[20%] rounded-full bg-[#d9d9d9]">
-              <div className="absolute left-1/2 top-[-22%] h-[135%] w-3 -translate-x-1/2 rounded-full bg-[#efefef]" />
-              <div className="absolute left-1/2 top-[36%] h-[24%] w-[42%] -translate-x-1/2 rounded-full bg-[#f15a24]" />
-              <div className="absolute left-1/2 top-[43%] h-8 w-8 -translate-x-1/2 rounded-full bg-[#2a2a2a]" />
+            <div className="absolute right-[6%] top-[13%] h-[24%] w-[19%] rounded-full bg-[#d9d9d9]">
+              <div className="absolute left-1/2 top-[-20%] h-[132%] w-3 -translate-x-1/2 rounded-full bg-[#efefef]" />
+              <div className="absolute left-1/2 top-[35%] h-[24%] w-[42%] -translate-x-1/2 rounded-full bg-[#f15a24]" />
+              <div className="absolute left-1/2 top-[42%] h-8 w-8 -translate-x-1/2 rounded-full bg-[#2a2a2a]" />
             </div>
 
-            <div className="absolute right-[23%] top-[39%] h-[42%] w-[8%] rotate-[33deg] rounded-full bg-[#efefef]" />
-            <div className="absolute bottom-[11%] right-[25%] h-[14%] w-[7%] rotate-[33deg] bg-[#efefef]" />
-            <div className="absolute bottom-[8%] right-[30%] h-[11%] w-[8%] rotate-[33deg] bg-[#efefef]" />
+            <div className="absolute right-[17%] top-[27%] h-[44%] w-[4.5%] rotate-[8deg] rounded-full bg-[#efefef]" />
+            <div className="absolute bottom-[20%] right-[20%] h-[25%] w-[4.5%] rotate-[42deg] rounded-full bg-[#efefef]" />
+            <div className="absolute bottom-[10%] right-[27%] h-[14%] w-[6%] rotate-[42deg] bg-[#efefef]" />
+            <div className="absolute bottom-[8%] right-[32%] h-[10%] w-[8%] rotate-[42deg] bg-[#efefef]" />
 
             <div className="absolute bottom-[4%] left-0 h-[16%] w-[27%] rounded-tr-3xl bg-[#8d8d8b]" />
             <button
               type="button"
-              onClick={() => setVolume((current) => Math.max(0, Number((current - 0.1).toFixed(2))))}
+              onClick={() => setMuted((current) => !current)}
               className="absolute bottom-[10%] left-[5%] h-10 w-10 rounded-full bg-[#dedede] hover:bg-white"
-              aria-label="Volume down"
+              aria-label={muted ? "Turn volume on" : "Mute volume"}
+              aria-pressed={!muted}
             >
-              <Volume1 className="mx-auto h-5 w-5 text-[#555]" />
+              {muted ? (
+                <VolumeX className="mx-auto h-5 w-5 text-[#555]" />
+              ) : (
+                <Volume2 className="mx-auto h-5 w-5 text-[#555]" />
+              )}
             </button>
             <button
               type="button"
-              onClick={() => setVolume((current) => Math.min(1, Number((current + 0.1).toFixed(2))))}
+              onClick={stopMusic}
               className="absolute bottom-[8%] left-[16%] h-7 w-7 rounded-full bg-[#dedede] hover:bg-white"
-              aria-label="Volume up"
+              aria-label="Stop music"
             >
-              <Volume2 className="mx-auto h-4 w-4 text-[#555]" />
+              <Square className="mx-auto h-3.5 w-3.5 fill-current text-[#555]" />
             </button>
 
             <button
               type="button"
               onClick={toggleMusic}
-              className="absolute bottom-[6%] left-[55%] flex h-8 w-20 items-end justify-center gap-1"
+              className="absolute bottom-[5%] left-[55%] flex h-9 w-20 items-end justify-center gap-1"
               aria-label={playing ? "Pause stabilizer" : "Start stabilizer"}
               aria-pressed={playing}
             >
@@ -338,12 +354,7 @@ function FocusSidePanel() {
               ))}
             </button>
 
-            <div className="absolute bottom-[9%] right-[7%] h-[27%] w-2 bg-[#262626]">
-              <div
-                className="absolute left-1/2 h-9 w-8 -translate-x-1/2 bg-[#efefef]"
-                style={{ bottom: `${volume * 74}%` }}
-              />
-            </div>
+            <div className="absolute bottom-[9%] right-[7%] h-[27%] w-2 bg-[#262626]" />
           </div>
         </section>
       </div>
