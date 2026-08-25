@@ -51,11 +51,11 @@ import {
   Circle,
   Clock3,
   Highlighter,
-  Music2,
-  Pause,
   Pin,
-  Play,
+  Square,
   StickyNote,
+  Volume1,
+  Volume2,
 } from "lucide-react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -69,7 +69,7 @@ type PinnedNote = {
 };
 
 const markerColors = ["#111827", "#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
-const relaxingNotes = [174, 196, 220, 261.63, 293.66, 329.63, 392];
+const melodyNotes = [261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 392];
 
 function FocusSidePanel() {
   const [note, setNote] = usePersistentState(
@@ -82,6 +82,7 @@ function FocusSidePanel() {
   );
   const [marker, setMarker] = usePersistentState("fl.markerColor", markerColors[0]);
   const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = usePersistentState("fl.vinylVolume", 0.28);
   const audioRef = useRef<{
     context: AudioContext;
     lead: OscillatorNode;
@@ -118,29 +119,38 @@ function FocusSidePanel() {
     const lead = context.createOscillator();
     const pad = context.createOscillator();
     const gain = context.createGain();
-    const chooseNote = () =>
-      relaxingNotes[Math.floor(Math.random() * relaxingNotes.length)] ?? 220;
+    let step = 0;
+    const readNote = () => {
+      const note = melodyNotes[step % melodyNotes.length] ?? 261.63;
+      step += 1;
+      return note;
+    };
 
     lead.type = "sine";
     pad.type = "triangle";
-    lead.frequency.value = chooseNote();
-    pad.frequency.value = 87;
-    gain.gain.value = 0.025;
+    lead.frequency.value = readNote();
+    pad.frequency.value = 130.81;
+    gain.gain.value = volume * 0.12;
     lead.connect(gain);
     pad.connect(gain);
     gain.connect(context.destination);
     lead.start();
     pad.start();
     const timer = window.setInterval(() => {
-      const next = chooseNote();
-      lead.frequency.setTargetAtTime(next, context.currentTime, 0.24);
-      pad.frequency.setTargetAtTime(next / 2, context.currentTime, 0.35);
-    }, 2400);
+      const next = readNote();
+      lead.frequency.setTargetAtTime(next, context.currentTime, 0.18);
+      pad.frequency.setTargetAtTime(next / 2, context.currentTime, 0.3);
+    }, 900);
     audioRef.current = { context, lead, pad, gain, timer };
     setPlaying(true);
-  }, [stopMusic]);
+  }, [stopMusic, volume]);
 
   useEffect(() => stopMusic, [stopMusic]);
+  useEffect(() => {
+    const current = audioRef.current;
+    if (!current) return;
+    current.gain.gain.setTargetAtTime(volume * 0.12, current.context.currentTime, 0.08);
+  }, [volume]);
 
   const handleSaveNote = useCallback(() => {
     const text = note.trim();
@@ -251,47 +261,90 @@ function FocusSidePanel() {
           </div>
         </section>
 
-        <section className="border border-border bg-app p-5">
-          <button
-            type="button"
-            onClick={toggleMusic}
-            className="group flex w-full flex-col items-center text-center"
-            aria-pressed={playing}
-          >
-            <span className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground-strong">
-              <Music2 className="h-5 w-5 text-primary" />
-              Vinyl Record
-            </span>
-            <span
-              className={`relative flex h-48 w-48 items-center justify-center rounded-full border-[22px] border-[#171a2b] bg-[radial-gradient(circle,#f8fafc_0_7%,#0f172a_8%_10%,#4b5563_11%_12%,#111827_13%_33%,#374151_34%_35%,#111827_36%_56%,#4b5563_57%_58%,#111827_59%_100%)] shadow-[0_24px_48px_rgb(32_48_64_/_22%)] ${
+        <section className="relative aspect-[1.12/1] min-h-[360px] overflow-hidden bg-[#f7941d] p-5">
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_0_58%,rgb(231_98_18_/_45%)_58%_100%)]" />
+          <div className="relative h-full rounded-[2rem] bg-[#3f3f3d] p-[4%] shadow-[0_20px_0_rgb(28_28_27_/_18%)]">
+            <button
+              type="button"
+              onClick={stopMusic}
+              className="absolute left-[3%] top-[5%] z-10 flex h-12 w-12 items-center justify-center rounded-full bg-[#969696] text-[#3f3f3d] hover:bg-[#b7b7b7]"
+              aria-label="Stop music"
+            >
+              <Square className="h-5 w-5 fill-current" />
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleMusic}
+              className={`absolute left-[6%] top-[8%] flex aspect-square w-[68%] items-center justify-center rounded-full bg-[#2c2c2a] ring-[1.15rem] ring-[#777] ${
                 playing ? "animate-spin" : ""
               }`}
+              aria-label={playing ? "Pause melody" : "Play melody"}
+              aria-pressed={playing}
             >
-              <span className="absolute h-16 w-16 rounded-full bg-[#f1c21b]" />
-              <span className="relative z-10 h-5 w-5 rounded-full bg-primary" />
-            </span>
-            <span className="mt-4 text-sm font-semibold text-foreground-strong">
-              {playing ? "Relaxing melody background" : "Tap the record to play random melody"}
-            </span>
-            <span className="mt-3 flex h-10 items-end justify-center gap-1.5" aria-label="Audio stabilizer">
-              {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
+              <span className="absolute inset-[7%] rounded-full border border-[#222]" />
+              <span className="absolute inset-[24%] rounded-full border border-[#191919]" />
+              <span className="absolute flex h-[30%] w-[30%] items-center justify-center rounded-full bg-[#f7b71b]">
+                <span className="h-3 w-3 rounded-full bg-[#151515]" />
+              </span>
+            </button>
+
+            <div className="absolute right-[8%] top-[14%] h-[26%] w-[20%] rounded-full bg-[#d9d9d9]">
+              <div className="absolute left-1/2 top-[-22%] h-[135%] w-3 -translate-x-1/2 rounded-full bg-[#efefef]" />
+              <div className="absolute left-1/2 top-[36%] h-[24%] w-[42%] -translate-x-1/2 rounded-full bg-[#f15a24]" />
+              <div className="absolute left-1/2 top-[43%] h-8 w-8 -translate-x-1/2 rounded-full bg-[#2a2a2a]" />
+            </div>
+
+            <div className="absolute right-[23%] top-[39%] h-[42%] w-[8%] rotate-[33deg] rounded-full bg-[#efefef]" />
+            <div className="absolute bottom-[11%] right-[25%] h-[14%] w-[7%] rotate-[33deg] bg-[#efefef]" />
+            <div className="absolute bottom-[8%] right-[30%] h-[11%] w-[8%] rotate-[33deg] bg-[#efefef]" />
+
+            <div className="absolute bottom-[4%] left-0 h-[16%] w-[27%] rounded-tr-3xl bg-[#8d8d8b]" />
+            <button
+              type="button"
+              onClick={() => setVolume((current) => Math.max(0, Number((current - 0.1).toFixed(2))))}
+              className="absolute bottom-[10%] left-[5%] h-10 w-10 rounded-full bg-[#dedede] hover:bg-white"
+              aria-label="Volume down"
+            >
+              <Volume1 className="mx-auto h-5 w-5 text-[#555]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setVolume((current) => Math.min(1, Number((current + 0.1).toFixed(2))))}
+              className="absolute bottom-[8%] left-[16%] h-7 w-7 rounded-full bg-[#dedede] hover:bg-white"
+              aria-label="Volume up"
+            >
+              <Volume2 className="mx-auto h-4 w-4 text-[#555]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleMusic}
+              className="absolute bottom-[6%] left-[55%] flex h-8 w-20 items-end justify-center gap-1"
+              aria-label={playing ? "Pause stabilizer" : "Start stabilizer"}
+              aria-pressed={playing}
+            >
+              {[0, 1, 2, 3, 4].map((bar) => (
                 <span
                   key={bar}
-                  className={`w-2 bg-primary transition-all ${
+                  className={`w-2 rounded-full bg-[#f7b71b] ${
                     playing ? "animate-pulse" : ""
                   }`}
                   style={{
-                    height: playing ? `${16 + ((bar * 9) % 24)}px` : `${8 + bar}px`,
-                    animationDelay: `${bar * 90}ms`,
+                    height: playing ? `${12 + ((bar * 7) % 18)}px` : "8px",
+                    animationDelay: `${bar * 80}ms`,
                   }}
                 />
               ))}
-            </span>
-            <span className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-              {playing ? "Playing" : "Paused"}
-            </span>
-          </button>
+            </button>
+
+            <div className="absolute bottom-[9%] right-[7%] h-[27%] w-2 bg-[#262626]">
+              <div
+                className="absolute left-1/2 h-9 w-8 -translate-x-1/2 bg-[#efefef]"
+                style={{ bottom: `${volume * 74}%` }}
+              />
+            </div>
+          </div>
         </section>
       </div>
     </aside>
