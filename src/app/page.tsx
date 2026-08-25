@@ -52,6 +52,7 @@ import {
   Clock3,
   Highlighter,
   Pin,
+  RotateCcw,
   StickyNote,
 } from "lucide-react";
 
@@ -88,6 +89,40 @@ function asPinnedNotes(value: unknown): PinnedNote[] {
   );
 }
 
+function toDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function dateLabel(value: string): string {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function reminderTone(value: string): {
+  label: string;
+  className: string;
+} {
+  const today = toDateKey(new Date());
+  if (value < today) {
+    return {
+      label: "Overdue",
+      className: "bg-[#fff1f1] text-[#da1e28]",
+    };
+  }
+  if (value === today) {
+    return {
+      label: "Today",
+      className: "bg-[#defbe6] text-[#198038]",
+    };
+  }
+  return {
+    label: "Upcoming",
+    className: "bg-[#eaf2ff] text-primary",
+  };
+}
+
 function FocusSidePanel() {
   const tasks = useAllTasks();
   const projects = useProjects();
@@ -106,25 +141,27 @@ function FocusSidePanel() {
   const marker = markerColors.includes(asString(markerValue))
     ? asString(markerValue)
     : markerColors[0];
-  const activeSideTasks = tasks
+  const reminderTasks = tasks
     .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
-    .slice();
-  const focusTasks = activeSideTasks
-    .sort((a, b) => b.progress - a.progress || a.title.localeCompare(b.title))
-    .slice(0, 3);
-  const completedToday = tasks.filter((task) => {
-    if (!task.completedAt) return false;
-    return new Date(task.completedAt).toDateString() === new Date().toDateString();
-  }).length;
-  const nextTask = focusTasks[0];
-
-  const handleNudgeTask = useCallback((task: Task) => {
-    void setProgress(task.id, Math.min(95, task.progress + 10));
-  }, []);
+    .filter((task) => task.dueDate)
+    .slice()
+    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+    .slice(0, 4);
+  const overdueCount = reminderTasks.filter(
+    (task) => task.dueDate && task.dueDate < toDateKey(new Date())
+  ).length;
+  const todayCount = reminderTasks.filter(
+    (task) => task.dueDate === toDateKey(new Date())
+  ).length;
 
   const handleFinishTask = useCallback((task: Task) => {
     void setProgress(task.id, 100);
     toast.success("Task completed", { description: task.title });
+  }, []);
+
+  const handleClearReminder = useCallback((task: Task) => {
+    void updateTask(task.id, { dueDate: null });
+    toast.success("Reminder cleared", { description: task.title });
   }, []);
 
   const handleSaveNote = useCallback(() => {
@@ -238,114 +275,95 @@ function FocusSidePanel() {
 
         <section className="shrink-0 border border-border bg-[#f7f9fc] p-4">
           <div className="mb-4 flex items-center gap-2">
-            <Clock3 className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-bold text-foreground-strong">Focus Queue</h3>
-            <span className="ml-auto rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-              {activeSideTasks.length} active
+            <CalendarDays className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground-strong">Reminder Board</h3>
+            <span className="ml-auto bg-white px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              {todayCount} today
             </span>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-3 gap-2">
             <div className="border border-border bg-white p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Next task
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+                Overdue
               </p>
-              {nextTask ? (
-                <>
-                  <p className="mt-2 line-clamp-2 text-sm font-bold leading-5 text-foreground-strong">
-                    {nextTask.title}
-                  </p>
-                  <div className="mt-3 h-2 overflow-hidden bg-[#dfe5ec]">
-                    <div
-                      className="h-full bg-primary"
-                      style={{ width: `${nextTask.progress}%` }}
-                    />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {nextTask.progress}%
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleNudgeTask(nextTask)}
-                      className="h-8 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-3 flex h-[104px] items-center border border-dashed border-border px-3 text-xs leading-5 text-muted-foreground">
-                  Add a task and it will appear here.
-                </div>
-              )}
+              <p className="mt-1 text-2xl font-bold text-[#da1e28]">{overdueCount}</p>
             </div>
-
-            <div className="grid gap-3">
-              <div className="border border-border bg-white p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  Completed today
-                </p>
-                <div className="mt-2 flex items-end gap-2">
-                  <span className="text-3xl font-bold text-[#198038]">
-                    {completedToday}
-                  </span>
-                  <CheckCircle2 className="mb-1 h-5 w-5 text-[#198038]" />
-                </div>
-              </div>
-              <div className="border border-border bg-white p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">
-                  Momentum
-                </p>
-                <div className="mt-3 grid grid-cols-5 gap-1">
-                  {[20, 40, 60, 80, 100].map((level) => (
-                    <span
-                      key={level}
-                      className={`h-8 ${
-                        nextTask && nextTask.progress >= level
-                          ? "bg-primary"
-                          : "bg-[#dfe5ec]"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
+            <div className="border border-border bg-white p-3">
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+                Today
+              </p>
+              <p className="mt-1 text-2xl font-bold text-[#198038]">{todayCount}</p>
+            </div>
+            <div className="border border-border bg-white p-3">
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+                Dated
+              </p>
+              <p className="mt-1 text-2xl font-bold text-primary">
+                {reminderTasks.length}
+              </p>
             </div>
           </div>
 
-          {focusTasks.length > 0 && (
-            <div className="mt-3 space-y-2">
-              {focusTasks.map((task) => {
+          <div className="mt-3 space-y-2">
+            {reminderTasks.length === 0 ? (
+              <div className="border border-dashed border-border bg-white p-4 text-xs leading-5 text-muted-foreground">
+                Mark dates in the calendar tool and your reminders will appear here.
+              </div>
+            ) : (
+              reminderTasks.map((task) => {
                 const project = projectsById[task.projectId];
+                const tone = reminderTone(task.dueDate ?? "");
                 return (
                   <div
                     key={task.id}
-                    className="flex items-center gap-3 border border-border bg-white px-3 py-2"
+                    className="grid gap-3 border border-border bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
                   >
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: project?.color ?? "#8d8d99" }}
-                    />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-foreground-strong">
+                      <div className="mb-2 flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: project?.color ?? "#8d8d99" }}
+                        />
+                        <span className={`px-2 py-0.5 text-[11px] font-bold ${tone.className}`}>
+                          {tone.label}
+                        </span>
+                        <span className="text-[11px] font-semibold text-muted-foreground">
+                          {task.dueDate ? dateLabel(task.dueDate) : ""}
+                        </span>
+                      </div>
+                      <p className="line-clamp-2 text-xs font-semibold leading-5 text-foreground-strong">
                         {task.title}
                       </p>
-                      <p className="truncate text-[11px] text-muted-foreground">
-                        {project?.name ?? "Unassigned"} - {task.progress}%
-                      </p>
+                      <div className="mt-2 h-1.5 overflow-hidden bg-[#dfe5ec]">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${task.progress}%` }}
+                        />
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleFinishTask(task)}
-                      className="h-7 shrink-0 bg-[#198038] px-2.5 text-xs font-semibold text-white hover:bg-[#14662d]"
-                    >
-                      Done
-                    </button>
+                    <div className="flex items-center gap-2 sm:flex-col sm:items-stretch">
+                      <button
+                        type="button"
+                        onClick={() => handleFinishTask(task)}
+                        className="h-8 bg-[#198038] px-3 text-xs font-semibold text-white hover:bg-[#14662d]"
+                      >
+                        Done
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleClearReminder(task)}
+                        className="flex h-8 items-center justify-center border border-border bg-card px-2 text-muted-foreground hover:bg-secondary"
+                        aria-label={`Clear reminder for ${task.title}`}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </section>
       </div>
     </aside>
