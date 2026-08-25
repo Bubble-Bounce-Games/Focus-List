@@ -42,6 +42,11 @@ import {
   type Task,
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
+import {
+  CALENDAR_REMINDERS_KEY,
+  asCalendarReminders,
+  type CalendarReminder,
+} from "@/lib/focuslist/calendar-reminders";
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 import Link from "next/link";
 import {
@@ -65,6 +70,26 @@ type PinnedNote = {
   color: string;
   createdAt: string;
 };
+
+type ReminderRow =
+  | {
+      kind: "task";
+      id: string;
+      title: string;
+      dueDate: string;
+      color: string;
+      progress: number;
+      task: Task;
+    }
+  | {
+      kind: "calendar";
+      id: string;
+      title: string;
+      dueDate: string;
+      color: string;
+      progress: number;
+      reminder: CalendarReminder;
+    };
 
 const markerColors = ["#111827", "#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
 
@@ -135,34 +160,78 @@ function FocusSidePanel() {
     "fl.pinnedNotes",
     []
   );
+  const [calendarReminderValue, setCalendarReminders] = usePersistentState<unknown>(
+    CALENDAR_REMINDERS_KEY,
+    []
+  );
   const [markerValue, setMarker] = usePersistentState<unknown>("fl.markerColor", markerColors[0]);
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
+  const calendarReminders = asCalendarReminders(calendarReminderValue);
   const marker = markerColors.includes(asString(markerValue))
     ? asString(markerValue)
     : markerColors[0];
-  const reminderTasks = tasks
+  const taskReminderRows: ReminderRow[] = tasks
     .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
     .filter((task) => task.dueDate)
-    .slice()
-    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+    .map((task) => {
+      const project = projectsById[task.projectId];
+      return {
+        kind: "task",
+        id: task.id,
+        title: task.title,
+        dueDate: task.dueDate ?? "",
+        color: project?.color ?? "#8d8d99",
+        progress: task.progress,
+        task,
+      };
+    });
+  const calendarReminderRows: ReminderRow[] = calendarReminders.map((reminder) => ({
+    kind: "calendar",
+    id: reminder.id,
+    title: reminder.title,
+    dueDate: reminder.dueDate,
+    color: "#da1e28",
+    progress: 0,
+    reminder,
+  }));
+  const reminderRows = [...taskReminderRows, ...calendarReminderRows]
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || b.id.localeCompare(a.id))
     .slice(0, 5);
-  const overdueCount = reminderTasks.filter(
-    (task) => task.dueDate && task.dueDate < toDateKey(new Date())
+  const overdueCount = reminderRows.filter(
+    (reminder) => reminder.dueDate < toDateKey(new Date())
   ).length;
-  const todayCount = reminderTasks.filter(
-    (task) => task.dueDate === toDateKey(new Date())
+  const todayCount = reminderRows.filter(
+    (reminder) => reminder.dueDate === toDateKey(new Date())
   ).length;
 
-  const handleFinishTask = useCallback((task: Task) => {
-    void setProgress(task.id, 100);
-    toast.success("Task completed", { description: task.title });
-  }, []);
+  const handleFinishReminder = useCallback(
+    (reminder: ReminderRow) => {
+      if (reminder.kind === "task") {
+        void setProgress(reminder.task.id, 100);
+      } else {
+        setCalendarReminders((current) =>
+          asCalendarReminders(current).filter((item) => item.id !== reminder.id)
+        );
+      }
+      toast.success("Reminder completed", { description: reminder.title });
+    },
+    [setCalendarReminders]
+  );
 
-  const handleClearReminder = useCallback((task: Task) => {
-    void updateTask(task.id, { dueDate: null });
-    toast.success("Reminder cleared", { description: task.title });
-  }, []);
+  const handleClearReminder = useCallback(
+    (reminder: ReminderRow) => {
+      if (reminder.kind === "task") {
+        void updateTask(reminder.task.id, { dueDate: null });
+      } else {
+        setCalendarReminders((current) =>
+          asCalendarReminders(current).filter((item) => item.id !== reminder.id)
+        );
+      }
+      toast.success("Reminder cleared", { description: reminder.title });
+    },
+    [setCalendarReminders]
+  );
 
   const handleSaveNote = useCallback(() => {
     const text = note.trim();
@@ -300,61 +369,62 @@ function FocusSidePanel() {
                 Dated
               </p>
               <p className="mt-1 text-2xl font-bold text-primary">
-                {reminderTasks.length}
+                {reminderRows.length}
               </p>
             </div>
           </div>
 
           <div className="mt-3 space-y-2">
-            {reminderTasks.length === 0 ? (
+            {reminderRows.length === 0 ? (
               <div className="border border-dashed border-border bg-white p-4 text-xs leading-5 text-muted-foreground">
                 Mark dates in the calendar tool and your reminders will appear here.
               </div>
             ) : (
-              reminderTasks.map((task) => {
-                const project = projectsById[task.projectId];
-                const tone = reminderTone(task.dueDate ?? "");
+              reminderRows.map((reminder) => {
+                const tone = reminderTone(reminder.dueDate);
                 return (
                   <div
-                    key={task.id}
+                    key={`${reminder.kind}-${reminder.id}`}
                     className="grid gap-3 border border-border bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex items-center gap-2">
                         <span
                           className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: project?.color ?? "#8d8d99" }}
+                          style={{ backgroundColor: reminder.color }}
                         />
                         <span className={`px-2 py-0.5 text-[11px] font-bold ${tone.className}`}>
                           {tone.label}
                         </span>
                         <span className="text-[11px] font-semibold text-muted-foreground">
-                          {task.dueDate ? dateLabel(task.dueDate) : ""}
+                          {dateLabel(reminder.dueDate)}
                         </span>
                       </div>
                       <p className="line-clamp-2 text-xs font-semibold leading-5 text-foreground-strong">
-                        {task.title}
+                        {reminder.title}
                       </p>
-                      <div className="mt-2 h-1.5 overflow-hidden bg-[#dfe5ec]">
-                        <div
-                          className="h-full bg-primary"
-                          style={{ width: `${task.progress}%` }}
-                        />
-                      </div>
+                      {reminder.kind === "task" && (
+                        <div className="mt-2 h-1.5 overflow-hidden bg-[#dfe5ec]">
+                          <div
+                            className="h-full bg-primary"
+                            style={{ width: `${reminder.progress}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 sm:flex-col sm:items-stretch">
                       <button
                         type="button"
-                        onClick={() => handleFinishTask(task)}
+                        onClick={() => handleFinishReminder(reminder)}
                         className="h-8 bg-[#198038] px-3 text-xs font-semibold text-white hover:bg-[#14662d]"
                       >
                         Done
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleClearReminder(task)}
+                        onClick={() => handleClearReminder(reminder)}
                         className="flex h-8 items-center justify-center border border-border bg-card px-2 text-muted-foreground hover:bg-secondary"
-                        aria-label={`Clear reminder for ${task.title}`}
+                        aria-label={`Clear reminder for ${reminder.title}`}
                       >
                         <RotateCcw className="h-3.5 w-3.5" />
                       </button>
