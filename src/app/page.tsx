@@ -42,19 +42,163 @@ import {
   type Task,
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
-import { useAuth } from "@/components/auth-provider";
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, CheckCircle2, Circle, Clock3 } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  Circle,
+  Clock3,
+  Highlighter,
+  Music2,
+  Pause,
+  Pin,
+  Play,
+  StickyNote,
+} from "lucide-react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const faviconPath = `${basePath}/Favicon.png`;
+type WorkspaceTab = "active" | "completed";
+
+const markerColors = ["#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
+
+function FocusSidePanel() {
+  const [note, setNote] = usePersistentState(
+    "fl.stickyNote",
+    "Pin quick notes here while you plan your next task."
+  );
+  const [marker, setMarker] = usePersistentState("fl.markerColor", markerColors[0]);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<{
+    context: AudioContext;
+    oscillator: OscillatorNode;
+    gain: GainNode;
+  } | null>(null);
+
+  const stopMusic = useCallback(() => {
+    const current = audioRef.current;
+    if (!current) return;
+    current.gain.gain.setTargetAtTime(0, current.context.currentTime, 0.08);
+    window.setTimeout(() => {
+      current.oscillator.stop();
+      void current.context.close();
+    }, 180);
+    audioRef.current = null;
+    setPlaying(false);
+  }, []);
+
+  const toggleMusic = useCallback(() => {
+    if (audioRef.current) {
+      stopMusic();
+      return;
+    }
+    const AudioCtor =
+      window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioCtor) return;
+    const context = new AudioCtor();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 174;
+    gain.gain.value = 0.035;
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    audioRef.current = { context, oscillator, gain };
+    setPlaying(true);
+  }, [stopMusic]);
+
+  useEffect(() => stopMusic, [stopMusic]);
+
+  return (
+    <aside className="flex min-h-0 flex-col border-t border-border bg-card lg:border-l lg:border-t-0">
+      <div className="flex items-center gap-2 border-b border-border px-5 py-3">
+        <StickyNote className="h-5 w-5 text-[#f1c21b]" />
+        <h2 className="text-sm font-bold text-foreground-strong">Pinned Notes</h2>
+        <Pin className="ml-auto h-4 w-4 text-muted-foreground" />
+      </div>
+
+      <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+        <section className="border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
+          <div className="mb-3 flex items-center gap-2">
+            <Highlighter className="h-4 w-4" style={{ color: marker }} />
+            <span className="text-xs font-semibold uppercase text-muted-foreground">
+              Sticky note
+            </span>
+          </div>
+          <textarea
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            className="min-h-[210px] w-full resize-none border-0 bg-transparent text-sm leading-6 text-foreground-strong outline-none placeholder:text-muted-foreground"
+            style={{ boxShadow: `inset 4px 0 0 ${marker}` }}
+            placeholder="Write a quick note..."
+            aria-label="Pinned note"
+          />
+          <div className="mt-4 flex items-center gap-2">
+            {markerColors.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setMarker(color)}
+                className={`h-7 w-7 border ${
+                  marker === color ? "border-foreground-strong" : "border-transparent"
+                }`}
+                style={{ backgroundColor: color }}
+                aria-label={`Use marker color ${color}`}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="border border-border bg-app p-4">
+          <div className="mb-4 flex items-center gap-2">
+            <Music2 className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-bold text-foreground-strong">Refresh Music</h3>
+          </div>
+          <button
+            type="button"
+            onClick={toggleMusic}
+            className="group flex w-full items-center gap-4 text-left"
+          >
+            <span
+              className={`flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-[14px] border-[#262a33] bg-[radial-gradient(circle,#f4f4f4_0_12%,#7a8194_13%_17%,#dfe3eb_18%_31%,#a7b0bf_32%_34%,#f4f4f4_35%_100%)] shadow-[0_16px_30px_rgb(32_48_64_/_18%)] ${
+                playing ? "animate-spin" : ""
+              }`}
+            >
+              <span className="h-4 w-4 rounded-full bg-primary" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-foreground-strong">
+                {playing ? "Ambient focus is playing" : "Tap the line to start"}
+              </span>
+              <span className="mt-2 block h-2 overflow-hidden bg-[#dfe3eb]">
+                <span
+                  className={`block h-full bg-primary transition-all ${
+                    playing ? "w-full" : "w-1/3"
+                  }`}
+                />
+              </span>
+              <span className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                Soft background tone for planning and note taking.
+              </span>
+            </span>
+          </button>
+        </section>
+      </div>
+    </aside>
+  );
+}
 
 function AuthenticatedPage({
   user,
   signOut,
 }: {
-  user: NonNullable<ReturnType<typeof useAuth>["user"]>;
+  user: { email?: string };
   signOut: () => Promise<void>;
 }) {
   const projects = useProjects();
@@ -83,7 +227,8 @@ function AuthenticatedPage({
   const [panelMode, setPanelMode] = useState<"create" | "edit">("create");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
-  const [toolView, setToolView] = useState<"calendar" | "notifications" | "archive" | "trash" | null>(null);
+  const [toolView, setToolView] = useState<"calendar" | "archive" | "trash" | null>(null);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -271,6 +416,14 @@ function AuthenticatedPage({
     setSelectedTagId(null);
   }, [setSearch, setSelectedProjectId, setSelectedTagId]);
 
+  const handleSetReminder = useCallback((taskId: string, date: string | null) => {
+    void updateTask(taskId, { dueDate: date });
+    const task = allTasks.find((item) => item.id === taskId);
+    toast.success(date ? "Reminder date marked" : "Reminder cleared", {
+      description: task?.title,
+    });
+  }, [allTasks]);
+
   /* ------------------------------- Render -------------------------------- */
 
   if (!ready) {
@@ -306,8 +459,11 @@ function AuthenticatedPage({
       <FilterToolbar
         projects={sortedProjects}
         tags={tags}
+        activeTab={activeTab}
+        completedCount={doneTasks.length}
         selectedProjectId={selectedProjectId}
         selectedTagId={selectedTagId}
+        onTabChange={setActiveTab}
         onSelectProject={setSelectedProjectId}
         onSelectTag={setSelectedTagId}
         onClear={handleClearFilters}
@@ -316,57 +472,61 @@ function AuthenticatedPage({
         onProjectSortChange={setProjectSort}
       />
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-2">
-        {/* Active Tasks section */}
-        <section className="flex min-h-0 flex-1 flex-col border-b border-border px-6 xl:px-10 md:border-b-0 md:border-r">
-          <div className="flex items-center gap-2.5 py-3">
-            <ClipboardList className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-base font-bold text-foreground-strong">
-              Active Tasks
-            </h1>
-            <span
-              className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-              style={{
-                backgroundColor: "color-mix(in srgb, #6252e8 14%, #ffffff)",
-                color: "#6252e8",
-              }}
-            >
-              {activeTasksRendered.length}
-            </span>
-            <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">
-              <Sparkles className="h-3.5 w-3.5" />
-              Tasks at 100% move to Done automatically.
-            </span>
-          </div>
-          <div className="min-h-0 flex-1 pb-3">
-            <ActiveTaskList
-              tasks={activeTasksRendered}
-              projects={pMap}
+      <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
+        <section className="flex min-h-0 flex-1 flex-col px-6 xl:px-10">
+          {activeTab === "active" ? (
+            <>
+              <div className="flex items-center gap-2.5 py-3">
+                <ClipboardList className="h-5 w-5 text-muted-foreground" />
+                <h1 className="text-base font-bold text-foreground-strong">
+                  Active Tasks
+                </h1>
+                <span
+                  className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                  style={{
+                    backgroundColor: "color-mix(in srgb, #6252e8 14%, #ffffff)",
+                    color: "#6252e8",
+                  }}
+                >
+                  {activeTasksRendered.length}
+                </span>
+                <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Tasks at 100% move to Done automatically.
+                </span>
+              </div>
+              <div className="min-h-0 flex-1 pb-3">
+                <ActiveTaskList
+                  tasks={activeTasksRendered}
+                  projects={pMap}
+                  tags={tMap}
+                  isFiltered={isFiltering}
+                  onProgressChange={handleProgressChange}
+                  onProgressCommit={handleProgressCommit}
+                  onEdit={openEdit}
+                  onDuplicate={handleDuplicate}
+                  onComplete={handleComplete}
+                  onDelete={handleRequestDelete}
+                  onDetailSave={handleDetailSave}
+                  onClearFilters={handleClearFilters}
+                  onAddTask={openCreate}
+                />
+              </div>
+            </>
+          ) : (
+            <DoneSection
+              groups={doneGroups}
+              totalCount={doneTasks.length}
               tags={tMap}
               isFiltered={isFiltering}
-              onProgressChange={handleProgressChange}
-              onProgressCommit={handleProgressCommit}
               onEdit={openEdit}
               onDuplicate={handleDuplicate}
-              onComplete={handleComplete}
               onDelete={handleRequestDelete}
-              onDetailSave={handleDetailSave}
-              onClearFilters={handleClearFilters}
-              onAddTask={openCreate}
             />
-          </div>
+          )}
         </section>
 
-        {/* Completed Tasks section */}
-        <DoneSection
-          groups={doneGroups}
-          totalCount={doneTasks.length}
-          tags={tMap}
-          isFiltered={isFiltering}
-          onEdit={openEdit}
-          onDuplicate={handleDuplicate}
-          onDelete={handleRequestDelete}
-        />
+        <FocusSidePanel />
       </main>
 
       <AddTaskPanel
@@ -385,20 +545,20 @@ function AuthenticatedPage({
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
       />
-      {toolView && <DashboardTools view={toolView} tasks={allTasks} onClose={() => setToolView(null)} />}
+      {toolView && (
+        <DashboardTools
+          view={toolView}
+          tasks={allTasks}
+          onClose={() => setToolView(null)}
+          onSetReminder={handleSetReminder}
+        />
+      )}
     </div>
   );
 }
 
 export default function Page() {
-  const { loading, user, signOut } = useAuth();
-  if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-app text-sm text-muted-foreground">Loading Focus List...</div>;
-  }
-  if (!user) {
-    return <LandingPage />;
-  }
-  return <AuthenticatedPage user={user} signOut={signOut} />;
+  return <AuthenticatedPage user={{ email: "dashboard@focuslist.app" }} signOut={async () => undefined} />;
 }
 
 function LandingPage() {

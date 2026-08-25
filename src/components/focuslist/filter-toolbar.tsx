@@ -13,11 +13,16 @@ import { Check, ChevronDown, Folder, Tag as TagIcon, X } from "lucide-react";
 import type { Project, Tag } from "@/lib/focuslist/types";
 import { pillStyle } from "@/lib/focuslist/palette";
 
+type WorkspaceTab = "active" | "completed";
+
 type FilterToolbarProps = {
   projects: Project[];
   tags: Tag[];
+  activeTab: WorkspaceTab;
+  completedCount: number;
   selectedProjectId: string | null;
   selectedTagId: string | null;
+  onTabChange: (tab: WorkspaceTab) => void;
   onSelectProject: (id: string | null) => void;
   onSelectTag: (id: string | null) => void;
   onClear: () => void;
@@ -29,8 +34,11 @@ type FilterToolbarProps = {
 export function FilterToolbar({
   projects,
   tags,
+  activeTab,
+  completedCount,
   selectedProjectId,
   selectedTagId,
+  onTabChange,
   onSelectProject,
   onSelectTag,
   onClear,
@@ -98,6 +106,31 @@ export function FilterToolbar({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <div className="flex h-10 overflow-hidden border border-border bg-card">
+        <button
+          type="button"
+          onClick={() => onTabChange("active")}
+          className={`px-3 text-sm font-medium transition-colors ${
+            activeTab === "active"
+              ? "bg-primary text-white"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
+          }`}
+        >
+          Active
+        </button>
+        <button
+          type="button"
+          onClick={() => onTabChange("completed")}
+          className={`border-l border-border px-3 text-sm font-medium transition-colors ${
+            activeTab === "completed"
+              ? "bg-[#198038] text-white"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
+          }`}
+        >
+          Completed Tasks <span className="ml-1 tabular-nums">{completedCount}</span>
+        </button>
+      </div>
 
       {/* Tag filter */}
       <DropdownMenu>

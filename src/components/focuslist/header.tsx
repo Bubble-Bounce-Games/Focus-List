@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
-  Bell,
   CalendarDays,
   Check,
   ChevronDown,
@@ -32,7 +31,7 @@ type HeaderProps = {
   onAddTask: () => void;
   userEmail?: string;
   onSignOut?: () => void;
-  onOpenTool?: (view: "calendar" | "notifications" | "archive" | "trash") => void;
+  onOpenTool?: (view: "calendar" | "archive" | "trash") => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 };
 
@@ -129,7 +128,6 @@ export function Header({
           <span className="hidden sm:inline">Add Task</span>
         </Button>
 
-        {/* Notification bell (decorative for now) */}
         <Button
           variant="outline"
           size="icon"
@@ -138,15 +136,6 @@ export function Header({
           onClick={() => onOpenTool?.("calendar")}
         >
           <CalendarDays className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-10 w-10 rounded-none border-border bg-card text-muted-foreground hover:bg-secondary"
-          aria-label="Notifications"
-          onClick={() => onOpenTool?.("notifications")}
-        >
-          <Bell className="h-5 w-5" />
         </Button>
 
         {/* Local profile badge */}
