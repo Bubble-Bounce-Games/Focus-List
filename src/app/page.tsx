@@ -67,19 +67,45 @@ type PinnedNote = {
 
 const markerColors = ["#111827", "#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
 
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function asPinnedNotes(value: unknown): PinnedNote[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is PinnedNote =>
+      item !== null &&
+      typeof item === "object" &&
+      typeof (item as PinnedNote).id === "string" &&
+      typeof (item as PinnedNote).text === "string" &&
+      typeof (item as PinnedNote).color === "string" &&
+      typeof (item as PinnedNote).createdAt === "string"
+  );
+}
+
 function FocusSidePanel() {
   const tasks = useAllTasks();
   const projects = useProjects();
   const projectsById = projectMap(projects);
-  const [note, setNote] = usePersistentState(
+  const [noteValue, setNote] = usePersistentState<unknown>(
     "fl.noteDraft",
     "Pin quick notes here while you plan your next task."
   );
-  const [pinnedNotes, setPinnedNotes] = usePersistentState<PinnedNote[]>(
+  const [pinnedNotesValue, setPinnedNotes] = usePersistentState<unknown>(
     "fl.pinnedNotes",
     []
   );
-  const [marker, setMarker] = usePersistentState("fl.markerColor", markerColors[0]);
+  const [markerValue, setMarker] = usePersistentState<unknown>("fl.markerColor", markerColors[0]);
+  const note = asString(noteValue);
+  const pinnedNotes = asPinnedNotes(pinnedNotesValue);
+  const marker = markerColors.includes(asString(markerValue))
+    ? asString(markerValue)
+    : markerColors[0];
   const activeSideTasks = tasks
     .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
     .slice();
@@ -111,14 +137,14 @@ function FocusSidePanel() {
         color: marker,
         createdAt: new Date().toISOString(),
       },
-      ...current,
+      ...asPinnedNotes(current),
     ]);
     setNote("");
   }, [marker, note, setNote, setPinnedNotes]);
 
   const handleDeleteNote = useCallback(
     (id: string) => {
-      setPinnedNotes((current) => current.filter((item) => item.id !== id));
+      setPinnedNotes((current) => asPinnedNotes(current).filter((item) => item.id !== id));
     },
     [setPinnedNotes]
   );
@@ -338,16 +364,17 @@ function AuthenticatedPage({
   const allTasks = useAllTasks();
 
   const [ready] = useState(true);
-  const [search, setSearch] = usePersistentState("fl.search", "");
-  const [sort, setSort] = usePersistentState<SortKey>("fl.sort", DEFAULT_SORT);
-  const [selectedProjectId, setSelectedProjectId] = usePersistentState<
-    string | null
-  >("fl.project", null);
-  const [selectedTagId, setSelectedTagId] = usePersistentState<string | null>(
+  const [searchValue, setSearch] = usePersistentState<unknown>("fl.search", "");
+  const [sortValue, setSort] = usePersistentState<SortKey>("fl.sort", DEFAULT_SORT);
+  const [selectedProjectValue, setSelectedProjectId] = usePersistentState<unknown>(
+    "fl.project",
+    null
+  );
+  const [selectedTagValue, setSelectedTagId] = usePersistentState<unknown>(
     "fl.tag",
     null
   );
-  const [projectSort, setProjectSort] = usePersistentState<"name" | "color">(
+  const [projectSortValue, setProjectSort] = usePersistentState<"name" | "color">(
     "fl.projectSort",
     "name"
   );
@@ -363,6 +390,13 @@ function AuthenticatedPage({
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const search = asString(searchValue);
+  const sort = ["progress-desc", "progress-asc", "title-asc", "project-asc", "recent", "oldest"].includes(sortValue)
+    ? sortValue
+    : DEFAULT_SORT;
+  const selectedProjectId = asNullableString(selectedProjectValue);
+  const selectedTagId = asNullableString(selectedTagValue);
+  const projectSort = projectSortValue === "color" ? "color" : "name";
 
   // ⌘K / Ctrl+K focuses search.
   useEffect(() => {
