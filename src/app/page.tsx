@@ -189,8 +189,8 @@ function FocusSidePanel() {
       </div>
 
       <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
-          <div className="border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
+        <section className="grid min-h-[380px] flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
+          <div className="flex min-h-0 flex-col border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
             <div className="mb-3 flex items-center gap-2">
               <Highlighter className="h-4 w-4" style={{ color: marker }} />
               <span className="text-xs font-semibold uppercase text-muted-foreground">
@@ -208,7 +208,7 @@ function FocusSidePanel() {
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              className="min-h-[190px] w-full resize-none border-0 bg-transparent text-sm font-medium leading-6 outline-none placeholder:text-muted-foreground"
+              className="min-h-[260px] flex-1 w-full resize-none border-0 bg-transparent text-sm font-medium leading-6 outline-none placeholder:text-muted-foreground"
               style={{ color: marker }}
               placeholder="Write a quick note..."
               aria-label="Pinned note"
@@ -229,7 +229,7 @@ function FocusSidePanel() {
             </div>
           </div>
 
-          <div className="min-h-[180px] border border-border bg-card p-3">
+          <div className="min-h-[260px] overflow-hidden border border-border bg-card p-3">
             <div className="mb-2 flex items-center gap-2">
               <Pin className="h-4 w-4 text-muted-foreground" />
               <p className="text-xs font-semibold uppercase text-muted-foreground">
@@ -267,7 +267,7 @@ function FocusSidePanel() {
           </div>
         </section>
 
-        <section className="relative aspect-[1.12/1] min-h-[360px] overflow-hidden">
+        <section className="relative h-[260px] min-h-[260px] shrink-0 overflow-hidden xl:h-[280px] xl:min-h-[280px]">
           <div className="relative h-full overflow-hidden rounded-[2rem] bg-[#3f3f3d] shadow-[0_20px_0_rgb(28_28_27_/_18%)]">
             <button
               type="button"
@@ -286,7 +286,7 @@ function FocusSidePanel() {
             <button
               type="button"
               onClick={toggleMusic}
-              className={`absolute left-[8%] top-[12%] flex aspect-square w-[62%] items-center justify-center rounded-full bg-[#2c2c2a] ring-[0.95rem] ring-[#777] ${
+              className={`absolute left-[8%] top-[14%] flex aspect-square h-[66%] items-center justify-center rounded-full bg-[#2c2c2a] ring-[0.8rem] ring-[#777] ${
                 playing ? "animate-spin" : ""
               }`}
               aria-label={playing ? "Pause melody" : "Play melody"}
