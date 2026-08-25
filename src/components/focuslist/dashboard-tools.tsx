@@ -27,6 +27,7 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
   const first = new Date(year, monthIndex, 1);
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const leading = first.getDay();
+  const todayKey = toDateKey(new Date());
   const calendarCells = [
     ...Array.from({ length: leading }, () => null),
     ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, monthIndex, index + 1)),
@@ -59,16 +60,23 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
         {calendarCells.map((cell, index) => {
           const key = cell ? toDateKey(cell) : `blank-${index}`;
           const dayTasks = cell ? reminders.get(key) ?? [] : [];
+          const isToday = key === todayKey;
           return (
             <div
               key={key}
               className={`min-h-12 border p-1 text-left ${
                 cell ? "border-border bg-card" : "border-transparent"
-              } ${dayTasks.length > 0 ? "ring-2 ring-[#f1c21b]" : ""}`}
+              } ${dayTasks.length > 0 ? "ring-2 ring-[#f1c21b]" : ""} ${
+                isToday ? "bg-[#d0e2ff] ring-2 ring-primary" : ""
+              }`}
             >
               {cell && (
                 <>
-                  <span className="text-xs font-semibold text-foreground-strong">
+                  <span
+                    className={`inline-flex h-5 min-w-5 items-center justify-center text-xs font-semibold ${
+                      isToday ? "bg-primary px-1 text-white" : "text-foreground-strong"
+                    }`}
+                  >
                     {cell.getDate()}
                   </span>
                   {dayTasks.length > 0 && (

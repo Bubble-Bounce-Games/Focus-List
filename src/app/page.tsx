@@ -61,28 +61,43 @@ import {
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const faviconPath = `${basePath}/Favicon.png`;
 type WorkspaceTab = "active" | "completed";
+type PinnedNote = {
+  id: string;
+  text: string;
+  color: string;
+  createdAt: string;
+};
 
-const markerColors = ["#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
+const markerColors = ["#111827", "#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
+const relaxingNotes = [174, 196, 220, 261.63, 293.66, 329.63, 392];
 
 function FocusSidePanel() {
   const [note, setNote] = usePersistentState(
-    "fl.stickyNote",
+    "fl.noteDraft",
     "Pin quick notes here while you plan your next task."
+  );
+  const [pinnedNotes, setPinnedNotes] = usePersistentState<PinnedNote[]>(
+    "fl.pinnedNotes",
+    []
   );
   const [marker, setMarker] = usePersistentState("fl.markerColor", markerColors[0]);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<{
     context: AudioContext;
-    oscillator: OscillatorNode;
+    lead: OscillatorNode;
+    pad: OscillatorNode;
     gain: GainNode;
+    timer: number;
   } | null>(null);
 
   const stopMusic = useCallback(() => {
     const current = audioRef.current;
     if (!current) return;
+    window.clearInterval(current.timer);
     current.gain.gain.setTargetAtTime(0, current.context.currentTime, 0.08);
     window.setTimeout(() => {
-      current.oscillator.stop();
+      current.lead.stop();
+      current.pad.stop();
       void current.context.close();
     }, 180);
     audioRef.current = null;
@@ -100,19 +115,54 @@ function FocusSidePanel() {
         .webkitAudioContext;
     if (!AudioCtor) return;
     const context = new AudioCtor();
-    const oscillator = context.createOscillator();
+    const lead = context.createOscillator();
+    const pad = context.createOscillator();
     const gain = context.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.value = 174;
-    gain.gain.value = 0.035;
-    oscillator.connect(gain);
+    const chooseNote = () =>
+      relaxingNotes[Math.floor(Math.random() * relaxingNotes.length)] ?? 220;
+
+    lead.type = "sine";
+    pad.type = "triangle";
+    lead.frequency.value = chooseNote();
+    pad.frequency.value = 87;
+    gain.gain.value = 0.025;
+    lead.connect(gain);
+    pad.connect(gain);
     gain.connect(context.destination);
-    oscillator.start();
-    audioRef.current = { context, oscillator, gain };
+    lead.start();
+    pad.start();
+    const timer = window.setInterval(() => {
+      const next = chooseNote();
+      lead.frequency.setTargetAtTime(next, context.currentTime, 0.24);
+      pad.frequency.setTargetAtTime(next / 2, context.currentTime, 0.35);
+    }, 2400);
+    audioRef.current = { context, lead, pad, gain, timer };
     setPlaying(true);
   }, [stopMusic]);
 
   useEffect(() => stopMusic, [stopMusic]);
+
+  const handleSaveNote = useCallback(() => {
+    const text = note.trim();
+    if (!text) return;
+    setPinnedNotes((current) => [
+      {
+        id: crypto.randomUUID(),
+        text,
+        color: marker,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ]);
+    setNote("");
+  }, [marker, note, setNote, setPinnedNotes]);
+
+  const handleDeleteNote = useCallback(
+    (id: string) => {
+      setPinnedNotes((current) => current.filter((item) => item.id !== id));
+    },
+    [setPinnedNotes]
+  );
 
   return (
     <aside className="flex min-h-0 flex-col border-t border-border bg-card lg:border-l lg:border-t-0">
@@ -123,69 +173,123 @@ function FocusSidePanel() {
       </div>
 
       <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <section className="border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
-          <div className="mb-3 flex items-center gap-2">
-            <Highlighter className="h-4 w-4" style={{ color: marker }} />
-            <span className="text-xs font-semibold uppercase text-muted-foreground">
-              Sticky note
-            </span>
-          </div>
-          <textarea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            className="min-h-[210px] w-full resize-none border-0 bg-transparent text-sm leading-6 text-foreground-strong outline-none placeholder:text-muted-foreground"
-            style={{ boxShadow: `inset 4px 0 0 ${marker}` }}
-            placeholder="Write a quick note..."
-            aria-label="Pinned note"
-          />
-          <div className="mt-4 flex items-center gap-2">
-            {markerColors.map((color) => (
+        <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
+          <div className="border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
+            <div className="mb-3 flex items-center gap-2">
+              <Highlighter className="h-4 w-4" style={{ color: marker }} />
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
+                Sticky note
+              </span>
               <button
-                key={color}
                 type="button"
-                onClick={() => setMarker(color)}
-                className={`h-7 w-7 border ${
-                  marker === color ? "border-foreground-strong" : "border-transparent"
-                }`}
-                style={{ backgroundColor: color }}
-                aria-label={`Use marker color ${color}`}
-              />
-            ))}
+                onClick={handleSaveNote}
+                className="ml-auto inline-flex h-8 items-center gap-1.5 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
+              >
+                <Pin className="h-3.5 w-3.5" />
+                Save Pin
+              </button>
+            </div>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="min-h-[190px] w-full resize-none border-0 bg-transparent text-sm font-medium leading-6 outline-none placeholder:text-muted-foreground"
+              style={{ color: marker }}
+              placeholder="Write a quick note..."
+              aria-label="Pinned note"
+            />
+            <div className="mt-4 flex items-center gap-2">
+              {markerColors.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setMarker(color)}
+                  className={`h-7 w-7 border ${
+                    marker === color ? "border-foreground-strong" : "border-transparent"
+                  }`}
+                  style={{ backgroundColor: color }}
+                  aria-label={`Use marker color ${color}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="min-h-[180px] border border-border bg-card p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <Pin className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Saved notes
+              </p>
+            </div>
+            {pinnedNotes.length === 0 ? (
+              <div className="flex h-[140px] items-center border border-dashed border-border px-3 text-xs leading-5 text-muted-foreground">
+                Saved pins will appear here next to your note.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pinnedNotes.slice(0, 5).map((item) => (
+                  <div key={item.id} className="bg-[#fff8d6] p-3 shadow-sm">
+                    <div className="flex items-start gap-2">
+                      <p
+                        className="min-w-0 flex-1 whitespace-pre-wrap text-xs font-medium leading-5"
+                        style={{ color: item.color }}
+                      >
+                        {item.text}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteNote(item.id)}
+                        className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
+                        aria-label="Delete saved note"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
-        <section className="border border-border bg-app p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Music2 className="h-5 w-5 text-primary" />
-            <h3 className="text-sm font-bold text-foreground-strong">Refresh Music</h3>
-          </div>
+        <section className="border border-border bg-app p-5">
           <button
             type="button"
             onClick={toggleMusic}
-            className="group flex w-full items-center gap-4 text-left"
+            className="group flex w-full flex-col items-center text-center"
+            aria-pressed={playing}
           >
+            <span className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground-strong">
+              <Music2 className="h-5 w-5 text-primary" />
+              Vinyl Record
+            </span>
             <span
-              className={`flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-[14px] border-[#262a33] bg-[radial-gradient(circle,#f4f4f4_0_12%,#7a8194_13%_17%,#dfe3eb_18%_31%,#a7b0bf_32%_34%,#f4f4f4_35%_100%)] shadow-[0_16px_30px_rgb(32_48_64_/_18%)] ${
+              className={`relative flex h-48 w-48 items-center justify-center rounded-full border-[22px] border-[#171a2b] bg-[radial-gradient(circle,#f8fafc_0_7%,#0f172a_8%_10%,#4b5563_11%_12%,#111827_13%_33%,#374151_34%_35%,#111827_36%_56%,#4b5563_57%_58%,#111827_59%_100%)] shadow-[0_24px_48px_rgb(32_48_64_/_22%)] ${
                 playing ? "animate-spin" : ""
               }`}
             >
-              <span className="h-4 w-4 rounded-full bg-primary" />
+              <span className="absolute h-16 w-16 rounded-full bg-[#f1c21b]" />
+              <span className="relative z-10 h-5 w-5 rounded-full bg-primary" />
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-foreground-strong">
-                {playing ? "Ambient focus is playing" : "Tap the line to start"}
-              </span>
-              <span className="mt-2 block h-2 overflow-hidden bg-[#dfe3eb]">
+            <span className="mt-4 text-sm font-semibold text-foreground-strong">
+              {playing ? "Relaxing melody background" : "Tap the record to play random melody"}
+            </span>
+            <span className="mt-3 flex h-10 items-end justify-center gap-1.5" aria-label="Audio stabilizer">
+              {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
                 <span
-                  className={`block h-full bg-primary transition-all ${
-                    playing ? "w-full" : "w-1/3"
+                  key={bar}
+                  className={`w-2 bg-primary transition-all ${
+                    playing ? "animate-pulse" : ""
                   }`}
+                  style={{
+                    height: playing ? `${16 + ((bar * 9) % 24)}px` : `${8 + bar}px`,
+                    animationDelay: `${bar * 90}ms`,
+                  }}
                 />
-              </span>
-              <span className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                Soft background tone for planning and note taking.
-              </span>
+              ))}
+            </span>
+            <span className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              {playing ? "Playing" : "Paused"}
             </span>
           </button>
         </section>
@@ -472,7 +576,7 @@ function AuthenticatedPage({
         onProjectSortChange={setProjectSort}
       />
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
+      <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,6fr)_minmax(360px,4fr)]">
         <section className="flex min-h-0 flex-1 flex-col px-6 xl:px-10">
           {activeTab === "active" ? (
             <>
