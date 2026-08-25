@@ -47,6 +47,7 @@ import {
   asCalendarReminders,
   type CalendarReminder,
 } from "@/lib/focuslist/calendar-reminders";
+import { useAuth } from "@/components/auth-provider";
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 import Link from "next/link";
 import {
@@ -812,7 +813,27 @@ function AuthenticatedPage({
 }
 
 export default function Page() {
-  return <AuthenticatedPage user={{ email: "dashboard@focuslist.app" }} signOut={async () => undefined} />;
+  const { loading, user, signOut } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-app">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+            style={{ backgroundColor: "#6252e8" }}
+          >
+            <ClipboardList className="h-5 w-5" />
+          </span>
+          <span className="text-sm font-medium">Loading Focus List...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <LandingPage />;
+
+  return <AuthenticatedPage user={user} signOut={signOut} />;
 }
 
 function LandingPage() {
