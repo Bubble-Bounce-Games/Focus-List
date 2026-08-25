@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CheckCircle2, Clock3, FolderArchive, Trash2, X } from "lucide-react";
 import type { Task } from "@/lib/focuslist/types";
+import { CALENDAR_REMINDERS_KEY, asCalendarReminders } from "@/lib/focuslist/calendar-reminders";
+import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
 
 type ToolView = "calendar" | "archive" | "trash";
 type DashboardToolsProps = {
@@ -30,22 +32,50 @@ function dateTitle(value: string) {
   }).format(new Date(`${value}T00:00:00`));
 }
 
-function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks" | "onSetReminder">) {
+function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
   const todayKey = toDateKey(new Date());
   const year = new Date().getFullYear();
   const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [draft, setDraft] = useState("");
+  const currentMonthRef = useRef<HTMLElement | null>(null);
+  const [calendarReminderValue, setCalendarReminders] = usePersistentState<unknown>(
+    CALENDAR_REMINDERS_KEY,
+    []
+  );
+  const calendarReminders = asCalendarReminders(calendarReminderValue);
   const activeTasks = tasks.filter((task) => !task.completedAt && !task.archivedAt && !task.deletedAt);
   const reminders = useMemo(() => {
-    const rows = new Map<string, Task[]>();
+    const rows = new Map<string, number>();
     for (const task of activeTasks) {
       if (!task.dueDate) continue;
-      const dayRows = rows.get(task.dueDate) ?? [];
-      dayRows.push(task);
-      rows.set(task.dueDate, dayRows);
+      rows.set(task.dueDate, (rows.get(task.dueDate) ?? 0) + 1);
+    }
+    for (const reminder of calendarReminders) {
+      rows.set(reminder.dueDate, (rows.get(reminder.dueDate) ?? 0) + 1);
     }
     return rows;
-  }, [activeTasks]);
-  const selectedReminders = reminders.get(selectedDate) ?? [];
+  }, [activeTasks, calendarReminders]);
+  const selectedReminderCount = reminders.get(selectedDate) ?? 0;
+
+  useEffect(() => {
+    currentMonthRef.current?.scrollIntoView({ block: "start" });
+  }, []);
+
+  function handleAddReminder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = draft.trim();
+    if (!title) return;
+    setCalendarReminders((current) => [
+      {
+        id: crypto.randomUUID(),
+        title,
+        dueDate: selectedDate,
+        createdAt: new Date().toISOString(),
+      },
+      ...asCalendarReminders(current),
+    ]);
+    setDraft("");
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -69,7 +99,11 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
           ];
 
           return (
-            <section key={monthIndex} className="border border-border bg-card p-3">
+            <section
+              key={monthIndex}
+              ref={monthIndex === new Date().getMonth() ? currentMonthRef : undefined}
+              className="border border-border bg-card p-3"
+            >
               <p className="mb-2 text-sm font-semibold text-foreground-strong">
                 {new Intl.DateTimeFormat("en", { month: "long" }).format(month)}
               </p>
@@ -81,7 +115,7 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
                 ))}
                 {calendarCells.map((cell, index) => {
                   const key = cell ? toDateKey(cell) : `blank-${monthIndex}-${index}`;
-                  const dayTasks = cell ? reminders.get(key) ?? [] : [];
+                  const dayReminderCount = cell ? reminders.get(key) ?? 0 : 0;
                   const isToday = key === todayKey;
                   const isSelected = key === selectedDate;
                   return (
@@ -104,7 +138,7 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
                           >
                             {cell.getDate()}
                           </span>
-                          {dayTasks.length > 0 && (
+                          {dayReminderCount > 0 && (
                             <span className="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#da1e28]" />
                           )}
                         </button>
@@ -113,65 +147,35 @@ function CalendarTool({ tasks, onSetReminder }: Pick<DashboardToolsProps, "tasks
                   );
                 })}
               </div>
+              {selectedDate.startsWith(`${year}-${String(monthIndex + 1).padStart(2, "0")}`) && (
+                <form onSubmit={handleAddReminder} className="mt-3 flex items-center gap-2">
+                  <input
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    className="h-9 min-w-0 flex-1 border border-border bg-app px-2 text-sm text-foreground-strong outline-none focus:border-primary"
+                    placeholder="Add reminder"
+                    aria-label={`Add reminder for ${dateTitle(selectedDate)}`}
+                  />
+                  <button
+                    type="submit"
+                    className="h-9 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                  >
+                    Add
+                  </button>
+                  {selectedReminderCount > 0 && (
+                    <span className="text-[11px] font-bold text-[#da1e28]">{selectedReminderCount} set</span>
+                  )}
+                </form>
+              )}
             </section>
           );
         })}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
-            Create reminder
-          </p>
-          <span className="text-xs font-medium text-foreground-strong">
-            {dateTitle(selectedDate)}
-          </span>
-          {selectedReminders.length > 0 && (
-            <span className="ml-auto rounded-full bg-[#fff1f1] px-2 py-1 text-[11px] font-bold text-[#da1e28]">
-              {selectedReminders.length} set
-            </span>
-          )}
-        </div>
-        {activeTasks.length === 0 ? (
-          <div className="border border-border bg-card p-4 text-sm text-muted-foreground">
-            Add an active task first, then set its reminder date here.
-          </div>
-        ) : (
-          <div className="grid gap-2 md:grid-cols-2">
-            {activeTasks.map((task) => (
-              <div key={task.id} className="border border-border bg-card p-3">
-                <p className="truncate text-sm font-medium text-foreground-strong">{task.title}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onSetReminder?.(task.id, selectedDate)}
-                    className="h-9 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
-                  >
-                    {task.dueDate === selectedDate ? "Reminder set" : "Set reminder"}
-                  </button>
-                  {task.dueDate && (
-                    <span className="text-xs font-medium text-muted-foreground">{dateTitle(task.dueDate)}</span>
-                  )}
-                  {task.dueDate && task.dueDate !== selectedDate && (
-                    <button
-                      type="button"
-                      onClick={() => onSetReminder?.(task.id, null)}
-                      className="h-9 px-2 text-xs font-medium text-muted-foreground hover:bg-secondary"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-export function DashboardTools({ view, tasks, onClose, onRestore, onSetReminder }: DashboardToolsProps) {
+export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToolsProps) {
   const dueTasks = tasks.filter((task) => !task.completedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const title = view === "calendar" ? "Reminder calendar" : view === "archive" ? "Archive" : "Deleted items";
   const Icon = view === "calendar" ? CalendarDays : view === "archive" ? FolderArchive : Trash2;
@@ -182,7 +186,7 @@ export function DashboardTools({ view, tasks, onClose, onRestore, onSetReminder 
       <header className="flex items-center gap-3 border-b border-border px-6 py-5"><Icon className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold text-foreground-strong">{title}</h2><button onClick={onClose} aria-label="Close panel" className="ml-auto p-2 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button></header>
       <div className="fl-scroll flex-1 overflow-y-auto p-6">
         {view === "calendar" ? (
-          <CalendarTool tasks={tasks} onSetReminder={onSetReminder} />
+          <CalendarTool tasks={tasks} />
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center"><CheckCircle2 className="h-8 w-8 text-[#198038]" /><p className="mt-3 text-sm font-medium text-foreground-strong">Nothing here yet</p><p className="mt-1 text-xs text-muted-foreground">Your workspace is clear.</p></div>
         ) : (
