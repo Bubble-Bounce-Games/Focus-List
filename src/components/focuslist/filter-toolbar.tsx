@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronDown, Folder, Tag as TagIcon, X } from "lucide-react";
+import { Check, ChevronDown, Folder, Plus, Tag as TagIcon, X } from "lucide-react";
 import type { Project, Tag } from "@/lib/focuslist/types";
 import { pillStyle } from "@/lib/focuslist/palette";
 
@@ -25,6 +25,7 @@ type FilterToolbarProps = {
   onTabChange: (tab: WorkspaceTab) => void;
   onSelectProject: (id: string | null) => void;
   onSelectTag: (id: string | null) => void;
+  onCreateProject: () => void;
   onClear: () => void;
   isFiltering: boolean;
   projectSort: "name" | "color";
@@ -41,6 +42,7 @@ export function FilterToolbar({
   onTabChange,
   onSelectProject,
   onSelectTag,
+  onCreateProject,
   onClear,
   isFiltering,
   projectSort,
@@ -80,6 +82,10 @@ export function FilterToolbar({
             {selectedProjectId === null && (
               <Check className="ml-auto h-4 w-4" style={{ color: "#6252e8" }} />
             )}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onCreateProject}>
+            <Plus className="mr-2 h-4 w-4 text-primary" />
+            Create project
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {projects.map((p) => (

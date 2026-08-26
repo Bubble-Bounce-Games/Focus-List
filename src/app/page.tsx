@@ -558,6 +558,7 @@ function AuthenticatedPage({
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelMode, setPanelMode] = useState<"create" | "edit">("create");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [initialProjectName, setInitialProjectName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [toolView, setToolView] = useState<"calendar" | "archive" | "trash" | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
@@ -591,9 +592,11 @@ function AuthenticatedPage({
       ? a.color.localeCompare(b.color) || a.name.localeCompare(b.name)
       : a.name.localeCompare(b.name)
   );
+  const selectedProject = selectedProjectId ? pMap[selectedProjectId] : null;
 
   const isFiltering =
     search.trim() !== "" || selectedProjectId !== null || selectedTagId !== null;
+  const activeListHasSearchFilters = search.trim() !== "" || selectedTagId !== null;
 
   // Derived active list (compiler auto-memoizes).
   const visibleTasks = allTasks.filter((task) => !task.archivedAt && !task.deletedAt);
@@ -697,12 +700,14 @@ function AuthenticatedPage({
 
   const openCreate = useCallback(() => {
     setEditingTask(null);
+    setInitialProjectName(selectedProject?.name ?? "");
     setPanelMode("create");
     setPanelOpen(true);
-  }, []);
+  }, [selectedProject?.name]);
 
   const openEdit = useCallback((task: Task) => {
     setEditingTask(task);
+    setInitialProjectName("");
     setPanelMode("edit");
     setPanelOpen(true);
   }, []);
@@ -745,9 +750,25 @@ function AuthenticatedPage({
         }
       }
       setPanelOpen(false);
+      if (selectedProjectId === null || selectedProjectId !== project.id) {
+        setSelectedProjectId(project.id);
+      }
     },
-    [panelMode, editingTask]
+    [panelMode, editingTask, selectedProjectId, setSelectedProjectId]
   );
+
+  const handleCreateProject = useCallback(async () => {
+    const name = window.prompt("Project name");
+    const trimmed = name?.trim();
+    if (!trimmed) return;
+    const project = await findOrCreateProject(trimmed);
+    setSelectedProjectId(project.id);
+    setInitialProjectName(project.name);
+    setEditingTask(null);
+    setPanelMode("create");
+    setPanelOpen(true);
+    toast.success("Project created", { description: project.name });
+  }, [setSelectedProjectId]);
 
   const handleClearFilters = useCallback(() => {
     setSearch("");
@@ -805,6 +826,7 @@ function AuthenticatedPage({
         onTabChange={setActiveTab}
         onSelectProject={setSelectedProjectId}
         onSelectTag={setSelectedTagId}
+        onCreateProject={handleCreateProject}
         onClear={handleClearFilters}
         isFiltering={isFiltering}
         projectSort={projectSort}
@@ -818,7 +840,7 @@ function AuthenticatedPage({
               <div className="flex items-center gap-2.5 py-3">
                 <ClipboardList className="h-5 w-5 text-muted-foreground" />
                 <h1 className="text-base font-bold text-foreground-strong">
-                  Active Tasks
+                  {selectedProject ? selectedProject.name : "Active Tasks"}
                 </h1>
                 <span
                   className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -839,7 +861,9 @@ function AuthenticatedPage({
                   tasks={activeTasksRendered}
                   projects={pMap}
                   tags={tMap}
-                  isFiltered={isFiltering}
+                  isFiltered={activeListHasSearchFilters}
+                  hasProjects={projects.length > 0}
+                  selectedProjectName={selectedProject?.name ?? null}
                   onProgressChange={handleProgressChange}
                   onProgressCommit={handleProgressCommit}
                   onEdit={openEdit}
@@ -849,6 +873,7 @@ function AuthenticatedPage({
                   onDetailSave={handleDetailSave}
                   onClearFilters={handleClearFilters}
                   onAddTask={openCreate}
+                  onCreateProject={handleCreateProject}
                 />
               </div>
             </>
@@ -872,6 +897,7 @@ function AuthenticatedPage({
         open={panelOpen}
         mode={panelMode}
         editingTask={editingTask}
+        initialProjectName={initialProjectName}
         projects={projects}
         tags={tags}
         onClose={closePanel}
