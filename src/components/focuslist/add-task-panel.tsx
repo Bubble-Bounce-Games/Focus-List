@@ -30,6 +30,7 @@ type AddTaskPanelProps = {
   open: boolean;
   mode: "create" | "edit";
   editingTask: Task | null;
+  initialProjectName?: string;
   projects: Project[];
   tags: Tag[];
   onClose: () => void;
@@ -49,6 +50,7 @@ type PanelBodyProps = AddTaskPanelProps;
 function PanelBody({
   mode,
   editingTask,
+  initialProjectName = "",
   projects,
   tags,
   onClose,
@@ -65,7 +67,7 @@ function PanelBody({
         progress: editingTask.progress,
       };
     }
-    return { title: "", projectName: "", tagName: "", progress: 0 };
+    return { title: "", projectName: initialProjectName, tagName: "", progress: 0 };
   });
   const [touched, setTouched] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -90,7 +92,7 @@ function PanelBody({
           );
         })()
       : form.title.trim() !== "" ||
-        form.projectName.trim() !== "" ||
+        form.projectName.trim() !== initialProjectName ||
         form.tagName.trim() !== "" ||
         form.progress !== 0;
 
