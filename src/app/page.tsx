@@ -56,6 +56,7 @@ import {
   CheckCircle2,
   Circle,
   Clock3,
+  Eye,
   Highlighter,
   Pin,
   RotateCcw,
@@ -195,6 +196,7 @@ function FocusSidePanel() {
     []
   );
   const [markerValue, setMarker] = usePersistentState<unknown>("fl.markerColor", markerColors[0]);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
   const calendarReminders = asCalendarReminders(calendarReminderValue);
@@ -265,21 +267,50 @@ function FocusSidePanel() {
   const handleSaveNote = useCallback(() => {
     const text = note.trim();
     if (!text) return;
-    setPinnedNotes((current) => [
-      {
-        id: crypto.randomUUID(),
-        text,
-        color: marker,
-        createdAt: new Date().toISOString(),
-      },
-      ...asPinnedNotes(current),
-    ]);
+    setPinnedNotes((current) => {
+      const currentNotes = asPinnedNotes(current);
+      const savedAt = new Date().toISOString();
+      if (activeNoteId && currentNotes.some((item) => item.id === activeNoteId)) {
+        return currentNotes.map((item) =>
+          item.id === activeNoteId
+            ? {
+                ...item,
+                text,
+                color: marker,
+                createdAt: savedAt,
+              }
+            : item
+        );
+      }
+      return [
+        {
+          id: crypto.randomUUID(),
+          text,
+          color: marker,
+          createdAt: savedAt,
+        },
+        ...currentNotes,
+      ];
+    });
     setNote("");
-  }, [marker, note, setNote, setPinnedNotes]);
+    setActiveNoteId(null);
+  }, [activeNoteId, marker, note, setNote, setPinnedNotes]);
+
+  const handleViewNote = useCallback(
+    (item: PinnedNote) => {
+      setNote(item.text);
+      if (markerColors.includes(item.color)) {
+        setMarker(item.color);
+      }
+      setActiveNoteId(item.id);
+    },
+    [setMarker, setNote]
+  );
 
   const handleDeleteNote = useCallback(
     (id: string) => {
       setPinnedNotes((current) => asPinnedNotes(current).filter((item) => item.id !== id));
+      setActiveNoteId((current) => (current === id ? null : current));
     },
     [setPinnedNotes]
   );
@@ -349,26 +380,40 @@ function FocusSidePanel() {
                 {pinnedNotes.map((item) => {
                   const preview = notePreview(item.text);
                   return (
-                    <div key={item.id} className="bg-[#fff8d6] p-3 shadow-sm">
-                      <div className="flex items-start gap-2">
+                    <div
+                      key={item.id}
+                      className={`bg-[#fff8d6] p-2.5 shadow-sm ${
+                        activeNoteId === item.id ? "ring-1 ring-primary" : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-1.5">
                         <div className="min-w-0 flex-1">
                           <p
-                            className="truncate text-sm font-semibold leading-6"
+                            className="truncate text-sm font-semibold leading-5"
                             style={{ color: item.color }}
                           >
                             {preview.title}
                           </p>
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                          <p className="line-clamp-2 text-xs leading-4 text-muted-foreground">
                             {preview.description || preview.title}
                           </p>
-                          <p className="mt-3 text-[11px] font-medium text-muted-foreground">
+                          <p className="mt-1.5 text-[11px] font-medium leading-4 text-muted-foreground">
                             {timestampLabel(item.createdAt)}
                           </p>
                         </div>
                         <button
                           type="button"
+                          onClick={() => handleViewNote(item)}
+                          className="inline-flex h-6 shrink-0 items-center gap-1 px-1.5 text-[11px] font-semibold text-primary hover:bg-white"
+                          aria-label="View saved note"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleDeleteNote(item.id)}
-                          className="shrink-0 text-base leading-none text-muted-foreground hover:text-destructive"
+                          className="h-6 shrink-0 px-1 text-base leading-none text-muted-foreground hover:text-destructive"
                           aria-label="Delete saved note"
                         >
                           ×
