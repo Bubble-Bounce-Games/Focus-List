@@ -33,11 +33,24 @@ function dateTitle(value: string) {
 }
 
 function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
-  const todayKey = toDateKey(new Date());
-  const year = new Date().getFullYear();
+  const today = new Date();
+  const todayKey = toDateKey(today);
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const [startYear, setStartYear] = useState(currentYear);
+  const [startMonth, setStartMonth] = useState(currentMonth);
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [draft, setDraft] = useState("");
-  const currentMonthRef = useRef<HTMLElement | null>(null);
+  const startMonthRef = useRef<HTMLElement | null>(null);
+  const monthNames = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, index) =>
+        new Intl.DateTimeFormat("en", { month: "long" }).format(new Date(2026, index, 1))
+      ),
+    []
+  );
+  const yearOptions = Array.from({ length: 8 }, (_, index) => currentYear - 1 + index);
+  const visibleMonths = Array.from({ length: 12 }, (_, offset) => new Date(startYear, startMonth + offset, 1));
   const [calendarReminderValue, setCalendarReminders] = usePersistentState<unknown>(
     CALENDAR_REMINDERS_KEY,
     []
@@ -58,8 +71,14 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
   const selectedReminderCount = reminders.get(selectedDate) ?? 0;
 
   useEffect(() => {
-    currentMonthRef.current?.scrollIntoView({ block: "start" });
-  }, []);
+    startMonthRef.current?.scrollIntoView({ block: "start" });
+  }, [startMonth, startYear]);
+
+  function selectCalendarStart(nextYear: number, nextMonth: number) {
+    setStartYear(nextYear);
+    setStartMonth(nextMonth);
+    setSelectedDate(toDateKey(new Date(nextYear, nextMonth, 1)));
+  }
 
   function handleAddReminder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,30 +101,58 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
       <div className="border border-border bg-app p-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-primary" />
-          <p className="text-sm font-semibold text-foreground-strong">{year} Calendar</p>
+          <p className="text-sm font-semibold text-foreground-strong">{startYear} Calendar</p>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{dateTitle(selectedDate)}</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <select
+            value={startMonth}
+            onChange={(event) => selectCalendarStart(startYear, Number(event.target.value))}
+            className="h-9 border border-border bg-card px-2 text-sm text-foreground-strong outline-none focus:border-primary"
+            aria-label="Calendar month"
+          >
+            {monthNames.map((name, index) => (
+              <option key={name} value={index}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={startYear}
+            onChange={(event) => selectCalendarStart(Number(event.target.value), startMonth)}
+            className="h-9 border border-border bg-card px-2 text-sm text-foreground-strong outline-none focus:border-primary"
+            aria-label="Calendar year"
+          >
+            {yearOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-4">
-        {Array.from({ length: 12 }, (_, monthIndex) => {
-          const month = new Date(year, monthIndex, 1);
-          const first = new Date(year, monthIndex, 1);
-          const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        {visibleMonths.map((month, monthIndex) => {
+          const year = month.getFullYear();
+          const monthNumber = month.getMonth();
+          const first = new Date(year, monthNumber, 1);
+          const daysInMonth = new Date(year, monthNumber + 1, 0).getDate();
           const leading = first.getDay();
           const calendarCells = [
             ...Array.from({ length: leading }, () => null),
-            ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, monthIndex, index + 1)),
+            ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, monthNumber, index + 1)),
           ];
+          const monthKey = `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
 
           return (
             <section
-              key={monthIndex}
-              ref={monthIndex === new Date().getMonth() ? currentMonthRef : undefined}
+              key={monthKey}
+              ref={monthIndex === 0 ? startMonthRef : undefined}
               className="border border-border bg-card p-3"
             >
               <p className="mb-2 text-sm font-semibold text-foreground-strong">
-                {new Intl.DateTimeFormat("en", { month: "long" }).format(month)}
+                {new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(month)}
               </p>
               <div className="grid grid-cols-7 gap-1 text-center text-xs">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
@@ -147,7 +194,7 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
                   );
                 })}
               </div>
-              {selectedDate.startsWith(`${year}-${String(monthIndex + 1).padStart(2, "0")}`) && (
+              {selectedDate.startsWith(monthKey) && (
                 <form onSubmit={handleAddReminder} className="mt-3 flex items-center gap-2">
                   <input
                     value={draft}

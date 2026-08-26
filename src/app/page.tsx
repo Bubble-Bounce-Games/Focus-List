@@ -126,6 +126,35 @@ function dateLabel(value: string): string {
   }).format(new Date(`${value}T00:00:00`));
 }
 
+function timestampLabel(value: string): string {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function notePreview(text: string): { title: string; description: string } {
+  const lines = text
+    .trim()
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length > 1) {
+    return {
+      title: lines[0],
+      description: lines.slice(1).join(" "),
+    };
+  }
+  const words = (lines[0] ?? "").split(/\s+/).filter(Boolean);
+  return {
+    title: words.slice(0, 4).join(" ") || "Untitled note",
+    description: words.slice(4).join(" ") || lines[0] || "",
+  };
+}
+
 function reminderTone(value: string): {
   label: string;
   className: string;
@@ -196,15 +225,14 @@ function FocusSidePanel() {
     progress: 0,
     reminder,
   }));
-  const reminderRows = [...taskReminderRows, ...calendarReminderRows]
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || b.id.localeCompare(a.id))
-    .slice(0, 5);
-  const overdueCount = reminderRows.filter(
+  const allReminderRows = [...taskReminderRows, ...calendarReminderRows].sort(
+    (a, b) => a.dueDate.localeCompare(b.dueDate) || b.id.localeCompare(a.id)
+  );
+  const reminderRows = allReminderRows.slice(0, 5);
+  const overdueCount = allReminderRows.filter(
     (reminder) => reminder.dueDate < toDateKey(new Date())
   ).length;
-  const todayCount = reminderRows.filter(
-    (reminder) => reminder.dueDate === toDateKey(new Date())
-  ).length;
+  const nextReminderDate = allReminderRows[0]?.dueDate ?? null;
 
   const handleFinishReminder = useCallback(
     (reminder: ReminderRow) => {
@@ -305,7 +333,7 @@ function FocusSidePanel() {
             </div>
           </div>
 
-          <div className="min-h-[260px] overflow-hidden border border-border bg-card p-3">
+          <div className="flex min-h-[260px] flex-col overflow-hidden border border-border bg-card p-3">
             <div className="mb-2 flex items-center gap-2">
               <Pin className="h-4 w-4 text-muted-foreground" />
               <p className="text-xs font-semibold uppercase text-muted-foreground">
@@ -317,27 +345,38 @@ function FocusSidePanel() {
                 Saved pins will appear here next to your note.
               </div>
             ) : (
-              <div className="space-y-2">
-                {pinnedNotes.slice(0, 5).map((item) => (
-                  <div key={item.id} className="bg-[#fff8d6] p-3 shadow-sm">
-                    <div className="flex items-start gap-2">
-                      <p
-                        className="min-w-0 flex-1 whitespace-pre-wrap text-xs font-medium leading-5"
-                        style={{ color: item.color }}
-                      >
-                        {item.text}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteNote(item.id)}
-                        className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
-                        aria-label="Delete saved note"
-                      >
-                        ×
-                      </button>
+              <div className="fl-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                {pinnedNotes.map((item) => {
+                  const preview = notePreview(item.text);
+                  return (
+                    <div key={item.id} className="bg-[#fff8d6] p-3 shadow-sm">
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="truncate text-sm font-semibold leading-6"
+                            style={{ color: item.color }}
+                          >
+                            {preview.title}
+                          </p>
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {preview.description || preview.title}
+                          </p>
+                          <p className="mt-3 text-[11px] font-medium text-muted-foreground">
+                            {timestampLabel(item.createdAt)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteNote(item.id)}
+                          className="shrink-0 text-base leading-none text-muted-foreground hover:text-destructive"
+                          aria-label="Delete saved note"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -348,11 +387,17 @@ function FocusSidePanel() {
             <CalendarDays className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-bold text-foreground-strong">Reminder Board</h3>
             <span className="ml-auto bg-white px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-              {todayCount} today
+              {overdueCount} overdue
             </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
+            <div className="border border-border bg-white p-3">
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+                Reminders
+              </p>
+              <p className="mt-1 text-2xl font-bold text-primary">{allReminderRows.length}</p>
+            </div>
             <div className="border border-border bg-white p-3">
               <p className="text-[11px] font-semibold uppercase text-muted-foreground">
                 Overdue
@@ -361,16 +406,10 @@ function FocusSidePanel() {
             </div>
             <div className="border border-border bg-white p-3">
               <p className="text-[11px] font-semibold uppercase text-muted-foreground">
-                Today
+                Date
               </p>
-              <p className="mt-1 text-2xl font-bold text-[#198038]">{todayCount}</p>
-            </div>
-            <div className="border border-border bg-white p-3">
-              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
-                Dated
-              </p>
-              <p className="mt-1 text-2xl font-bold text-primary">
-                {reminderRows.length}
+              <p className="mt-2 truncate text-sm font-bold text-foreground-strong">
+                {nextReminderDate ? dateLabel(nextReminderDate) : "None"}
               </p>
             </div>
           </div>
