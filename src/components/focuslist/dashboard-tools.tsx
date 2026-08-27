@@ -104,7 +104,7 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
           <p className="text-sm font-semibold text-foreground-strong">{startYear} Calendar</p>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{dateTitle(selectedDate)}</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <select
             value={startMonth}
             onChange={(event) => selectCalendarStart(startYear, Number(event.target.value))}
@@ -154,7 +154,7 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
               <p className="mb-2 text-sm font-semibold text-foreground-strong">
                 {new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(month)}
               </p>
-              <div className="grid grid-cols-7 gap-1 text-center text-xs">
+              <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] sm:gap-1 sm:text-xs">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                   <div key={day} className="py-1 font-semibold text-muted-foreground">
                     {day}
@@ -229,9 +229,9 @@ export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToo
   const rows = view === "archive" ? tasks.filter((task) => task.archivedAt) : view === "trash" ? tasks.filter((task) => task.deletedAt) : dueTasks;
 
   return (
-    <aside className="fixed right-0 top-0 z-50 flex h-full w-[420px] max-w-[100vw] flex-col border-l border-border bg-card shadow-2xl" aria-label={title}>
-      <header className="flex items-center gap-3 border-b border-border px-6 py-5"><Icon className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold text-foreground-strong">{title}</h2><button onClick={onClose} aria-label="Close panel" className="ml-auto p-2 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button></header>
-      <div className="fl-scroll flex-1 overflow-y-auto p-6">
+    <aside className="fixed inset-0 z-50 flex h-full w-full flex-col border-border bg-card shadow-2xl sm:left-auto sm:w-[420px] sm:max-w-[100vw] sm:border-l" aria-label={title}>
+      <header className="flex items-center gap-3 border-b border-border px-4 py-4 sm:px-6 sm:py-5"><Icon className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold text-foreground-strong">{title}</h2><button onClick={onClose} aria-label="Close panel" className="ml-auto p-2 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button></header>
+      <div className="fl-scroll flex-1 overflow-y-auto p-4 sm:p-6">
         {view === "calendar" ? (
           <CalendarTool tasks={tasks} />
         ) : rows.length === 0 ? (
