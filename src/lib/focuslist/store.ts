@@ -76,6 +76,12 @@ export async function findOrCreateProject(name: string): Promise<Project> {
   const { data: existing } = await c.client.from("projects").select("*").eq("name", trimmed).maybeSingle(); if (existing) return mapProject(existing);
   const { data } = await c.client.from("projects").insert({ ...fallback, user_id: c.userId }).select().single(); return data ? mapProject(data) : fallback;
 }
+export async function renameProject(id: string, name: string): Promise<Project | undefined> {
+  const c = await context(); if (!c) return undefined;
+  const trimmed = name.trim(); if (!trimmed) return undefined;
+  const { data } = await c.client.from("projects").update({ name: trimmed, color: colorForName(trimmed) }).eq("id", id).select().single();
+  return data ? mapProject(data) : undefined;
+}
 export async function findOrCreateTag(name: string): Promise<Tag> {
   const c = await context(); const trimmed = name.trim(); const fallback = { id: uuid(), name: trimmed, color: colorForName(trimmed) }; if (!c) return fallback;
   const { data: existing } = await c.client.from("tags").select("*").eq("name", trimmed).maybeSingle(); if (existing) return mapTag(existing);
