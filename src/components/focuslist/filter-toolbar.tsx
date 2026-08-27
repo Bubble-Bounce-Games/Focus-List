@@ -93,13 +93,13 @@ export function FilterToolbar({
   }
 
   return (
-    <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-app px-6 xl:px-10">
+    <div className="fl-scroll flex min-h-14 shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-app px-4 py-2 sm:gap-3 sm:px-6 lg:overflow-visible xl:px-10">
       {/* Project filter */}
       <DropdownMenu open={projectMenuOpen} onOpenChange={onProjectMenuOpenChange}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 gap-2 rounded-none border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
+            className="h-10 shrink-0 gap-2 rounded-none border-border bg-card px-3 text-sm font-medium text-foreground-strong hover:bg-secondary sm:px-3.5"
           >
             <Folder className="h-4 w-4 text-muted-foreground" />
             {selectedProject ? (
@@ -228,11 +228,11 @@ export function FilterToolbar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="flex h-10 overflow-hidden border border-border bg-card">
+      <div className="flex h-10 shrink-0 overflow-hidden border border-border bg-card">
         <button
           type="button"
           onClick={() => onTabChange("active")}
-          className={`px-3 text-sm font-medium transition-colors ${
+          className={`whitespace-nowrap px-3 text-sm font-medium transition-colors ${
             activeTab === "active"
               ? "bg-primary text-white"
               : "text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
@@ -243,7 +243,7 @@ export function FilterToolbar({
         <button
           type="button"
           onClick={() => onTabChange("completed")}
-          className={`border-l border-border px-3 text-sm font-medium transition-colors ${
+          className={`whitespace-nowrap border-l border-border px-3 text-sm font-medium transition-colors ${
             activeTab === "completed"
               ? "bg-[#198038] text-white"
               : "text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
@@ -258,7 +258,7 @@ export function FilterToolbar({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 gap-2 rounded-none border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary"
+            className="h-10 shrink-0 gap-2 rounded-none border-border bg-card px-3 text-sm font-medium text-foreground-strong hover:bg-secondary sm:px-3.5"
           >
             <TagIcon className="h-4 w-4 text-muted-foreground" />
             {selectedTag ? (
@@ -312,7 +312,7 @@ export function FilterToolbar({
       {/* Clear filters */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-10 gap-2 rounded-none border-border bg-card px-3.5 text-sm font-medium text-foreground-strong hover:bg-secondary">
+          <Button variant="outline" className="h-10 shrink-0 gap-2 rounded-none border-border bg-card px-3 text-sm font-medium text-foreground-strong hover:bg-secondary sm:px-3.5">
             <Folder className="h-4 w-4 text-muted-foreground" />
             Folders: {projectSort === "name" ? "A to Z" : "Color"}
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -331,7 +331,7 @@ export function FilterToolbar({
         variant="ghost"
         onClick={onClear}
         disabled={!isFiltering}
-        className="h-10 gap-1.5 rounded-none px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground-strong disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+        className="h-10 shrink-0 gap-1.5 rounded-none px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground-strong disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
       >
         <X className="h-4 w-4" />
         Clear filters

@@ -459,9 +459,9 @@ function FocusSidePanel() {
         <Pin className="ml-auto h-4 w-4 text-muted-foreground" />
       </div>
 
-      <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+      <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 sm:p-5">
         <section className="grid min-h-[380px] flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
-          <div className="flex min-h-0 flex-col border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
+          <div className="flex min-h-0 flex-col border border-border bg-[#fff8d6] p-3 shadow-[0_12px_28px_rgb(32_48_64_/_10%)] sm:p-4">
             <div className="mb-2 flex min-w-0 items-center gap-1.5">
               <StickyNote className="h-4 w-4 text-[#f1c21b]" />
               <span className="min-w-0 shrink truncate text-xs font-semibold uppercase text-muted-foreground">
@@ -743,7 +743,7 @@ function FocusSidePanel() {
           </div>
         </section>
 
-        <section className="shrink-0 border border-border bg-[#f7f9fc] p-4">
+        <section className="shrink-0 border border-border bg-[#f7f9fc] p-3 sm:p-4">
           <div className="mb-4 flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-bold text-foreground-strong">Reminder Board</h3>
@@ -752,7 +752,7 @@ function FocusSidePanel() {
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <div className="border border-border bg-white p-3">
               <p className="text-[11px] font-semibold uppercase text-muted-foreground">
                 Reminders
@@ -1130,7 +1130,7 @@ function AuthenticatedPage({
   }
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-app">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-app">
       <Header
         search={search}
         onSearchChange={setSearch}
@@ -1165,8 +1165,8 @@ function AuthenticatedPage({
         onProjectSortChange={setProjectSort}
       />
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,6fr)_minmax(360px,4fr)]">
-        <section className="flex min-h-0 flex-1 flex-col px-6 xl:px-10">
+      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,6fr)_minmax(360px,4fr)] lg:overflow-hidden">
+        <section className="flex min-h-[520px] flex-col px-4 sm:px-6 lg:min-h-0 lg:flex-1 xl:px-10">
           {activeTab === "active" ? (
             <>
               <div className="flex items-center gap-2.5 py-3">
@@ -1222,7 +1222,9 @@ function AuthenticatedPage({
           )}
         </section>
 
-        <FocusSidePanel />
+        <div className="min-h-[680px] lg:min-h-0">
+          <FocusSidePanel />
+        </div>
       </main>
 
       <AddTaskPanel
