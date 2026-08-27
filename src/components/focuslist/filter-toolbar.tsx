@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, type FormEvent } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronDown, Folder, Plus, Tag as TagIcon, X } from "lucide-react";
+import { Check, ChevronDown, Folder, Pencil, Plus, Tag as TagIcon, X } from "lucide-react";
 import type { Project, Tag } from "@/lib/focuslist/types";
 import { pillStyle } from "@/lib/focuslist/palette";
 
@@ -22,10 +23,15 @@ type FilterToolbarProps = {
   completedCount: number;
   selectedProjectId: string | null;
   selectedTagId: string | null;
+  projectMenuOpen: boolean;
+  createFrameOpen: boolean;
   onTabChange: (tab: WorkspaceTab) => void;
   onSelectProject: (id: string | null) => void;
   onSelectTag: (id: string | null) => void;
-  onCreateProject: () => void;
+  onProjectMenuOpenChange: (open: boolean) => void;
+  onCreateFrameOpenChange: (open: boolean) => void;
+  onCreateProject: (name: string) => void;
+  onRenameProject: (id: string, name: string) => void;
   onClear: () => void;
   isFiltering: boolean;
   projectSort: "name" | "color";
@@ -39,10 +45,15 @@ export function FilterToolbar({
   completedCount,
   selectedProjectId,
   selectedTagId,
+  projectMenuOpen,
+  createFrameOpen,
   onTabChange,
   onSelectProject,
   onSelectTag,
+  onProjectMenuOpenChange,
+  onCreateFrameOpenChange,
   onCreateProject,
+  onRenameProject,
   onClear,
   isFiltering,
   projectSort,
@@ -50,11 +61,41 @@ export function FilterToolbar({
 }: FilterToolbarProps) {
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const selectedTag = tags.find((t) => t.id === selectedTagId);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [renamingProjectId, setRenamingProjectId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  function submitProjectCreate(event: FormEvent) {
+    event.preventDefault();
+    const trimmed = newProjectName.trim();
+    if (!trimmed) return;
+    onCreateProject(trimmed);
+    setNewProjectName("");
+    onCreateFrameOpenChange(false);
+    onProjectMenuOpenChange(false);
+  }
+
+  function startRename(project: Project) {
+    setRenamingProjectId(project.id);
+    setRenameValue(project.name);
+    onCreateFrameOpenChange(false);
+  }
+
+  function submitProjectRename(event: FormEvent, project: Project) {
+    event.preventDefault();
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === project.name) {
+      setRenamingProjectId(null);
+      return;
+    }
+    onRenameProject(project.id, trimmed);
+    setRenamingProjectId(null);
+  }
 
   return (
     <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-app px-6 xl:px-10">
       {/* Project filter */}
-      <DropdownMenu>
+      <DropdownMenu open={projectMenuOpen} onOpenChange={onProjectMenuOpenChange}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
@@ -74,7 +115,7 @@ export function FilterToolbar({
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuContent align="start" className="w-72">
           <DropdownMenuLabel>Filter by project</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => onSelectProject(null)}>
@@ -83,27 +124,101 @@ export function FilterToolbar({
               <Check className="ml-auto h-4 w-4" style={{ color: "#6252e8" }} />
             )}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onCreateProject}>
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault();
+              onCreateFrameOpenChange(!createFrameOpen);
+              setRenamingProjectId(null);
+            }}
+          >
             <Plus className="mr-2 h-4 w-4 text-primary" />
             Create project
           </DropdownMenuItem>
+          {createFrameOpen && (
+            <form
+              onSubmit={submitProjectCreate}
+              className="mx-2 my-2 border border-border bg-card p-2"
+            >
+              <label
+                htmlFor="fl-new-project"
+                className="mb-1 block text-[11px] font-semibold uppercase text-muted-foreground"
+              >
+                Project folder
+              </label>
+              <div className="flex gap-1.5">
+                <input
+                  id="fl-new-project"
+                  value={newProjectName}
+                  onChange={(event) => setNewProjectName(event.target.value)}
+                  className="h-8 min-w-0 flex-1 border border-border bg-app px-2 text-xs font-medium text-foreground-strong outline-none focus:border-primary"
+                  placeholder="Folder name"
+                />
+                <button
+                  type="submit"
+                  className="h-8 shrink-0 bg-primary px-2.5 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          )}
           <DropdownMenuSeparator />
           {projects.map((p) => (
-            <DropdownMenuItem
-              key={p.id}
-              onSelect={() => onSelectProject(p.id)}
-              className="justify-between"
-            >
-              <span
-                className="rounded-full px-2 py-0.5 text-xs font-medium"
-                style={pillStyle(p.color)}
-              >
-                {p.name}
-              </span>
-              {selectedProjectId === p.id && (
-                <Check className="h-4 w-4" style={{ color: "#6252e8" }} />
+            <div key={p.id} className="px-1 py-0.5">
+              {renamingProjectId === p.id ? (
+                <form
+                  onSubmit={(event) => submitProjectRename(event, p)}
+                  className="flex items-center gap-1.5 px-1 py-1"
+                >
+                  <input
+                    value={renameValue}
+                    onChange={(event) => setRenameValue(event.target.value)}
+                    className="h-8 min-w-0 flex-1 border border-border bg-app px-2 text-xs font-medium text-foreground-strong outline-none focus:border-primary"
+                    aria-label={`Rename ${p.name}`}
+                  />
+                  <button
+                    type="submit"
+                    className="h-8 shrink-0 bg-primary px-2.5 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRenamingProjectId(null)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
+                    aria-label="Cancel rename"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </form>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onSelectProject(p.id)}
+                    className="flex h-8 min-w-0 flex-1 items-center justify-between px-1.5 text-left hover:bg-secondary"
+                  >
+                    <span
+                      className="truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={pillStyle(p.color)}
+                    >
+                      {p.name}
+                    </span>
+                    {selectedProjectId === p.id && (
+                      <Check className="h-4 w-4 shrink-0" style={{ color: "#6252e8" }} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startRename(p)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
+                    aria-label={`Rename ${p.name}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               )}
-            </DropdownMenuItem>
+            </div>
           ))}
           {projects.length === 0 && (
             <div className="px-2 py-1.5 text-xs text-muted-foreground">

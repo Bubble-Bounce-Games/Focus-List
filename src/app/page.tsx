@@ -26,6 +26,7 @@ import {
   useTags,
   findOrCreateProject,
   findOrCreateTag,
+  renameProject,
   projectMap,
   tagMap,
 } from "@/lib/focuslist/store";
@@ -562,6 +563,8 @@ function AuthenticatedPage({
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [toolView, setToolView] = useState<"calendar" | "archive" | "trash" | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const [projectCreateFrameOpen, setProjectCreateFrameOpen] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const search = asString(searchValue);
@@ -757,18 +760,27 @@ function AuthenticatedPage({
     [panelMode, editingTask, selectedProjectId, setSelectedProjectId]
   );
 
-  const handleCreateProject = useCallback(async () => {
-    const name = window.prompt("Project name");
-    const trimmed = name?.trim();
-    if (!trimmed) return;
-    const project = await findOrCreateProject(trimmed);
+  const handleCreateProject = useCallback(async (name: string) => {
+    const project = await findOrCreateProject(name);
     setSelectedProjectId(project.id);
     setInitialProjectName(project.name);
     setEditingTask(null);
-    setPanelMode("create");
-    setPanelOpen(true);
     toast.success("Project created", { description: project.name });
   }, [setSelectedProjectId]);
+
+  const openProjectCreateFrame = useCallback(() => {
+    setProjectMenuOpen(true);
+    setProjectCreateFrameOpen(true);
+  }, []);
+
+  const handleRenameProject = useCallback(async (id: string, name: string) => {
+    const project = await renameProject(id, name);
+    if (!project) return;
+    if (selectedProjectId === id) {
+      setInitialProjectName(project.name);
+    }
+    toast.success("Project renamed", { description: project.name });
+  }, [selectedProjectId]);
 
   const handleClearFilters = useCallback(() => {
     setSearch("");
@@ -823,10 +835,15 @@ function AuthenticatedPage({
         completedCount={doneTasks.length}
         selectedProjectId={selectedProjectId}
         selectedTagId={selectedTagId}
+        projectMenuOpen={projectMenuOpen}
+        createFrameOpen={projectCreateFrameOpen}
         onTabChange={setActiveTab}
         onSelectProject={setSelectedProjectId}
         onSelectTag={setSelectedTagId}
+        onProjectMenuOpenChange={setProjectMenuOpen}
+        onCreateFrameOpenChange={setProjectCreateFrameOpen}
         onCreateProject={handleCreateProject}
+        onRenameProject={handleRenameProject}
         onClear={handleClearFilters}
         isFiltering={isFiltering}
         projectSort={projectSort}
@@ -873,7 +890,7 @@ function AuthenticatedPage({
                   onDetailSave={handleDetailSave}
                   onClearFilters={handleClearFilters}
                   onAddTask={openCreate}
-                  onCreateProject={handleCreateProject}
+                  onCreateProject={openProjectCreateFrame}
                 />
               </div>
             </>
