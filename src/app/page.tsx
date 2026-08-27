@@ -53,15 +53,23 @@ import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 import Link from "next/link";
 import {
   ArrowRight,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
   CalendarDays,
   CheckCircle2,
   Circle,
   Clock3,
   Eye,
-  Highlighter,
+  Italic,
+  List,
+  ListOrdered,
+  Palette,
   Pin,
   RotateCcw,
   StickyNote,
+  Underline,
 } from "lucide-react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -72,7 +80,15 @@ type PinnedNote = {
   text: string;
   color: string;
   createdAt: string;
+  fontFamily?: string;
+  fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  align?: NoteAlign;
 };
+
+type NoteAlign = "left" | "center" | "right";
 
 type ReminderRow =
   | {
@@ -95,6 +111,13 @@ type ReminderRow =
     };
 
 const markerColors = ["#111827", "#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
+const noteFontFamilies = [
+  { label: "Sans", value: "Inter, Arial, sans-serif" },
+  { label: "Serif", value: "Georgia, serif" },
+  { label: "Mono", value: "ui-monospace, SFMono-Regular, Menlo, monospace" },
+  { label: "Hand", value: '"Comic Sans MS", "Bradley Hand", cursive' },
+];
+const noteFontSizes = [13, 15, 17, 19, 22];
 
 function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -102,6 +125,24 @@ function asString(value: unknown, fallback = ""): string {
 
 function asNullableString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
+}
+
+function asBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+function asNoteFontSize(value: unknown): number {
+  return typeof value === "number" && noteFontSizes.includes(value) ? value : 15;
+}
+
+function asNoteFontFamily(value: unknown): string {
+  return typeof value === "string" && noteFontFamilies.some((font) => font.value === value)
+    ? value
+    : noteFontFamilies[0].value;
+}
+
+function asNoteAlign(value: unknown): NoteAlign {
+  return value === "center" || value === "right" ? value : "left";
 }
 
 function asPinnedNotes(value: unknown): PinnedNote[] {
@@ -197,13 +238,44 @@ function FocusSidePanel() {
     []
   );
   const [markerValue, setMarker] = usePersistentState<unknown>("fl.markerColor", markerColors[0]);
+  const [noteFontValue, setNoteFont] = usePersistentState<unknown>(
+    "fl.noteFont",
+    noteFontFamilies[0].value
+  );
+  const [noteFontSizeValue, setNoteFontSize] = usePersistentState<unknown>(
+    "fl.noteFontSize",
+    15
+  );
+  const [noteBoldValue, setNoteBold] = usePersistentState<unknown>("fl.noteBold", false);
+  const [noteItalicValue, setNoteItalic] = usePersistentState<unknown>("fl.noteItalic", false);
+  const [noteUnderlineValue, setNoteUnderline] = usePersistentState<unknown>(
+    "fl.noteUnderline",
+    false
+  );
+  const [noteAlignValue, setNoteAlign] = usePersistentState<unknown>("fl.noteAlign", "left");
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
   const calendarReminders = asCalendarReminders(calendarReminderValue);
   const marker = markerColors.includes(asString(markerValue))
     ? asString(markerValue)
     : markerColors[0];
+  const noteFont = asNoteFontFamily(noteFontValue);
+  const noteFontSize = asNoteFontSize(noteFontSizeValue);
+  const noteBold = asBoolean(noteBoldValue);
+  const noteItalic = asBoolean(noteItalicValue);
+  const noteUnderline = asBoolean(noteUnderlineValue);
+  const noteAlign = asNoteAlign(noteAlignValue);
+  const noteTextStyle = {
+    color: marker,
+    fontFamily: noteFont,
+    fontSize: `${noteFontSize}px`,
+    fontWeight: noteBold ? 700 : 500,
+    fontStyle: noteItalic ? "italic" : "normal",
+    textDecoration: noteUnderline ? "underline" : "none",
+    textAlign: noteAlign,
+  } as const;
   const taskReminderRows: ReminderRow[] = tasks
     .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
     .filter((task) => task.dueDate)
@@ -278,6 +350,12 @@ function FocusSidePanel() {
                 ...item,
                 text,
                 color: marker,
+                fontFamily: noteFont,
+                fontSize: noteFontSize,
+                bold: noteBold,
+                italic: noteItalic,
+                underline: noteUnderline,
+                align: noteAlign,
                 createdAt: savedAt,
               }
             : item
@@ -288,6 +366,12 @@ function FocusSidePanel() {
           id: crypto.randomUUID(),
           text,
           color: marker,
+          fontFamily: noteFont,
+          fontSize: noteFontSize,
+          bold: noteBold,
+          italic: noteItalic,
+          underline: noteUnderline,
+          align: noteAlign,
           createdAt: savedAt,
         },
         ...currentNotes,
@@ -295,7 +379,19 @@ function FocusSidePanel() {
     });
     setNote("");
     setActiveNoteId(null);
-  }, [activeNoteId, marker, note, setNote, setPinnedNotes]);
+  }, [
+    activeNoteId,
+    marker,
+    note,
+    noteAlign,
+    noteBold,
+    noteFont,
+    noteFontSize,
+    noteItalic,
+    noteUnderline,
+    setNote,
+    setPinnedNotes,
+  ]);
 
   const handleViewNote = useCallback(
     (item: PinnedNote) => {
@@ -303,9 +399,15 @@ function FocusSidePanel() {
       if (markerColors.includes(item.color)) {
         setMarker(item.color);
       }
+      setNoteFont(asNoteFontFamily(item.fontFamily));
+      setNoteFontSize(asNoteFontSize(item.fontSize));
+      setNoteBold(item.bold === true);
+      setNoteItalic(item.italic === true);
+      setNoteUnderline(item.underline === true);
+      setNoteAlign(asNoteAlign(item.align));
       setActiveNoteId(item.id);
     },
-    [setMarker, setNote]
+    [setMarker, setNote, setNoteAlign, setNoteBold, setNoteFont, setNoteFontSize, setNoteItalic, setNoteUnderline]
   );
 
   const handleDeleteNote = useCallback(
@@ -314,6 +416,27 @@ function FocusSidePanel() {
       setActiveNoteId((current) => (current === id ? null : current));
     },
     [setPinnedNotes]
+  );
+
+  const insertListLines = useCallback(
+    (kind: "bullet" | "number") => {
+      const lines = note.split("\n");
+      const hasContent = lines.some((line) => line.trim());
+      const next = hasContent
+        ? lines
+            .map((line, index) => {
+              const trimmed = line.trim();
+              if (!trimmed) return line;
+              const bare = trimmed.replace(/^([-*]\s+|\d+\.\s+)/, "");
+              return kind === "bullet" ? `• ${bare}` : `${index + 1}. ${bare}`;
+            })
+            .join("\n")
+        : kind === "bullet"
+          ? "• "
+          : "1. ";
+      setNote(next);
+    },
+    [note, setNote]
   );
 
   return (
@@ -328,7 +451,7 @@ function FocusSidePanel() {
         <section className="grid min-h-[380px] flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
           <div className="flex min-h-0 flex-col border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
             <div className="mb-3 flex items-center gap-2">
-              <Highlighter className="h-4 w-4" style={{ color: marker }} />
+              <Palette className="h-4 w-4" style={{ color: marker }} />
               <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Sticky note
               </span>
@@ -341,28 +464,143 @@ function FocusSidePanel() {
                 Save Pin
               </button>
             </div>
+            <div className="relative mt-1 flex flex-wrap items-center gap-1.5 border-y border-[#efe5b4] py-2">
+              <button
+                type="button"
+                onClick={() => setPaletteOpen((open) => !open)}
+                className="flex h-8 w-8 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
+                aria-label="Choose note color"
+                title="Color"
+              >
+                <Palette className="h-4 w-4" style={{ color: marker }} />
+              </button>
+              {paletteOpen && (
+                <div className="absolute left-0 top-11 z-10 flex gap-1 border border-border bg-white p-1 shadow-lg">
+                  {markerColors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => {
+                        setMarker(color);
+                        setPaletteOpen(false);
+                      }}
+                      className={`h-7 w-7 border ${
+                        marker === color ? "border-foreground-strong" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      aria-label={`Use note color ${color}`}
+                    />
+                  ))}
+                </div>
+              )}
+              <select
+                value={noteFont}
+                onChange={(event) => setNoteFont(event.target.value)}
+                className="h-8 border border-border bg-white px-2 text-xs font-semibold text-foreground-strong outline-none focus:border-primary"
+                aria-label="Font style"
+                title="Font style"
+              >
+                {noteFontFamilies.map((font) => (
+                  <option key={font.value} value={font.value}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={noteFontSize}
+                onChange={(event) => setNoteFontSize(Number(event.target.value))}
+                className="h-8 w-[58px] border border-border bg-white px-1.5 text-xs font-semibold text-foreground-strong outline-none focus:border-primary"
+                aria-label="Font size"
+                title="Font size"
+              >
+                {noteFontSizes.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+              {[
+                {
+                  icon: <Bold className="h-4 w-4" />,
+                  active: noteBold,
+                  label: "Bold",
+                  action: () => setNoteBold(!noteBold),
+                },
+                {
+                  icon: <Italic className="h-4 w-4" />,
+                  active: noteItalic,
+                  label: "Italic",
+                  action: () => setNoteItalic(!noteItalic),
+                },
+                {
+                  icon: <Underline className="h-4 w-4" />,
+                  active: noteUnderline,
+                  label: "Underline",
+                  action: () => setNoteUnderline(!noteUnderline),
+                },
+              ].map((control) => (
+                <button
+                  key={control.label}
+                  type="button"
+                  onClick={control.action}
+                  className={`flex h-8 w-8 items-center justify-center border ${
+                    control.active
+                      ? "border-primary bg-[#eaf2ff] text-primary"
+                      : "border-border bg-white text-foreground-strong hover:bg-secondary"
+                  }`}
+                  aria-label={control.label}
+                  title={control.label}
+                >
+                  {control.icon}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => insertListLines("bullet")}
+                className="flex h-8 w-8 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
+                aria-label="Bullet list"
+                title="Bullet list"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertListLines("number")}
+                className="flex h-8 w-8 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
+                aria-label="Numbered list"
+                title="Numbered list"
+              >
+                <ListOrdered className="h-4 w-4" />
+              </button>
+              {[
+                { align: "left" as const, icon: <AlignLeft className="h-4 w-4" />, label: "Align left" },
+                { align: "center" as const, icon: <AlignCenter className="h-4 w-4" />, label: "Align center" },
+                { align: "right" as const, icon: <AlignRight className="h-4 w-4" />, label: "Align right" },
+              ].map((control) => (
+                <button
+                  key={control.align}
+                  type="button"
+                  onClick={() => setNoteAlign(control.align)}
+                  className={`flex h-8 w-8 items-center justify-center border ${
+                    noteAlign === control.align
+                      ? "border-primary bg-[#eaf2ff] text-primary"
+                      : "border-border bg-white text-foreground-strong hover:bg-secondary"
+                  }`}
+                  aria-label={control.label}
+                  title={control.label}
+                >
+                  {control.icon}
+                </button>
+              ))}
+            </div>
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              className="min-h-[260px] flex-1 w-full resize-none border-0 bg-transparent text-sm font-medium leading-6 outline-none placeholder:text-muted-foreground"
-              style={{ color: marker }}
+              className="min-h-[220px] flex-1 w-full resize-none border-0 bg-transparent py-3 leading-6 outline-none placeholder:text-muted-foreground"
+              style={noteTextStyle}
               placeholder="Write a quick note..."
               aria-label="Pinned note"
             />
-            <div className="mt-4 flex items-center gap-2">
-              {markerColors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setMarker(color)}
-                  className={`h-7 w-7 border ${
-                    marker === color ? "border-foreground-strong" : "border-transparent"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  aria-label={`Use marker color ${color}`}
-                />
-              ))}
-            </div>
           </div>
 
           <div className="flex min-h-[260px] flex-col overflow-hidden border border-border bg-card p-3">
@@ -380,6 +618,15 @@ function FocusSidePanel() {
               <div className="fl-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {pinnedNotes.map((item) => {
                   const preview = notePreview(item.text);
+                  const savedNoteStyle = {
+                    color: item.color,
+                    fontFamily: asNoteFontFamily(item.fontFamily),
+                    fontSize: `${Math.max(12, asNoteFontSize(item.fontSize) - 2)}px`,
+                    fontWeight: item.bold ? 700 : 600,
+                    fontStyle: item.italic ? "italic" : "normal",
+                    textDecoration: item.underline ? "underline" : "none",
+                    textAlign: asNoteAlign(item.align),
+                  } as const;
                   return (
                     <div
                       key={item.id}
@@ -391,11 +638,14 @@ function FocusSidePanel() {
                         <div className="min-w-0 flex-1">
                           <p
                             className="truncate text-sm font-semibold leading-5"
-                            style={{ color: item.color }}
+                            style={savedNoteStyle}
                           >
                             {preview.title}
                           </p>
-                          <p className="line-clamp-2 text-xs leading-4 text-muted-foreground">
+                          <p
+                            className="line-clamp-2 text-xs leading-4 text-muted-foreground"
+                            style={{ textAlign: asNoteAlign(item.align) }}
+                          >
                             {preview.description || preview.title}
                           </p>
                           <p className="mt-1.5 text-[11px] font-medium leading-4 text-muted-foreground">
