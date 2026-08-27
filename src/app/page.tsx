@@ -64,7 +64,6 @@ import {
   Eye,
   Italic,
   List,
-  ListOrdered,
   Palette,
   Pin,
   RotateCcw,
@@ -255,6 +254,9 @@ function FocusSidePanel() {
   const [noteAlignValue, setNoteAlign] = usePersistentState<unknown>("fl.noteAlign", "left");
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [formatMenuOpen, setFormatMenuOpen] = useState(false);
+  const [listMenuOpen, setListMenuOpen] = useState(false);
+  const [alignMenuOpen, setAlignMenuOpen] = useState(false);
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
   const calendarReminders = asCalendarReminders(calendarReminderValue);
@@ -419,21 +421,31 @@ function FocusSidePanel() {
   );
 
   const insertListLines = useCallback(
-    (kind: "bullet" | "number") => {
+    (kind: "bullet" | "number" | "numerical" | "dash") => {
       const lines = note.split("\n");
       const hasContent = lines.some((line) => line.trim());
+      const formatLine = (text: string, index: number) => {
+        if (kind === "bullet") return `• ${text}`;
+        if (kind === "dash") return `- ${text}`;
+        if (kind === "numerical") return `${index + 1}) ${text}`;
+        return `${index + 1}. ${text}`;
+      };
       const next = hasContent
         ? lines
             .map((line, index) => {
               const trimmed = line.trim();
               if (!trimmed) return line;
-              const bare = trimmed.replace(/^([-*]\s+|\d+\.\s+)/, "");
-              return kind === "bullet" ? `• ${bare}` : `${index + 1}. ${bare}`;
+              const bare = trimmed.replace(/^(•\s+|-+\s+|\d+[\).]\s+)/, "");
+              return formatLine(bare, index);
             })
             .join("\n")
         : kind === "bullet"
           ? "• "
-          : "1. ";
+          : kind === "dash"
+            ? "- "
+            : kind === "numerical"
+              ? "1) "
+              : "1. ";
       setNote(next);
     },
     [note, setNote]
@@ -450,148 +462,201 @@ function FocusSidePanel() {
       <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         <section className="grid min-h-[380px] flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
           <div className="flex min-h-0 flex-col border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
-            <div className="mb-3 flex items-center gap-2">
-              <Palette className="h-4 w-4" style={{ color: marker }} />
-              <span className="text-xs font-semibold uppercase text-muted-foreground">
+            <div className="mb-2 flex min-w-0 items-center gap-1.5">
+              <StickyNote className="h-4 w-4 text-[#f1c21b]" />
+              <span className="min-w-0 shrink truncate text-xs font-semibold uppercase text-muted-foreground">
                 Sticky note
               </span>
+
+              <div className="relative ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormatMenuOpen((open) => !open);
+                    setPaletteOpen(false);
+                    setListMenuOpen(false);
+                    setAlignMenuOpen(false);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
+                  aria-label="Text format"
+                  title="Text format"
+                >
+                  <Bold className="h-3.5 w-3.5" />
+                </button>
+                {formatMenuOpen && (
+                  <div className="absolute right-0 top-8 z-10 min-w-32 border border-border bg-white p-1 shadow-lg">
+                    {[
+                      {
+                        icon: <Bold className="h-3.5 w-3.5" />,
+                        label: "Bold",
+                        active: noteBold,
+                        action: () => setNoteBold(!noteBold),
+                      },
+                      {
+                        icon: <Italic className="h-3.5 w-3.5" />,
+                        label: "Italic",
+                        active: noteItalic,
+                        action: () => setNoteItalic(!noteItalic),
+                      },
+                      {
+                        icon: <Underline className="h-3.5 w-3.5" />,
+                        label: "Underline",
+                        active: noteUnderline,
+                        action: () => setNoteUnderline(!noteUnderline),
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={item.action}
+                        className={`flex h-7 w-full items-center gap-2 px-2 text-xs font-semibold ${
+                          item.active
+                            ? "bg-[#eaf2ff] text-primary"
+                            : "text-foreground-strong hover:bg-secondary"
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaletteOpen((open) => !open);
+                    setFormatMenuOpen(false);
+                    setListMenuOpen(false);
+                    setAlignMenuOpen(false);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
+                  aria-label="Choose note color"
+                  title="Color"
+                >
+                  <Palette className="h-3.5 w-3.5" style={{ color: marker }} />
+                </button>
+                {paletteOpen && (
+                  <div className="absolute right-0 top-8 z-10 flex gap-1 border border-border bg-white p-1 shadow-lg">
+                    {markerColors.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => {
+                          setMarker(color);
+                          setPaletteOpen(false);
+                        }}
+                        className={`h-6 w-6 border ${
+                          marker === color ? "border-foreground-strong" : "border-transparent"
+                        }`}
+                        style={{ backgroundColor: color }}
+                        aria-label={`Use note color ${color}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setListMenuOpen((open) => !open);
+                    setFormatMenuOpen(false);
+                    setPaletteOpen(false);
+                    setAlignMenuOpen(false);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
+                  aria-label="List style"
+                  title="List style"
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+                {listMenuOpen && (
+                  <div className="absolute right-0 top-8 z-10 min-w-36 border border-border bg-white p-1 shadow-lg">
+                    {[
+                      { kind: "bullet" as const, label: "Bullet point", mark: "•" },
+                      { kind: "number" as const, label: "Number", mark: "1." },
+                      { kind: "numerical" as const, label: "Numerical", mark: "1)" },
+                      { kind: "dash" as const, label: "-", mark: "-" },
+                    ].map((item) => (
+                      <button
+                        key={item.kind}
+                        type="button"
+                        onClick={() => {
+                          insertListLines(item.kind);
+                          setListMenuOpen(false);
+                        }}
+                        className="flex h-7 w-full items-center gap-2 px-2 text-xs font-semibold text-foreground-strong hover:bg-secondary"
+                      >
+                        <span className="w-5 text-left">{item.mark}</span>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAlignMenuOpen((open) => !open);
+                    setFormatMenuOpen(false);
+                    setPaletteOpen(false);
+                    setListMenuOpen(false);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
+                  aria-label="Paragraph alignment"
+                  title="Paragraph alignment"
+                >
+                  {noteAlign === "center" ? (
+                    <AlignCenter className="h-3.5 w-3.5" />
+                  ) : noteAlign === "right" ? (
+                    <AlignRight className="h-3.5 w-3.5" />
+                  ) : (
+                    <AlignLeft className="h-3.5 w-3.5" />
+                  )}
+                </button>
+                {alignMenuOpen && (
+                  <div className="absolute right-0 top-8 z-10 min-w-28 border border-border bg-white p-1 shadow-lg">
+                    {[
+                      { align: "left" as const, icon: <AlignLeft className="h-3.5 w-3.5" />, label: "Left" },
+                      { align: "center" as const, icon: <AlignCenter className="h-3.5 w-3.5" />, label: "Center" },
+                      { align: "right" as const, icon: <AlignRight className="h-3.5 w-3.5" />, label: "Right" },
+                    ].map((item) => (
+                      <button
+                        key={item.align}
+                        type="button"
+                        onClick={() => {
+                          setNoteAlign(item.align);
+                          setAlignMenuOpen(false);
+                        }}
+                        className={`flex h-7 w-full items-center gap-2 px-2 text-xs font-semibold ${
+                          noteAlign === item.align
+                            ? "bg-[#eaf2ff] text-primary"
+                            : "text-foreground-strong hover:bg-secondary"
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={handleSaveNote}
-                className="ml-auto inline-flex h-8 items-center gap-1.5 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                className="flex h-7 w-7 items-center justify-center bg-primary text-white hover:bg-[#0353e9]"
+                aria-label="Save pinned note"
+                title="Save pin"
               >
                 <Pin className="h-3.5 w-3.5" />
-                Save Pin
               </button>
-            </div>
-            <div className="relative mt-1 flex flex-wrap items-center gap-1.5 border-y border-[#efe5b4] py-2">
-              <button
-                type="button"
-                onClick={() => setPaletteOpen((open) => !open)}
-                className="flex h-8 w-8 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
-                aria-label="Choose note color"
-                title="Color"
-              >
-                <Palette className="h-4 w-4" style={{ color: marker }} />
-              </button>
-              {paletteOpen && (
-                <div className="absolute left-0 top-11 z-10 flex gap-1 border border-border bg-white p-1 shadow-lg">
-                  {markerColors.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => {
-                        setMarker(color);
-                        setPaletteOpen(false);
-                      }}
-                      className={`h-7 w-7 border ${
-                        marker === color ? "border-foreground-strong" : "border-transparent"
-                      }`}
-                      style={{ backgroundColor: color }}
-                      aria-label={`Use note color ${color}`}
-                    />
-                  ))}
-                </div>
-              )}
-              <select
-                value={noteFont}
-                onChange={(event) => setNoteFont(event.target.value)}
-                className="h-8 border border-border bg-white px-2 text-xs font-semibold text-foreground-strong outline-none focus:border-primary"
-                aria-label="Font style"
-                title="Font style"
-              >
-                {noteFontFamilies.map((font) => (
-                  <option key={font.value} value={font.value}>
-                    {font.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={noteFontSize}
-                onChange={(event) => setNoteFontSize(Number(event.target.value))}
-                className="h-8 w-[58px] border border-border bg-white px-1.5 text-xs font-semibold text-foreground-strong outline-none focus:border-primary"
-                aria-label="Font size"
-                title="Font size"
-              >
-                {noteFontSizes.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-              {[
-                {
-                  icon: <Bold className="h-4 w-4" />,
-                  active: noteBold,
-                  label: "Bold",
-                  action: () => setNoteBold(!noteBold),
-                },
-                {
-                  icon: <Italic className="h-4 w-4" />,
-                  active: noteItalic,
-                  label: "Italic",
-                  action: () => setNoteItalic(!noteItalic),
-                },
-                {
-                  icon: <Underline className="h-4 w-4" />,
-                  active: noteUnderline,
-                  label: "Underline",
-                  action: () => setNoteUnderline(!noteUnderline),
-                },
-              ].map((control) => (
-                <button
-                  key={control.label}
-                  type="button"
-                  onClick={control.action}
-                  className={`flex h-8 w-8 items-center justify-center border ${
-                    control.active
-                      ? "border-primary bg-[#eaf2ff] text-primary"
-                      : "border-border bg-white text-foreground-strong hover:bg-secondary"
-                  }`}
-                  aria-label={control.label}
-                  title={control.label}
-                >
-                  {control.icon}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => insertListLines("bullet")}
-                className="flex h-8 w-8 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
-                aria-label="Bullet list"
-                title="Bullet list"
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => insertListLines("number")}
-                className="flex h-8 w-8 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
-                aria-label="Numbered list"
-                title="Numbered list"
-              >
-                <ListOrdered className="h-4 w-4" />
-              </button>
-              {[
-                { align: "left" as const, icon: <AlignLeft className="h-4 w-4" />, label: "Align left" },
-                { align: "center" as const, icon: <AlignCenter className="h-4 w-4" />, label: "Align center" },
-                { align: "right" as const, icon: <AlignRight className="h-4 w-4" />, label: "Align right" },
-              ].map((control) => (
-                <button
-                  key={control.align}
-                  type="button"
-                  onClick={() => setNoteAlign(control.align)}
-                  className={`flex h-8 w-8 items-center justify-center border ${
-                    noteAlign === control.align
-                      ? "border-primary bg-[#eaf2ff] text-primary"
-                      : "border-border bg-white text-foreground-strong hover:bg-secondary"
-                  }`}
-                  aria-label={control.label}
-                  title={control.label}
-                >
-                  {control.icon}
-                </button>
-              ))}
             </div>
             <textarea
               value={note}
