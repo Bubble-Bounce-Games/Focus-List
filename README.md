@@ -51,6 +51,10 @@ yarn start
 `yarn verify` runs the full gate — import/tracking check, lint, and build —
 and is what CI runs on every push.
 
+For AWS S3 static hosting, use `yarn build:aws` and the manual GitHub Actions
+workflow in [docs/aws-s3.md](./docs/aws-s3.md). The S3 build does not use the
+GitHub Pages `/Focus-List` base path.
+
 ## Supabase accounts
 
 The account sign-in screen is enabled when `NEXT_PUBLIC_SUPABASE_URL` and
