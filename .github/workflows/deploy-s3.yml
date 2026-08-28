@@ -52,4 +52,4 @@ jobs:
         run: aws s3 website "s3://$AWS_S3_BUCKET" --index-document index.html --error-document 404.html
 
       - name: Sync static export to S3
-        run: aws s3 sync out "s3://$AWS_S3_BUCKET" --delete --cache-control "public,max-age=300"
+        run: aws s3 sync out "s3://$AWS_S3_BUCKET" --cache-control "public,max-age=300"
