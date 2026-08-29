@@ -1,10 +1,20 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CheckCircle2, Clock3, FolderArchive, Trash2, X } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  FolderArchive,
+  Trash2,
+  X,
+} from "lucide-react";
 import type { Task } from "@/lib/focuslist/types";
 import { CALENDAR_REMINDERS_KEY, asCalendarReminders } from "@/lib/focuslist/calendar-reminders";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { EmptyState } from "./empty-state";
 
 type ToolView = "calendar" | "archive" | "trash";
 type DashboardToolsProps = {
@@ -98,17 +108,17 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="border border-border bg-app p-4">
+      <div className="rounded-md border border-outline-variant bg-surface-container-lowest p-4">
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-primary" />
-          <p className="text-sm font-semibold text-foreground-strong">{startYear} Calendar</p>
+          <CalendarDays className="size-4 text-primary" />
+          <p className="text-title-medium text-on-surface">{startYear} Calendar</p>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{dateTitle(selectedDate)}</p>
+        <p className="mt-1 text-body-medium text-on-surface-variant">{dateTitle(selectedDate)}</p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <select
             value={startMonth}
             onChange={(event) => selectCalendarStart(startYear, Number(event.target.value))}
-            className="h-9 border border-border bg-card px-2 text-sm text-foreground-strong outline-none focus:border-primary"
+            className="h-9 rounded-md border-2 border-outline-variant bg-transparent px-2 text-body-medium text-on-surface outline-none transition-[border-color,box-shadow] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Calendar month"
           >
             {monthNames.map((name, index) => (
@@ -120,7 +130,7 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
           <select
             value={startYear}
             onChange={(event) => selectCalendarStart(Number(event.target.value), startMonth)}
-            className="h-9 border border-border bg-card px-2 text-sm text-foreground-strong outline-none focus:border-primary"
+            className="h-9 rounded-md border-2 border-outline-variant bg-transparent px-2 text-body-medium text-on-surface outline-none transition-[border-color,box-shadow] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Calendar year"
           >
             {yearOptions.map((option) => (
@@ -149,14 +159,14 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
             <section
               key={monthKey}
               ref={monthIndex === 0 ? startMonthRef : undefined}
-              className="border border-border bg-card p-3"
+              className="rounded-md border border-outline-variant bg-surface-container-low p-3"
             >
-              <p className="mb-2 text-sm font-semibold text-foreground-strong">
+              <p className="mb-2 text-title-medium text-on-surface">
                 {new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(month)}
               </p>
-              <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] sm:gap-1 sm:text-xs">
+              <div className="grid grid-cols-7 gap-0.5 text-center text-label-small sm:gap-1">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                  <div key={day} className="py-1 font-semibold text-muted-foreground">
+                  <div key={day} className="py-1 text-label-small font-medium text-on-surface-variant">
                     {day}
                   </div>
                 ))}
@@ -166,27 +176,23 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
                   const isToday = key === todayKey;
                   const isSelected = key === selectedDate;
                   return (
-                    <div key={key} className="min-h-12">
+                    <div key={key} className="flex min-h-9 items-center justify-center">
                       {cell && (
                         <button
                           type="button"
                           onClick={() => setSelectedDate(key)}
-                          className={`relative flex h-full min-h-12 w-full flex-col border p-1 text-left transition hover:border-primary hover:bg-[#edf5ff] ${
-                            cell ? "border-border bg-card" : "border-transparent"
-                          } ${isToday ? "bg-[#d0e2ff] ring-2 ring-primary" : ""} ${
-                            isSelected ? "border-primary bg-[#eaf2ff]" : ""
+                          className={`relative flex size-9 items-center justify-center rounded-full text-label-medium transition-[background-color,color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12] focus-visible:outline-none ${
+                            isToday
+                              ? "bg-primary text-on-primary-foreground hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12]"
+                              : isSelected
+                              ? "bg-secondary-container text-on-secondary-container hover:bg-on-secondary-container/[0.08] focus-visible:bg-on-secondary-container/[0.10] active:bg-on-secondary-container/[0.12]"
+                              : "text-on-surface"
                           }`}
                           aria-label={`Open ${dateTitle(key)}`}
                         >
-                          <span
-                            className={`inline-flex h-5 min-w-5 items-center justify-center text-xs font-semibold ${
-                              isToday ? "bg-primary px-1 text-white" : "text-foreground-strong"
-                            }`}
-                          >
-                            {cell.getDate()}
-                          </span>
+                          {cell.getDate()}
                           {dayReminderCount > 0 && (
-                            <span className="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#da1e28]" />
+                            <span className="absolute bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-error" />
                           )}
                         </button>
                       )}
@@ -196,21 +202,22 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
               </div>
               {selectedDate.startsWith(monthKey) && (
                 <form onSubmit={handleAddReminder} className="mt-3 flex items-center gap-2">
-                  <input
+                  <Input
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
-                    className="h-9 min-w-0 flex-1 border border-border bg-app px-2 text-sm text-foreground-strong outline-none focus:border-primary"
+                    className="h-9 min-w-0 flex-1"
                     placeholder="Add reminder"
                     aria-label={`Add reminder for ${dateTitle(selectedDate)}`}
                   />
-                  <button
+                  <Button
                     type="submit"
-                    className="h-9 bg-primary px-3 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                    size="sm"
+                    className="h-9 px-3"
                   >
                     Add
-                  </button>
+                  </Button>
                   {selectedReminderCount > 0 && (
-                    <span className="text-[11px] font-bold text-[#da1e28]">{selectedReminderCount} set</span>
+                    <span className="text-label-small font-bold text-error">{selectedReminderCount} set</span>
                   )}
                 </form>
               )}
@@ -229,15 +236,61 @@ export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToo
   const rows = view === "archive" ? tasks.filter((task) => task.archivedAt) : view === "trash" ? tasks.filter((task) => task.deletedAt) : dueTasks;
 
   return (
-    <aside className="fixed inset-0 z-50 flex h-full w-full flex-col border-border bg-card shadow-2xl sm:left-auto sm:w-[420px] sm:max-w-[100vw] sm:border-l" aria-label={title}>
-      <header className="flex items-center gap-3 border-b border-border px-4 py-4 sm:px-6 sm:py-5"><Icon className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold text-foreground-strong">{title}</h2><button onClick={onClose} aria-label="Close panel" className="ml-auto p-2 text-muted-foreground hover:bg-secondary"><X className="h-4 w-4" /></button></header>
+    <aside
+      className="fixed inset-0 z-50 flex h-full w-full flex-col border-outline-variant bg-surface-container-low shadow-e3 sm:left-auto sm:w-[420px] sm:max-w-[100vw] sm:border-l"
+      aria-label={title}
+    >
+      <header className="flex items-center gap-3 border-b border-outline-variant px-4 py-4 sm:px-6 sm:py-5">
+        <Icon className="size-5 text-primary" />
+        <h2 className="text-title-large text-on-surface">{title}</h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          aria-label="Close panel"
+          className="ml-auto size-9 rounded-full text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
+        >
+          <X className="size-4" />
+        </Button>
+      </header>
       <div className="fl-scroll flex-1 overflow-y-auto p-4 sm:p-6">
         {view === "calendar" ? (
           <CalendarTool tasks={tasks} />
         ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center"><CheckCircle2 className="h-8 w-8 text-[#198038]" /><p className="mt-3 text-sm font-medium text-foreground-strong">Nothing here yet</p><p className="mt-1 text-xs text-muted-foreground">Your workspace is clear.</p></div>
+          <EmptyState
+            icon={<CheckCircle2 className="size-6 text-success" />}
+            title="Nothing here yet"
+            description="Your workspace is clear."
+          />
         ) : (
-          <div className="space-y-2">{rows.map((task) => <div key={task.id} className="border border-border bg-card p-4"><div className="flex items-start gap-3"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div className="min-w-0 flex-1"><p className="text-sm font-medium text-foreground-strong">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.deletedAt ? "Deleted" : task.archivedAt ? "Archived" : `Created · ${createdLabel(task.createdAt)}`}</p></div>{(view === "archive" || view === "trash") && onRestore && <button onClick={() => onRestore(task)} className="text-xs font-medium text-primary hover:underline">Restore</button>}</div></div>)}</div>
+          <div className="space-y-2">
+            {rows.map((task) => (
+              <div
+                key={task.id}
+                className="rounded-md border border-outline-variant bg-surface-container-high p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <Clock3 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-body-medium font-medium text-on-surface">{task.title}</p>
+                    <p className="mt-1 text-body-small text-on-surface-variant">
+                      {task.deletedAt ? "Deleted" : task.archivedAt ? "Archived" : `Created · ${createdLabel(task.createdAt)}`}
+                    </p>
+                  </div>
+                  {(view === "archive" || view === "trash") && onRestore && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRestore(task)}
+                      className="text-primary hover:bg-primary/[0.08] focus-visible:bg-primary/[0.10] active:bg-primary/[0.12]"
+                    >
+                      Restore
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </aside>

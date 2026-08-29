@@ -5,6 +5,13 @@ import * as SwitchPrimitive from "@radix-ui/react-switch"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Material Design 3 Switch
+ *
+ * Track = primary when checked, outline-variant when unchecked. Thumb =
+ * on-primary when checked, surface-container-lowest when unchecked. Slightly
+ * wider MD3 proportions (h-6 w-[44px]). Public API unchanged from shadcn.
+ */
 function Switch({
   className,
   ...props
@@ -13,7 +20,7 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-surface-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full border-2 border-transparent shadow-none transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] outline-none disabled:cursor-not-allowed disabled:opacity-38 hover:data-[state=unchecked]:bg-on-surface/[0.08]",
         className
       )}
       {...props}
@@ -21,7 +28,7 @@ function Switch({
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         className={cn(
-          "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+          "bg-on-primary pointer-events-none block size-[18px] rounded-full ring-0 transition-transform duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] data-[state=checked]:translate-x-[20px] data-[state=unchecked]:translate-x-[3px] data-[state=unchecked]:bg-surface-container-lowest data-[state=unchecked]:border data-[state=unchecked]:border-outline-variant"
         )}
       />
     </SwitchPrimitive.Root>

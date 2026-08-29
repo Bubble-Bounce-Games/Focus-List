@@ -13,6 +13,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import type { Project, Tag, Task } from "@/lib/focuslist/types";
 import { clampProgress } from "@/lib/focuslist/store";
@@ -144,7 +146,7 @@ function PanelBody({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-40 bg-[#171a2b]/35 backdrop-blur-[1px]"
+        className="fixed inset-0 z-40 bg-on-surface/40 backdrop-blur-[1px]"
         onClick={requestClose}
         aria-hidden
       />
@@ -158,44 +160,40 @@ function PanelBody({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 360, damping: 38 }}
-        className="fixed right-0 top-0 z-50 flex h-full w-[460px] max-w-[100vw] flex-col border-l border-border bg-card shadow-2xl"
+        className="fixed right-0 top-0 z-50 flex h-full w-[460px] max-w-[100vw] flex-col border-l border-outline-variant bg-surface-container-low shadow-e3"
       >
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-border px-6 py-5">
+        <div className="flex items-center gap-3 border-b border-outline-variant px-6 py-4">
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: "#6252e8" }}
+            className="flex size-9 items-center justify-center rounded-full bg-primary-container text-on-primary-container"
             aria-hidden
           >
-            <Plus className="h-5 w-5" strokeWidth={2.5} />
+            <Plus className="size-5" strokeWidth={2.5} />
           </div>
-          <h2 className="text-lg font-bold text-foreground-strong">
+          <h2 className="text-title-large text-on-surface">
             {mode === "edit" ? "Edit Task" : "Add Task"}
           </h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={requestClose}
-            className="ml-auto h-9 w-9 text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
+            className="ml-auto size-9 rounded-full text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
             aria-label="Close panel"
           >
-            <X className="h-5 w-5" />
+            <X className="size-5" />
           </Button>
         </div>
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="fl-scroll flex-1 overflow-y-auto px-6 py-5">
+          <div className="fl-scroll flex-1 overflow-y-auto p-6">
             <div className="flex flex-col gap-5">
               {/* Task title */}
               <div>
-                <label
-                  htmlFor="fl-title"
-                  className="mb-1.5 block text-sm font-medium text-foreground-strong"
-                >
-                  Task title
-                </label>
-                <input
+                <Label htmlFor="fl-title" className="mb-1.5 block">
+                  Task title <span className="text-error">*</span>
+                </Label>
+                <Input
                   ref={titleRef}
                   id="fl-title"
                   type="text"
@@ -205,12 +203,9 @@ function PanelBody({
                   }
                   placeholder="e.g. Write user documentation"
                   aria-invalid={touched && !titleValid}
-                  className={`h-11 w-full rounded-xl border bg-card px-3.5 text-sm text-foreground-strong outline-none transition-colors placeholder:text-muted-foreground focus:border-[#6252e8] ${
-                    touched && !titleValid ? "border-destructive" : "border-border"
-                  }`}
                 />
                 {touched && !titleValid && (
-                  <p className="mt-1 text-xs text-destructive">
+                  <p className="mt-1 text-label-medium text-error">
                     Task title is required.
                   </p>
                 )}
@@ -219,12 +214,9 @@ function PanelBody({
               {/* Project + Tag */}
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label
-                    htmlFor="fl-project"
-                    className="mb-1.5 block text-sm font-medium text-foreground-strong"
-                  >
-                    Project name
-                  </label>
+                  <Label htmlFor="fl-project" className="mb-1.5 block">
+                    Project name <span className="text-error">*</span>
+                  </Label>
                   <Combobox
                     id="fl-project"
                     value={form.projectName}
@@ -234,18 +226,15 @@ function PanelBody({
                     invalid={touched && !projectValid}
                   />
                   {touched && !projectValid && (
-                    <p className="mt-1 text-xs text-destructive">
+                    <p className="mt-1 text-label-medium text-error">
                       Project name is required.
                     </p>
                   )}
                 </div>
                 <div>
-                  <label
-                    htmlFor="fl-tag"
-                    className="mb-1.5 block text-sm font-medium text-foreground-strong"
-                  >
-                    Tag name
-                  </label>
+                  <Label htmlFor="fl-tag" className="mb-1.5 block">
+                    Tag name <span className="text-error">*</span>
+                  </Label>
                   <Combobox
                     id="fl-tag"
                     value={form.tagName}
@@ -255,7 +244,7 @@ function PanelBody({
                     invalid={touched && !tagValid}
                   />
                   {touched && !tagValid && (
-                    <p className="mt-1 text-xs text-destructive">
+                    <p className="mt-1 text-label-medium text-error">
                       Tag name is required.
                     </p>
                   )}
@@ -264,20 +253,17 @@ function PanelBody({
 
               {/* Progress */}
               <div>
-                <label
-                  htmlFor="fl-progress"
-                  className="mb-2 block text-sm font-medium text-foreground-strong"
-                >
+                <Label htmlFor="fl-progress" className="mb-2 block">
                   Progress %
-                </label>
-                <div className="flex items-center gap-4 rounded-xl border border-border bg-app p-4">
-                  <span className="w-8 shrink-0 text-xs font-medium text-muted-foreground">
+                </Label>
+                <div className="flex items-center gap-4 rounded-md border border-outline-variant bg-surface-container-lowest p-4">
+                  <span className="w-8 shrink-0 text-label-medium text-on-surface-variant">
                     0%
                   </span>
                   <ProgressSlider
                     id="fl-progress"
                     value={form.progress}
-                    accent="#6252e8"
+                    accent="var(--md-primary)"
                     onChange={(v) =>
                       setForm((f) => ({ ...f, progress: clampProgress(v) }))
                     }
@@ -286,7 +272,7 @@ function PanelBody({
                     }
                     ariaLabel="New task progress"
                   />
-                  <span className="w-10 shrink-0 text-right text-xs font-medium text-muted-foreground">
+                  <span className="w-10 shrink-0 text-right text-label-medium text-on-surface-variant">
                     100%
                   </span>
                   <input
@@ -302,7 +288,7 @@ function PanelBody({
                       }));
                     }}
                     aria-label="Progress percentage"
-                    className="h-10 w-[68px] shrink-0 rounded-lg border border-border bg-card px-2 text-center text-sm font-bold text-foreground-strong outline-none focus:border-[#6252e8]"
+                    className="h-10 w-[68px] shrink-0 rounded-md border-2 border-outline-variant bg-transparent px-2 text-center text-label-large font-bold text-on-surface outline-none transition-[border-color,box-shadow] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
                   />
                 </div>
               </div>
@@ -310,11 +296,19 @@ function PanelBody({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-border px-6 py-4">
+          <div className="flex items-center justify-end gap-3 border-t border-outline-variant px-6 py-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={requestClose}
+              className="text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               disabled={!formValid}
-              className="h-11 w-full rounded-xl bg-[#6252e8] text-[15px] font-semibold text-white shadow-sm hover:bg-[#5444d6] disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-11 px-6 text-label-large"
             >
               {mode === "edit" ? "Save Changes" : "Add Task"}
             </Button>

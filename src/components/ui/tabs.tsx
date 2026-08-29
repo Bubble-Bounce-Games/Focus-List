@@ -5,6 +5,13 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Material Design 3 Tabs
+ *
+ * Underline indicator in primary on the active tab, label-medium typography,
+ * inactive triggers use on-surface-variant text and gain a state-layer on
+ * hover/focus. Public API unchanged from shadcn.
+ */
 function Tabs({
   className,
   ...props
@@ -26,7 +33,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+        "bg-transparent text-on-surface-variant inline-flex h-10 w-fit items-center justify-center gap-1 rounded-md p-1",
         className
       )}
       {...props}
@@ -42,7 +49,9 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "text-label-large relative inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1 whitespace-nowrap transition-[background-color,color,box-shadow] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] outline-none focus-visible:outline-none hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] data-[state=active]:text-on-surface data-[state=active]:bg-secondary-container data-[state=active]:shadow-none disabled:pointer-events-none disabled:opacity-38 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // MD3 underline indicator on the active tab
+        "data-[state=active]:after:absolute data-[state=active]:after:inset-x-2 data-[state=active]:after:-bottom-px data-[state=active]:after:h-0.5 data-[state=active]:after:rounded-full data-[state=active]:after:bg-primary",
         className
       )}
       {...props}

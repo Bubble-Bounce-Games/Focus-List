@@ -6,6 +6,12 @@ import { CircleIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Material Design 3 Radio Button
+ *
+ * Outer ring border-outline, inner dot primary when selected. State-layer
+ * hover + clean focus ring. Public API unchanged from shadcn.
+ */
 function RadioGroup({
   className,
   ...props
@@ -27,7 +33,7 @@ function RadioGroupItem({
     <RadioGroupPrimitive.Item
       data-slot="radio-group-item"
       className={cn(
-        "border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 aspect-square size-4 shrink-0 rounded-full border shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        "border-outline-variant text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 aria-invalid:ring-2 aria-invalid:ring-error/40 aria-invalid:border-error aspect-square size-[18px] shrink-0 rounded-full border-2 shadow-none transition-[background-color,border-color,color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] outline-none hover:bg-on-surface/[0.08] data-[state=checked]:border-primary disabled:cursor-not-allowed disabled:opacity-38",
         className
       )}
       {...props}
@@ -36,7 +42,7 @@ function RadioGroupItem({
         data-slot="radio-group-indicator"
         className="relative flex items-center justify-center"
       >
-        <CircleIcon className="fill-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2" />
+        <CircleIcon className="fill-primary text-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2" />
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
   )

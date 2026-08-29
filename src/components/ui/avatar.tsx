@@ -5,6 +5,12 @@ import * as AvatarPrimitive from "@radix-ui/react-avatar"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Material Design 3 Avatar (light retint)
+ *
+ * Circular container; fallback uses surface-container + on-surface text.
+ * Public API unchanged from shadcn.
+ */
 function Avatar({
   className,
   ...props
@@ -13,7 +19,7 @@ function Avatar({
     <AvatarPrimitive.Root
       data-slot="avatar"
       className={cn(
-        "relative flex size-8 shrink-0 overflow-hidden rounded-full",
+        "relative flex size-10 shrink-0 overflow-hidden rounded-full",
         className
       )}
       {...props}
@@ -42,7 +48,7 @@ function AvatarFallback({
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "bg-muted flex size-full items-center justify-center rounded-full",
+        "bg-surface-container-high text-on-surface flex size-full items-center justify-center rounded-full text-label-large font-medium",
         className
       )}
       {...props}

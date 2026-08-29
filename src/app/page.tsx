@@ -50,6 +50,13 @@ import {
 } from "@/lib/focuslist/calendar-reminders";
 import { useAuth } from "@/components/auth-provider";
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -109,7 +116,17 @@ type ReminderRow =
       reminder: CalendarReminder;
     };
 
-const markerColors = ["#111827", "#f1c21b", "#ff7eb6", "#42be65", "#82cfff", "#be95ff"];
+// Retinted to MD3 role color tokens. The values are plain CSS color strings so
+// they can be persisted verbatim in localStorage AND render theme-aware. Six
+// distinct, accessible options aligned to MD3 brand/role roles.
+const markerColors = [
+  "var(--md-on-surface)",
+  "var(--md-warning)",
+  "var(--md-tertiary)",
+  "var(--md-success)",
+  "var(--md-info)",
+  "var(--md-primary)",
+];
 const noteFontFamilies = [
   { label: "Sans", value: "Inter, Arial, sans-serif" },
   { label: "Serif", value: "Georgia, serif" },
@@ -205,18 +222,18 @@ function reminderTone(value: string): {
   if (value < today) {
     return {
       label: "Overdue",
-      className: "bg-[#fff1f1] text-[#da1e28]",
+      className: "bg-error-container text-on-error-container",
     };
   }
   if (value === today) {
     return {
       label: "Today",
-      className: "bg-[#defbe6] text-[#198038]",
+      className: "bg-success-container text-on-success-container",
     };
   }
   return {
     label: "Upcoming",
-    className: "bg-[#eaf2ff] text-primary",
+    className: "bg-info-container text-on-info-container",
   };
 }
 
@@ -288,7 +305,7 @@ function FocusSidePanel() {
         id: task.id,
         title: task.title,
         dueDate: task.dueDate ?? "",
-        color: project?.color ?? "#8d8d99",
+        color: project?.color ?? "var(--md-outline)",
         progress: task.progress,
         task,
       };
@@ -298,7 +315,7 @@ function FocusSidePanel() {
     id: reminder.id,
     title: reminder.title,
     dueDate: reminder.dueDate,
-    color: "#da1e28",
+    color: "var(--md-error)",
     progress: 0,
     reminder,
   }));
@@ -451,55 +468,70 @@ function FocusSidePanel() {
     [note, setNote]
   );
 
+  const toolbarButtonClass =
+    "flex size-7 items-center justify-center rounded-full text-on-warning-container transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-warning-container/[0.08] focus-visible:bg-on-warning-container/[0.10] active:bg-on-warning-container/[0.12]";
+
   return (
-    <aside className="flex min-h-0 flex-col border-t border-border bg-card lg:border-l lg:border-t-0">
-      <div className="flex items-center gap-2 border-b border-border px-5 py-3">
-        <StickyNote className="h-5 w-5 text-[#f1c21b]" />
-        <h2 className="text-sm font-bold text-foreground-strong">Pinned Notes</h2>
-        <Pin className="ml-auto h-4 w-4 text-muted-foreground" />
+    <aside className="flex min-h-0 flex-col border-t border-outline-variant bg-surface-container-low lg:border-l lg:border-t-0">
+      <div className="flex items-center gap-2 border-b border-outline-variant px-5 py-3">
+        <StickyNote className="size-5 text-warning" />
+        <h2 className="text-title-medium text-on-surface">Pinned Notes</h2>
+        <Pin className="ml-auto size-4 text-on-surface-variant" />
       </div>
 
       <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         <section className="grid min-h-[380px] flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
-          <div className="flex min-h-0 flex-col border border-border bg-[#fff8d6] p-4 shadow-[0_12px_28px_rgb(32_48_64_/_10%)]">
+          <div className="flex min-h-0 flex-col rounded-lg border border-outline-variant bg-warning-container p-4 shadow-e1">
             <div className="mb-2 flex min-w-0 items-center gap-1.5">
-              <StickyNote className="h-4 w-4 text-[#f1c21b]" />
-              <span className="min-w-0 shrink truncate text-xs font-semibold uppercase text-muted-foreground">
+              <StickyNote className="size-4 text-on-warning-container" />
+              <span className="min-w-0 shrink truncate text-label-medium uppercase tracking-[0.08em] text-on-warning-container">
                 Sticky note
               </span>
 
-              <div className="relative ml-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormatMenuOpen((open) => !open);
-                    setPaletteOpen(false);
-                    setListMenuOpen(false);
-                    setAlignMenuOpen(false);
+              <div className="ml-auto flex items-center gap-1">
+                {/* Format popover (migrated to Radix Popover for outside-click
+                    + keyboard nav + portal layering) */}
+                <Popover
+                  open={formatMenuOpen}
+                  onOpenChange={(open) => {
+                    setFormatMenuOpen(open);
+                    if (open) {
+                      setPaletteOpen(false);
+                      setListMenuOpen(false);
+                      setAlignMenuOpen(false);
+                    }
                   }}
-                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
-                  aria-label="Text format"
-                  title="Text format"
                 >
-                  <Bold className="h-3.5 w-3.5" />
-                </button>
-                {formatMenuOpen && (
-                  <div className="absolute right-0 top-8 z-10 min-w-32 border border-border bg-white p-1 shadow-lg">
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={toolbarButtonClass}
+                      aria-label="Text format"
+                      title="Text format"
+                    >
+                      <Bold className="size-3.5" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    sideOffset={6}
+                    className="w-auto min-w-32 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
+                  >
                     {[
                       {
-                        icon: <Bold className="h-3.5 w-3.5" />,
+                        icon: <Bold className="size-3.5" />,
                         label: "Bold",
                         active: noteBold,
                         action: () => setNoteBold(!noteBold),
                       },
                       {
-                        icon: <Italic className="h-3.5 w-3.5" />,
+                        icon: <Italic className="size-3.5" />,
                         label: "Italic",
                         active: noteItalic,
                         action: () => setNoteItalic(!noteItalic),
                       },
                       {
-                        icon: <Underline className="h-3.5 w-3.5" />,
+                        icon: <Underline className="size-3.5" />,
                         label: "Underline",
                         active: noteUnderline,
                         action: () => setNoteUnderline(!noteUnderline),
@@ -509,37 +541,46 @@ function FocusSidePanel() {
                         key={item.label}
                         type="button"
                         onClick={item.action}
-                        className={`flex h-7 w-full items-center gap-2 px-2 text-xs font-semibold ${
+                        className={`flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] ${
                           item.active
-                            ? "bg-[#eaf2ff] text-primary"
-                            : "text-foreground-strong hover:bg-secondary"
+                            ? "bg-secondary-container text-on-secondary-container"
+                            : "text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                         }`}
                       >
                         {item.icon}
                         {item.label}
                       </button>
                     ))}
-                  </div>
-                )}
-              </div>
+                  </PopoverContent>
+                </Popover>
 
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaletteOpen((open) => !open);
-                    setFormatMenuOpen(false);
-                    setListMenuOpen(false);
-                    setAlignMenuOpen(false);
+                {/* Palette popover */}
+                <Popover
+                  open={paletteOpen}
+                  onOpenChange={(open) => {
+                    setPaletteOpen(open);
+                    if (open) {
+                      setFormatMenuOpen(false);
+                      setListMenuOpen(false);
+                      setAlignMenuOpen(false);
+                    }
                   }}
-                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
-                  aria-label="Choose note color"
-                  title="Color"
                 >
-                  <Palette className="h-3.5 w-3.5" style={{ color: marker }} />
-                </button>
-                {paletteOpen && (
-                  <div className="absolute right-0 top-8 z-10 flex gap-1 border border-border bg-white p-1 shadow-lg">
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={toolbarButtonClass}
+                      aria-label="Choose note color"
+                      title="Color"
+                    >
+                      <Palette className="size-3.5" style={{ color: marker }} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    sideOffset={6}
+                    className="flex w-auto gap-1.5 rounded-md border border-outline-variant bg-surface-container-high p-2 text-on-surface shadow-e2"
+                  >
                     {markerColors.map((color) => (
                       <button
                         key={color}
@@ -548,39 +589,48 @@ function FocusSidePanel() {
                           setMarker(color);
                           setPaletteOpen(false);
                         }}
-                        className={`h-6 w-6 border ${
-                          marker === color ? "border-foreground-strong" : "border-transparent"
+                        className={`size-7 rounded-full border-2 transition-transform duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:scale-110 focus-visible:scale-110 ${
+                          marker === color ? "border-outline" : "border-transparent"
                         }`}
                         style={{ backgroundColor: color }}
                         aria-label={`Use note color ${color}`}
                       />
                     ))}
-                  </div>
-                )}
-              </div>
+                  </PopoverContent>
+                </Popover>
 
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setListMenuOpen((open) => !open);
-                    setFormatMenuOpen(false);
-                    setPaletteOpen(false);
-                    setAlignMenuOpen(false);
+                {/* List popover */}
+                <Popover
+                  open={listMenuOpen}
+                  onOpenChange={(open) => {
+                    setListMenuOpen(open);
+                    if (open) {
+                      setFormatMenuOpen(false);
+                      setPaletteOpen(false);
+                      setAlignMenuOpen(false);
+                    }
                   }}
-                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
-                  aria-label="List style"
-                  title="List style"
                 >
-                  <List className="h-3.5 w-3.5" />
-                </button>
-                {listMenuOpen && (
-                  <div className="absolute right-0 top-8 z-10 min-w-36 border border-border bg-white p-1 shadow-lg">
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={toolbarButtonClass}
+                      aria-label="List style"
+                      title="List style"
+                    >
+                      <List className="size-3.5" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    sideOffset={6}
+                    className="w-auto min-w-36 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
+                  >
                     {[
                       { kind: "bullet" as const, label: "Bullet point", mark: "•" },
                       { kind: "number" as const, label: "Number", mark: "1." },
                       { kind: "numerical" as const, label: "Numerical", mark: "1)" },
-                      { kind: "dash" as const, label: "-", mark: "-" },
+                      { kind: "dash" as const, label: "Dash", mark: "-" },
                     ].map((item) => (
                       <button
                         key={item.kind}
@@ -589,43 +639,52 @@ function FocusSidePanel() {
                           insertListLines(item.kind);
                           setListMenuOpen(false);
                         }}
-                        className="flex h-7 w-full items-center gap-2 px-2 text-xs font-semibold text-foreground-strong hover:bg-secondary"
+                        className="flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                       >
                         <span className="w-5 text-left">{item.mark}</span>
                         {item.label}
                       </button>
                     ))}
-                  </div>
-                )}
-              </div>
+                  </PopoverContent>
+                </Popover>
 
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAlignMenuOpen((open) => !open);
-                    setFormatMenuOpen(false);
-                    setPaletteOpen(false);
-                    setListMenuOpen(false);
+                {/* Align popover */}
+                <Popover
+                  open={alignMenuOpen}
+                  onOpenChange={(open) => {
+                    setAlignMenuOpen(open);
+                    if (open) {
+                      setFormatMenuOpen(false);
+                      setPaletteOpen(false);
+                      setListMenuOpen(false);
+                    }
                   }}
-                  className="flex h-7 w-7 items-center justify-center border border-border bg-white text-foreground-strong hover:bg-secondary"
-                  aria-label="Paragraph alignment"
-                  title="Paragraph alignment"
                 >
-                  {noteAlign === "center" ? (
-                    <AlignCenter className="h-3.5 w-3.5" />
-                  ) : noteAlign === "right" ? (
-                    <AlignRight className="h-3.5 w-3.5" />
-                  ) : (
-                    <AlignLeft className="h-3.5 w-3.5" />
-                  )}
-                </button>
-                {alignMenuOpen && (
-                  <div className="absolute right-0 top-8 z-10 min-w-28 border border-border bg-white p-1 shadow-lg">
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={toolbarButtonClass}
+                      aria-label="Paragraph alignment"
+                      title="Paragraph alignment"
+                    >
+                      {noteAlign === "center" ? (
+                        <AlignCenter className="size-3.5" />
+                      ) : noteAlign === "right" ? (
+                        <AlignRight className="size-3.5" />
+                      ) : (
+                        <AlignLeft className="size-3.5" />
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    sideOffset={6}
+                    className="w-auto min-w-28 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
+                  >
                     {[
-                      { align: "left" as const, icon: <AlignLeft className="h-3.5 w-3.5" />, label: "Left" },
-                      { align: "center" as const, icon: <AlignCenter className="h-3.5 w-3.5" />, label: "Center" },
-                      { align: "right" as const, icon: <AlignRight className="h-3.5 w-3.5" />, label: "Right" },
+                      { align: "left" as const, icon: <AlignLeft className="size-3.5" />, label: "Left" },
+                      { align: "center" as const, icon: <AlignCenter className="size-3.5" />, label: "Center" },
+                      { align: "right" as const, icon: <AlignRight className="size-3.5" />, label: "Right" },
                     ].map((item) => (
                       <button
                         key={item.align}
@@ -634,49 +693,51 @@ function FocusSidePanel() {
                           setNoteAlign(item.align);
                           setAlignMenuOpen(false);
                         }}
-                        className={`flex h-7 w-full items-center gap-2 px-2 text-xs font-semibold ${
+                        className={`flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] ${
                           noteAlign === item.align
-                            ? "bg-[#eaf2ff] text-primary"
-                            : "text-foreground-strong hover:bg-secondary"
+                            ? "bg-secondary-container text-on-secondary-container"
+                            : "text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                         }`}
                       >
                         {item.icon}
                         {item.label}
                       </button>
                     ))}
-                  </div>
-                )}
-              </div>
+                  </PopoverContent>
+                </Popover>
 
-              <button
-                type="button"
-                onClick={handleSaveNote}
-                className="flex h-7 w-7 items-center justify-center bg-primary text-white hover:bg-[#0353e9]"
-                aria-label="Save pinned note"
-                title="Save pin"
-              >
-                <Pin className="h-3.5 w-3.5" />
-              </button>
+                <Button
+                  type="button"
+                  onClick={handleSaveNote}
+                  variant="default"
+                  size="icon"
+                  className="size-7 shadow-e1"
+                  aria-label="Save pinned note"
+                  title="Save pin"
+                >
+                  <Pin className="size-3.5" />
+                </Button>
+              </div>
             </div>
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              className="min-h-[220px] flex-1 w-full resize-none border-0 bg-transparent py-3 leading-6 outline-none placeholder:text-muted-foreground"
+              className="min-h-[220px] flex-1 w-full resize-none border-0 bg-transparent py-3 leading-6 text-body-large outline-none placeholder:text-on-warning-container/60"
               style={noteTextStyle}
               placeholder="Write a quick note..."
               aria-label="Pinned note"
             />
           </div>
 
-          <div className="flex min-h-[260px] flex-col overflow-hidden border border-border bg-card p-3">
+          <div className="flex min-h-[260px] flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface-container p-3">
             <div className="mb-2 flex items-center gap-2">
-              <Pin className="h-4 w-4 text-muted-foreground" />
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
+              <Pin className="size-4 text-on-surface-variant" />
+              <p className="text-label-medium uppercase tracking-[0.08em] text-on-surface-variant">
                 Saved notes
               </p>
             </div>
             {pinnedNotes.length === 0 ? (
-              <div className="flex h-[140px] items-center border border-dashed border-border px-3 text-xs leading-5 text-muted-foreground">
+              <div className="flex h-[140px] items-center rounded-md border border-dashed border-outline-variant bg-surface-container-lowest px-3 text-body-small leading-5 text-on-surface-variant">
                 Saved pins will appear here next to your note.
               </div>
             ) : (
@@ -695,41 +756,41 @@ function FocusSidePanel() {
                   return (
                     <div
                       key={item.id}
-                      className={`bg-[#fff8d6] p-2.5 shadow-sm ${
-                        activeNoteId === item.id ? "ring-1 ring-primary" : ""
+                      className={`rounded-md border border-outline-variant bg-warning-container p-2.5 shadow-e0 ${
+                        activeNoteId === item.id ? "ring-2 ring-primary" : ""
                       }`}
                     >
                       <div className="flex items-start gap-1.5">
                         <div className="min-w-0 flex-1">
                           <p
-                            className="truncate text-sm font-semibold leading-5"
+                            className="truncate text-body-medium font-semibold leading-5"
                             style={savedNoteStyle}
                           >
                             {preview.title}
                           </p>
                           <p
-                            className="line-clamp-2 text-xs leading-4 text-muted-foreground"
+                            className="line-clamp-2 text-body-small leading-4 text-on-warning-container/80"
                             style={{ textAlign: asNoteAlign(item.align) }}
                           >
                             {preview.description || preview.title}
                           </p>
-                          <p className="mt-1.5 text-[11px] font-medium leading-4 text-muted-foreground">
+                          <p className="mt-1.5 text-label-small text-on-warning-container/80">
                             {timestampLabel(item.createdAt)}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleViewNote(item)}
-                          className="inline-flex h-6 shrink-0 items-center gap-1 px-1.5 text-[11px] font-semibold text-primary hover:bg-white"
+                          className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-1.5 text-label-small text-primary hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                           aria-label="View saved note"
                         >
-                          <Eye className="h-3.5 w-3.5" />
+                          <Eye className="size-3.5" />
                           View
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteNote(item.id)}
-                          className="h-6 shrink-0 px-1 text-base leading-none text-muted-foreground hover:text-destructive"
+                          className="flex size-6 shrink-0 items-center justify-center rounded-full text-base leading-none text-on-surface-variant transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-error-container/[0.30] hover:text-error focus-visible:bg-error-container/[0.30] active:bg-error-container/[0.40]"
                           aria-label="Delete saved note"
                         >
                           ×
@@ -743,33 +804,33 @@ function FocusSidePanel() {
           </div>
         </section>
 
-        <section className="shrink-0 border border-border bg-[#f7f9fc] p-4">
+        <section className="shrink-0 rounded-lg border border-outline-variant bg-surface-container p-4">
           <div className="mb-4 flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-bold text-foreground-strong">Reminder Board</h3>
-            <span className="ml-auto bg-white px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+            <CalendarDays className="size-4 text-primary" />
+            <h3 className="text-title-medium text-on-surface">Reminder Board</h3>
+            <span className="ml-auto rounded-full bg-surface-container-high px-2.5 py-1 text-label-medium text-on-surface-variant">
               {overdueCount} overdue
             </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <div className="border border-border bg-white p-3">
-              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+            <div className="rounded-lg border border-outline-variant bg-surface-container-low p-3 shadow-e0">
+              <p className="text-label-small uppercase tracking-[0.08em] text-on-surface-variant">
                 Reminders
               </p>
-              <p className="mt-1 text-2xl font-bold text-primary">{allReminderRows.length}</p>
+              <p className="mt-1 text-headline-small text-primary">{allReminderRows.length}</p>
             </div>
-            <div className="border border-border bg-white p-3">
-              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+            <div className="rounded-lg border border-outline-variant bg-surface-container-low p-3 shadow-e0">
+              <p className="text-label-small uppercase tracking-[0.08em] text-on-surface-variant">
                 Overdue
               </p>
-              <p className="mt-1 text-2xl font-bold text-[#da1e28]">{overdueCount}</p>
+              <p className="mt-1 text-headline-small text-error">{overdueCount}</p>
             </div>
-            <div className="border border-border bg-white p-3">
-              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+            <div className="rounded-lg border border-outline-variant bg-surface-container-low p-3 shadow-e0">
+              <p className="text-label-small uppercase tracking-[0.08em] text-on-surface-variant">
                 Date
               </p>
-              <p className="mt-2 truncate text-sm font-bold text-foreground-strong">
+              <p className="mt-1.5 truncate text-body-small font-semibold text-on-surface">
                 {nextReminderDate ? dateLabel(nextReminderDate) : "None"}
               </p>
             </div>
@@ -777,7 +838,7 @@ function FocusSidePanel() {
 
           <div className="mt-3 space-y-2">
             {reminderRows.length === 0 ? (
-              <div className="border border-dashed border-border bg-white p-4 text-xs leading-5 text-muted-foreground">
+              <div className="rounded-md border border-dashed border-outline-variant bg-surface-container-lowest p-4 text-body-small leading-5 text-on-surface-variant">
                 Mark dates in the calendar tool and your reminders will appear here.
               </div>
             ) : (
@@ -786,28 +847,28 @@ function FocusSidePanel() {
                 return (
                   <div
                     key={`${reminder.kind}-${reminder.id}`}
-                    className="grid gap-3 border border-border bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+                    className="grid gap-3 rounded-md border border-outline-variant bg-surface-container-low p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex items-center gap-2">
                         <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          className="size-2.5 shrink-0 rounded-full"
                           style={{ backgroundColor: reminder.color }}
                         />
-                        <span className={`px-2 py-0.5 text-[11px] font-bold ${tone.className}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-label-small ${tone.className}`}>
                           {tone.label}
                         </span>
-                        <span className="text-[11px] font-semibold text-muted-foreground">
+                        <span className="text-label-small text-on-surface-variant">
                           {dateLabel(reminder.dueDate)}
                         </span>
                       </div>
-                      <p className="line-clamp-2 text-xs font-semibold leading-5 text-foreground-strong">
+                      <p className="line-clamp-2 text-body-medium font-semibold leading-5 text-on-surface">
                         {reminder.title}
                       </p>
                       {reminder.kind === "task" && (
-                        <div className="mt-2 h-1.5 overflow-hidden bg-[#dfe5ec]">
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-variant">
                           <div
-                            className="h-full bg-primary"
+                            className="h-full rounded-full bg-primary transition-[width] duration-[var(--duration-medium)] [transition-timing-function:var(--ease-standard)]"
                             style={{ width: `${reminder.progress}%` }}
                           />
                         </div>
@@ -817,17 +878,17 @@ function FocusSidePanel() {
                       <button
                         type="button"
                         onClick={() => handleFinishReminder(reminder)}
-                        className="h-8 bg-[#198038] px-3 text-xs font-semibold text-white hover:bg-[#14662d]"
+                        className="h-8 rounded-full bg-success px-3 text-label-large text-on-success shadow-e1 transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-success/[0.08] focus-visible:bg-on-success/[0.10] active:bg-on-success/[0.12]"
                       >
                         Done
                       </button>
                       <button
                         type="button"
                         onClick={() => handleClearReminder(reminder)}
-                        className="flex h-8 items-center justify-center border border-border bg-card px-2 text-muted-foreground hover:bg-secondary"
+                        className="flex size-8 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                         aria-label={`Clear reminder for ${reminder.title}`}
                       >
-                        <RotateCcw className="h-3.5 w-3.5" />
+                        <RotateCcw className="size-3.5" />
                       </button>
                     </div>
                   </div>
@@ -1115,22 +1176,23 @@ function AuthenticatedPage({
 
   if (!ready) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-app">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: "#6252e8" }}
-          >
-            <ClipboardList className="h-5 w-5" />
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <span className="flex size-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-e1">
+            <ClipboardList className="size-6" />
           </span>
-          <span className="text-sm font-medium">Loading Focus List…</span>
+          <span
+            className="size-8 rounded-full border-2 border-on-surface-variant border-t-primary animate-spin"
+            aria-hidden="true"
+          />
         </div>
+        <p className="text-body-large text-on-surface-variant">Loading Focus List…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-app">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
       <Header
         search={search}
         onSearchChange={setSearch}
@@ -1165,26 +1227,18 @@ function AuthenticatedPage({
         onProjectSortChange={setProjectSort}
       />
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,6fr)_minmax(360px,4fr)] lg:overflow-hidden">
-        <section className="flex min-h-[520px] flex-col px-4 sm:px-6 lg:min-h-0 lg:flex-1 xl:px-10">
+      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto bg-background lg:grid-cols-[minmax(0,6fr)_minmax(360px,4fr)] lg:overflow-hidden">
+        <section className="fl-scroll flex min-h-[520px] flex-col bg-background px-4 sm:px-6 lg:min-h-0 lg:flex-1 xl:px-10">
           {activeTab === "active" ? (
             <>
               <div className="flex items-center gap-2.5 py-3">
-                <ClipboardList className="h-5 w-5 text-muted-foreground" />
-                <h1 className="text-base font-bold text-foreground-strong">
+                <ClipboardList className="size-5 text-on-surface-variant" />
+                <h1 className="text-title-large text-on-surface">
                   {selectedProject ? selectedProject.name : "Active Tasks"}
                 </h1>
-                <span
-                  className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  style={{
-                    backgroundColor: "color-mix(in srgb, #6252e8 14%, #ffffff)",
-                    color: "#6252e8",
-                  }}
-                >
-                  {activeTasksRendered.length}
-                </span>
-                <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">
-                  <Sparkles className="h-3.5 w-3.5" />
+                <Badge variant="default">{activeTasksRendered.length}</Badge>
+                <span className="ml-auto hidden items-center gap-1.5 text-label-medium text-on-surface-variant sm:inline-flex">
+                  <Sparkles className="size-3.5" />
                   Tasks at 100% move to Done automatically.
                 </span>
               </div>
@@ -1259,16 +1313,17 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-app">
-        <div className="flex items-center gap-3 text-muted-foreground">
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: "#6252e8" }}
-          >
-            <ClipboardList className="h-5 w-5" />
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <span className="flex size-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-e1">
+            <ClipboardList className="size-6" />
           </span>
-          <span className="text-sm font-medium">Loading Focus List...</span>
+          <span
+            className="size-8 rounded-full border-2 border-on-surface-variant border-t-primary animate-spin"
+            aria-hidden="true"
+          />
         </div>
+        <p className="text-body-large text-on-surface-variant">Loading Focus List...</p>
       </div>
     );
   }
@@ -1280,28 +1335,78 @@ export default function Page() {
 
 function LandingPage() {
   return (
-    <main className="landing-page min-h-screen overflow-auto bg-app">
-      <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4 lg:px-12">
-        <div className="flex items-center gap-3 text-lg font-semibold text-foreground-strong">
-          <img src={faviconPath} alt="" className="h-9 w-9 object-contain" />
+    <main className="landing-page min-h-screen overflow-auto bg-background">
+      <header className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4 lg:px-12">
+        <div className="flex items-center gap-3 text-title-large text-on-surface">
+          <img src={faviconPath} alt="" className="size-9 object-contain" />
           Focus List
         </div>
-        <Link href="/login" className="flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-[#0353e9]">
-          Sign in <ArrowRight className="h-4 w-4" />
-        </Link>
+        <Button asChild variant="default" size="default">
+          <Link href="/login">
+            Sign in <ArrowRight className="size-4" />
+          </Link>
+        </Button>
       </header>
       <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:px-12 lg:py-20">
         <div className="max-w-xl">
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.16em] text-primary">A clearer workday</p>
-          <h1 className="max-w-lg text-5xl font-semibold leading-[1.05] text-foreground-strong sm:text-6xl">Your work, in focus.</h1>
-          <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">Capture what matters, see your momentum, and make steady progress without losing the thread.</p>
-          <Link href="/login" className="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgb(15_98_254_/_20%)] hover:bg-[#0353e9]">Start your workspace <ArrowRight className="h-4 w-4" /></Link>
-          <div className="mt-8 flex flex-wrap gap-5 text-sm text-muted-foreground"><span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#198038]" /> Progress you can see</span><span className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" /> Less mental overhead</span></div>
+          <p className="mb-5 text-label-large uppercase tracking-[0.16em] text-primary">A clearer workday</p>
+          <h1 className="max-w-lg text-display-small text-on-surface sm:text-display-medium">Your work, in focus.</h1>
+          <p className="mt-6 max-w-lg text-body-large leading-8 text-on-surface-variant">Capture what matters, see your momentum, and make steady progress without losing the thread.</p>
+          <Button asChild variant="default" size="lg" className="mt-8 h-12 px-6 shadow-e3">
+            <Link href="/login">
+              Start your workspace <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+          <div className="mt-8 flex flex-wrap gap-5 text-body-medium text-on-surface-variant">
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-success" /> Progress you can see
+            </span>
+            <span className="flex items-center gap-2">
+              <Clock3 className="size-4 text-primary" /> Less mental overhead
+            </span>
+          </div>
         </div>
-        <div className="landing-board relative mx-auto w-full max-w-2xl border border-[#cbd5df] bg-white p-5 shadow-[0_24px_70px_rgb(32_48_64_/_12%)] sm:p-8">
-          <div className="mb-7 flex items-center justify-between border-b border-border pb-5"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Today</p><p className="mt-1 text-2xl font-semibold text-foreground-strong">Active Tasks</p></div><CalendarDays className="h-6 w-6 text-muted-foreground" /></div>
-          <div className="space-y-3"><div className="landing-task"><Circle className="text-primary" /><div className="min-w-0 flex-1"><p>Prepare the project brief</p><span>Planning</span><i><em className="w-[72%]" /></i></div><b>72%</b></div><div className="landing-task"><Circle className="text-[#8a3ffc]" /><div className="min-w-0 flex-1"><p>Review the week’s priorities</p><span>Personal</span><i><em className="w-[48%] bg-[#8a3ffc]" /></i></div><b>48%</b></div><div className="landing-task"><Circle className="text-[#198038]" /><div className="min-w-0 flex-1"><p>Make time for deep work</p><span>Focus</span><i><em className="w-[24%] bg-[#198038]" /></i></div><b>24%</b></div></div>
-          <div className="mt-8 flex items-center justify-between border-t border-border pt-5 text-sm"><span className="text-muted-foreground">Completed today</span><strong className="text-[#198038]">2 tasks</strong></div>
+        <div className="landing-board relative mx-auto w-full max-w-2xl rounded-xl border border-outline-variant p-5 shadow-e3 sm:p-8">
+          <div className="mb-7 flex items-center justify-between border-b border-outline-variant pb-5">
+            <div>
+              <p className="text-label-medium uppercase tracking-[0.14em] text-primary">Today</p>
+              <p className="mt-1 text-headline-small text-on-surface">Active Tasks</p>
+            </div>
+            <CalendarDays className="size-6 text-on-surface-variant" />
+          </div>
+          <div className="space-y-3">
+            <div className="landing-task">
+              <Circle className="text-primary" />
+              <div className="min-w-0 flex-1">
+                <p>Prepare the project brief</p>
+                <span>Planning</span>
+                <i><em className="w-[72%]" /></i>
+              </div>
+              <b>72%</b>
+            </div>
+            <div className="landing-task">
+              <Circle className="text-tertiary" />
+              <div className="min-w-0 flex-1">
+                <p>Review the week’s priorities</p>
+                <span>Personal</span>
+                <i><em className="w-[48%]" style={{ backgroundColor: "var(--md-tertiary)" }} /></i>
+              </div>
+              <b>48%</b>
+            </div>
+            <div className="landing-task">
+              <Circle className="text-success" />
+              <div className="min-w-0 flex-1">
+                <p>Make time for deep work</p>
+                <span>Focus</span>
+                <i><em className="w-[24%]" style={{ backgroundColor: "var(--md-success)" }} /></i>
+              </div>
+              <b>24%</b>
+            </div>
+          </div>
+          <div className="mt-8 flex items-center justify-between border-t border-outline-variant pt-5 text-body-medium">
+            <span className="text-on-surface-variant">Completed today</span>
+            <strong className="text-success">2 tasks</strong>
+          </div>
         </div>
       </section>
     </main>

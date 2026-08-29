@@ -26,13 +26,13 @@ export function EmptyState({
       } ${className ?? ""}`}
     >
       {icon && (
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+        <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-secondary-container text-on-secondary-container">
           {icon}
         </div>
       )}
-      <p className="text-base font-semibold text-foreground-strong">{title}</p>
+      <p className="text-title-medium text-on-surface">{title}</p>
       {description && (
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        <p className="mt-1 max-w-sm text-body-medium text-on-surface-variant">
           {description}
         </p>
       )}

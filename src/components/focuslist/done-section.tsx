@@ -5,6 +5,7 @@ import type { Project, Tag, Task } from "@/lib/focuslist/types";
 import type { DoneGroup } from "@/lib/focuslist/selectors";
 import { DoneProjectGroup } from "./done-project-group";
 import { EmptyState } from "./empty-state";
+import { Badge } from "@/components/ui/badge";
 
 type DoneSectionProps = {
   groups: DoneGroup[];
@@ -29,11 +30,11 @@ export function DoneSection({
     <section className="flex min-h-0 flex-1 flex-col">
       {/* Heading */}
       <div className="flex items-center gap-2.5 py-3">
-        <CheckCircle2 className="h-5 w-5 text-[#198038]" />
-        <h2 className="text-base font-bold text-foreground-strong">Completed Tasks</h2>
-        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-[#198038]">
+        <CheckCircle2 className="h-5 w-5 text-success" />
+        <h2 className="text-title-medium text-on-surface">Completed Tasks</h2>
+        <Badge variant="success" className="tabular-nums">
           {totalCount}
-        </span>
+        </Badge>
       </div>
 
       {/* Body */}

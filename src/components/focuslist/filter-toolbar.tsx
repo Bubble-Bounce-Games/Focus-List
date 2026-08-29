@@ -10,9 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Check, ChevronDown, Folder, Pencil, Plus, Tag as TagIcon, X } from "lucide-react";
 import type { Project, Tag } from "@/lib/focuslist/types";
 import { pillStyle } from "@/lib/focuslist/palette";
+import { cn } from "@/lib/utils";
 
 type WorkspaceTab = "active" | "completed";
 
@@ -93,18 +95,18 @@ export function FilterToolbar({
   }
 
   return (
-    <div className="fl-scroll flex min-h-14 shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-app px-4 py-2 sm:gap-3 sm:px-6 lg:overflow-visible xl:px-10">
-      {/* Project filter */}
+    <div className="fl-scroll flex min-h-14 shrink-0 items-center gap-2 overflow-x-auto border-b border-outline-variant bg-surface px-4 py-2 sm:gap-3 sm:px-6 lg:overflow-visible xl:px-10">
+      {/* Project filter — MD3 outlined button trigger */}
       <DropdownMenu open={projectMenuOpen} onOpenChange={onProjectMenuOpenChange}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 shrink-0 gap-2 rounded-none border-border bg-card px-3 text-sm font-medium text-foreground-strong hover:bg-secondary sm:px-3.5"
+            className="h-10 shrink-0 gap-2 px-3 text-label-large sm:px-3.5"
           >
-            <Folder className="h-4 w-4 text-muted-foreground" />
+            <Folder className="h-4 w-4 text-on-surface-variant" />
             {selectedProject ? (
               <span
-                className="rounded-full px-2 py-0.5 text-xs font-medium"
+                className="rounded-full px-2 py-0.5 text-label-medium"
                 style={pillStyle(selectedProject.color)}
               >
                 {selectedProject.name}
@@ -112,7 +114,7 @@ export function FilterToolbar({
             ) : (
               <span>All Projects</span>
             )}
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-on-surface-variant" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-72">
@@ -121,7 +123,7 @@ export function FilterToolbar({
           <DropdownMenuItem onSelect={() => onSelectProject(null)}>
             All Projects
             {selectedProjectId === null && (
-              <Check className="ml-auto h-4 w-4" style={{ color: "#6252e8" }} />
+              <Check className="ml-auto h-4 w-4 text-primary" />
             )}
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -137,25 +139,25 @@ export function FilterToolbar({
           {createFrameOpen && (
             <form
               onSubmit={submitProjectCreate}
-              className="mx-2 my-2 border border-border bg-card p-2"
+              className="mx-2 my-2 rounded-md border border-outline-variant bg-surface-container-lowest p-2"
             >
               <label
                 htmlFor="fl-new-project"
-                className="mb-1 block text-[11px] font-semibold uppercase text-muted-foreground"
+                className="mb-1 block text-label-small font-semibold uppercase tracking-wide text-on-surface-variant"
               >
                 Project folder
               </label>
               <div className="flex gap-1.5">
-                <input
+                <Input
                   id="fl-new-project"
                   value={newProjectName}
                   onChange={(event) => setNewProjectName(event.target.value)}
-                  className="h-8 min-w-0 flex-1 border border-border bg-app px-2 text-xs font-medium text-foreground-strong outline-none focus:border-primary"
+                  className="h-8 min-w-0 flex-1 px-2 text-xs"
                   placeholder="Folder name"
                 />
                 <button
                   type="submit"
-                  className="h-8 shrink-0 bg-primary px-2.5 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12]"
                 >
                   Save
                 </button>
@@ -170,22 +172,22 @@ export function FilterToolbar({
                   onSubmit={(event) => submitProjectRename(event, p)}
                   className="flex items-center gap-1.5 px-1 py-1"
                 >
-                  <input
+                  <Input
                     value={renameValue}
                     onChange={(event) => setRenameValue(event.target.value)}
-                    className="h-8 min-w-0 flex-1 border border-border bg-app px-2 text-xs font-medium text-foreground-strong outline-none focus:border-primary"
+                    className="h-8 min-w-0 flex-1 px-2 text-xs"
                     aria-label={`Rename ${p.name}`}
                   />
                   <button
                     type="submit"
-                    className="h-8 shrink-0 bg-primary px-2.5 text-xs font-semibold text-white hover:bg-[#0353e9]"
+                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12]"
                   >
                     Save
                   </button>
                   <button
                     type="button"
                     onClick={() => setRenamingProjectId(null)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-on-surface-variant transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                     aria-label="Cancel rename"
                   >
                     <X className="h-4 w-4" />
@@ -196,22 +198,22 @@ export function FilterToolbar({
                   <button
                     type="button"
                     onClick={() => onSelectProject(p.id)}
-                    className="flex h-8 min-w-0 flex-1 items-center justify-between px-1.5 text-left hover:bg-secondary"
+                    className="flex h-8 min-w-0 flex-1 items-center justify-between rounded-md px-1.5 text-left transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                   >
                     <span
-                      className="truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                      className="truncate rounded-full px-2 py-0.5 text-label-medium"
                       style={pillStyle(p.color)}
                     >
                       {p.name}
                     </span>
                     {selectedProjectId === p.id && (
-                      <Check className="h-4 w-4 shrink-0" style={{ color: "#6252e8" }} />
+                      <Check className="h-4 w-4 shrink-0 text-primary" />
                     )}
                   </button>
                   <button
                     type="button"
                     onClick={() => startRename(p)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-on-surface-variant transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                     aria-label={`Rename ${p.name}`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -221,49 +223,62 @@ export function FilterToolbar({
             </div>
           ))}
           {projects.length === 0 && (
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+            <div className="px-2 py-1.5 text-xs text-on-surface-variant">
               No projects yet.
             </div>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="flex h-10 shrink-0 overflow-hidden border border-border bg-card">
+      {/* Active / Completed tabs — MD3 segmented control */}
+      <div className="flex h-10 shrink-0 items-center gap-1 rounded-md border border-outline-variant bg-surface-container-low px-1 py-1">
         <button
           type="button"
           onClick={() => onTabChange("active")}
-          className={`whitespace-nowrap px-3 text-sm font-medium transition-colors ${
+          className={cn(
+            "inline-flex h-8 items-center rounded-sm px-3 text-label-large transition-[background-color,color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)]",
             activeTab === "active"
-              ? "bg-primary text-white"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
-          }`}
+              ? "bg-primary text-primary-foreground"
+              : "text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]",
+          )}
         >
           Active
         </button>
         <button
           type="button"
           onClick={() => onTabChange("completed")}
-          className={`whitespace-nowrap border-l border-border px-3 text-sm font-medium transition-colors ${
+          className={cn(
+            "inline-flex h-8 items-center gap-1.5 rounded-sm px-3 text-label-large transition-[background-color,color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)]",
             activeTab === "completed"
-              ? "bg-[#198038] text-white"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground-strong"
-          }`}
+              ? "bg-secondary-container text-on-secondary-container"
+              : "text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]",
+          )}
         >
-          Completed Tasks <span className="ml-1 tabular-nums">{completedCount}</span>
+          Completed
+          <span
+            className={cn(
+              "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-label-medium tabular-nums",
+              activeTab === "completed"
+                ? "bg-success-container text-on-success-container"
+                : "bg-surface-container-highest text-on-surface-variant",
+            )}
+          >
+            {completedCount}
+          </span>
         </button>
       </div>
 
-      {/* Tag filter */}
+      {/* Tag filter — MD3 outlined button trigger */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="h-10 shrink-0 gap-2 rounded-none border-border bg-card px-3 text-sm font-medium text-foreground-strong hover:bg-secondary sm:px-3.5"
+            className="h-10 shrink-0 gap-2 px-3 text-label-large sm:px-3.5"
           >
-            <TagIcon className="h-4 w-4 text-muted-foreground" />
+            <TagIcon className="h-4 w-4 text-on-surface-variant" />
             {selectedTag ? (
               <span
-                className="rounded-full px-2 py-0.5 text-xs font-medium"
+                className="rounded-full px-2 py-0.5 text-label-medium"
                 style={pillStyle(selectedTag.color)}
               >
                 {selectedTag.name}
@@ -271,7 +286,7 @@ export function FilterToolbar({
             ) : (
               <span>All Tags</span>
             )}
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-on-surface-variant" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
@@ -280,7 +295,7 @@ export function FilterToolbar({
           <DropdownMenuItem onSelect={() => onSelectTag(null)}>
             All Tags
             {selectedTagId === null && (
-              <Check className="ml-auto h-4 w-4" style={{ color: "#6252e8" }} />
+              <Check className="ml-auto h-4 w-4 text-primary" />
             )}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -291,31 +306,31 @@ export function FilterToolbar({
               className="justify-between"
             >
               <span
-                className="rounded-full px-2 py-0.5 text-xs font-medium"
+                className="rounded-full px-2 py-0.5 text-label-medium"
                 style={pillStyle(t.color)}
               >
                 {t.name}
               </span>
               {selectedTagId === t.id && (
-                <Check className="h-4 w-4" style={{ color: "#6252e8" }} />
+                <Check className="h-4 w-4 text-primary" />
               )}
             </DropdownMenuItem>
           ))}
           {tags.length === 0 && (
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+            <div className="px-2 py-1.5 text-xs text-on-surface-variant">
               No tags yet.
             </div>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Clear filters */}
+      {/* Folders sort — MD3 outlined button trigger */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-10 shrink-0 gap-2 rounded-none border-border bg-card px-3 text-sm font-medium text-foreground-strong hover:bg-secondary sm:px-3.5">
-            <Folder className="h-4 w-4 text-muted-foreground" />
+          <Button variant="outline" className="h-10 shrink-0 gap-2 px-3 text-label-large sm:px-3.5">
+            <Folder className="h-4 w-4 text-on-surface-variant" />
             Folders: {projectSort === "name" ? "A to Z" : "Color"}
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-on-surface-variant" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
@@ -326,12 +341,12 @@ export function FilterToolbar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Clear filters */}
+      {/* Clear filters — MD3 text button */}
       <Button
         variant="ghost"
         onClick={onClear}
         disabled={!isFiltering}
-        className="h-10 shrink-0 gap-1.5 rounded-none px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground-strong disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+        className="h-10 shrink-0 gap-1.5 px-3 text-label-large text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12] disabled:opacity-38 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant"
       >
         <X className="h-4 w-4" />
         Clear filters

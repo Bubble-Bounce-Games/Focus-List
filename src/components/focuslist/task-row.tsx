@@ -40,7 +40,7 @@ function TaskRowBase({
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
 
-  const accent = project?.color ?? "#6252e8";
+  const accent = project?.color ?? "var(--md-primary)";
   const iconName = project?.name ?? tag?.name ?? task.title;
   const blocked = isBlocked(task);
   const annotated = hasDetails(task);
@@ -66,12 +66,7 @@ function TaskRowBase({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, transition: { duration: 0.25 } }}
       transition={{ type: "spring", stiffness: 380, damping: 32 }}
-      className="group relative flex flex-col overflow-hidden border border-border bg-card transition-colors hover:border-[#8d8d8d] hover:bg-[#f4f4f4]"
-      style={
-        justCompleted
-          ? { borderColor: "color-mix(in srgb, #42a65a 60%, #ffffff)" }
-          : undefined
-      }
+      className={`group relative flex flex-col overflow-hidden rounded-lg border bg-card transition-[background-color,border-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:border-outline-variant hover:bg-on-surface/[0.04] ${justCompleted ? "border-success bg-success-container/[0.14]" : "border-outline-variant"}`}
     >
       <div className="grid grid-cols-[28px_44px_minmax(0,1fr)] items-center gap-2 px-3 py-3 sm:flex sm:gap-3 sm:px-4 sm:py-2.5">
         {/* 0. Expand toggle — points right when closed, down when open */}
@@ -85,7 +80,7 @@ function TaskRowBase({
               ? `Hide details for ${task.title}`
               : `Show details for ${task.title}`
           }
-          className="col-start-1 row-start-1 flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground-strong sm:col-auto sm:row-auto"
+          className="col-start-1 row-start-1 flex size-7 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12] focus-visible:outline-none sm:col-auto sm:row-auto"
         >
           <motion.span
             animate={{ rotate: expanded ? 0 : -90 }}
@@ -98,7 +93,7 @@ function TaskRowBase({
 
         {/* 1. Task icon */}
         <div
-          className="col-start-2 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center sm:col-auto sm:row-auto"
+          className="col-start-2 row-start-1 flex size-11 shrink-0 items-center justify-center rounded-full sm:col-auto sm:row-auto"
           style={iconTileStyle(accent)}
           aria-hidden
         >
@@ -112,20 +107,19 @@ function TaskRowBase({
             button being cut off. */}
         <div className="col-start-3 row-start-1 flex min-w-0 items-center gap-2 sm:flex-1">
           <p
-            className="truncate text-[15px] font-semibold text-foreground-strong"
+            className="truncate text-body-large font-medium text-on-surface"
             title={task.title}
           >
             {task.title}
           </p>
           {blocked ? (
             <AlertTriangle
-              className="h-3.5 w-3.5 shrink-0"
-              style={{ color: "#e5484d" }}
+              className="h-3.5 w-3.5 shrink-0 text-error"
               aria-label="Has a blocker"
             />
           ) : annotated ? (
             <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50"
+              className="size-1.5 shrink-0 rounded-full bg-on-surface-variant"
               aria-label="Has details"
             />
           ) : null}
@@ -134,7 +128,7 @@ function TaskRowBase({
         {/* 3. Project pill */}
         {project && (
           <span
-            className="hidden xl:inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium"
+            className="hidden shrink-0 items-center rounded-full px-2 py-0.5 text-label-medium sm:inline-flex"
             style={pillStyle(project.color)}
           >
             {project.name}
@@ -144,7 +138,7 @@ function TaskRowBase({
         {/* 4. Tag pill */}
         {tag && (
           <span
-            className="hidden 2xl:inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium"
+            className="hidden shrink-0 items-center rounded-full px-2 py-0.5 text-label-medium lg:inline-flex"
             style={pillStyle(tag.color)}
           >
             {tag.name}
@@ -171,8 +165,7 @@ function TaskRowBase({
                 initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-1 text-sm font-bold"
-                style={{ color: "#42a65a" }}
+                className="flex items-center gap-1 text-label-large font-bold text-success"
               >
                 <Check className="h-4 w-4" /> 100%
               </motion.span>
@@ -181,7 +174,7 @@ function TaskRowBase({
                 key="pct"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-sm font-bold tabular-nums"
+                className="text-label-large font-bold tabular-nums text-on-surface-variant"
                 style={{ color: accent }}
               >
                 {task.progress}%
@@ -211,7 +204,7 @@ function TaskRowBase({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: "easeInOut" }}
+            transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
             className="overflow-hidden"
           >
             <TaskDetailsPanel task={task} onSave={handleDetailSave} />

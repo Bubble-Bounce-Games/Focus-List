@@ -39,7 +39,7 @@ export function MoreActions({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground-strong shrink-0"
+          className="size-9 rounded-full text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12] shrink-0"
           aria-label={label}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -62,8 +62,8 @@ export function MoreActions({
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          variant="destructive"
           onSelect={onDelete}
-          className="text-destructive focus:text-destructive"
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Delete task

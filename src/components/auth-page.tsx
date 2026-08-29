@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, UserRound } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const faviconPath = `${basePath}/Favicon.png`;
@@ -51,6 +54,7 @@ export function AuthPage() {
   const [touched, setTouched] = useState({ email: false, password: false });
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordValid = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+  const formValid = emailValid && passwordValid;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,18 +86,125 @@ export function AuthPage() {
 
   return (
     <main className="auth-page flex min-h-screen items-center justify-center px-5 py-10">
-      <section className="auth-form-surface w-full max-w-[520px]">
-        <div className="auth-form-wrap">
-          <div className="mb-10 flex items-center gap-3 text-lg font-semibold text-foreground-strong"><img src={faviconPath} alt="" className="h-9 w-9 object-contain" /> Focus List</div>
-          <div className="mb-8"><p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-primary">Focus List workspace</p><div className="mb-4 flex h-10 w-10 items-center justify-center bg-[#d0e2ff] text-primary"><UserRound className="h-5 w-5" /></div><h1 className="text-3xl font-semibold text-foreground-strong">{mode === "login" ? "Welcome back" : "Create your account"}</h1><p className="mt-2 text-sm text-muted-foreground">{mode === "login" ? "Pick up where your best work begins." : "Build a calmer way to organize your day."}</p></div>
+      <section className="auth-form-surface w-full max-w-[440px]">
+        <div className="auth-form-wrap rounded-xl">
+          {/* Brand */}
+          <div className="mb-10 flex items-center gap-3 text-title-large font-semibold text-on-surface">
+            <img src={faviconPath} alt="" className="h-9 w-9 object-contain" />
+            Focus List
+          </div>
+
+          {/* Heading */}
+          <div className="mb-8">
+            <p className="mb-4 text-label-small font-semibold uppercase tracking-[0.16em] text-primary">
+              Focus List workspace
+            </p>
+            <div className="mb-4 flex size-10 items-center justify-center rounded-md bg-primary-container text-on-primary-container">
+              <UserRound className="h-5 w-5" />
+            </div>
+            <h1 className="text-headline-small font-semibold text-on-surface">
+              {mode === "login" ? "Welcome back" : "Create your account"}
+            </h1>
+            <p className="mt-2 text-body-medium text-on-surface-variant">
+              {mode === "login" ? "Pick up where your best work begins." : "Build a calmer way to organize your day."}
+            </p>
+          </div>
+
           <form onSubmit={submit} noValidate className="space-y-5">
-            <label className="block text-sm font-medium text-foreground-strong">Email<input required type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} onBlur={() => setTouched((current) => ({ ...current, email: true }))} aria-invalid={touched.email && !emailValid} className="mt-2 h-11 w-full border border-[#8d8d8d] bg-card px-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary" />{touched.email && !emailValid && <span className="mt-1 block text-xs text-destructive">Enter a valid email address.</span>}</label>
-            <label className="block text-sm font-medium text-foreground-strong">Password<span className="relative mt-2 block"><input required minLength={8} type={showPassword ? "text" : "password"} placeholder="At least 8 characters" value={password} onChange={(event) => setPassword(event.target.value)} onBlur={() => setTouched((current) => ({ ...current, password: true }))} aria-invalid={touched.password && !passwordValid} className="h-11 w-full border border-[#8d8d8d] bg-card px-3 pr-11 outline-none focus:border-primary focus:ring-1 focus:ring-primary" /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground-strong">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></span><span className={`mt-1 block text-xs ${touched.password && !passwordValid ? "text-destructive" : "text-muted-foreground"}`}>Use 8+ characters with at least one letter and one number.</span></label>
-            {message && <p className={`text-sm ${messageType === "success" ? "text-[#198038]" : "text-destructive"}`} role={messageType === "error" ? "alert" : "status"}>{message}</p>}
-            <button disabled={busy} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-white shadow-[0_8px_20px_rgb(15_98_254_/_22%)] hover:bg-[#0353e9] disabled:opacity-50">{busy ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}<ArrowRight className="h-4 w-4" /></button>
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="auth-email">Email</Label>
+              <Input
+                id="auth-email"
+                required
+                type="email"
+                name="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                onBlur={() => setTouched((current) => ({ ...current, email: true }))}
+                aria-invalid={touched.email && !emailValid}
+              />
+              {touched.email && !emailValid && (
+                <p className="text-label-medium text-error">
+                  Enter a valid email address.
+                </p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label htmlFor="auth-password">Password</Label>
+              <span className="relative block">
+                <Input
+                  id="auth-password"
+                  required
+                  minLength={8}
+                  name="password"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  onBlur={() => setTouched((current) => ({ ...current, password: true }))}
+                  aria-invalid={touched.password && !passwordValid}
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-md text-on-surface-variant transition-[background-color,color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </span>
+              <p className={`text-label-medium ${touched.password && !passwordValid ? "text-error" : "text-on-surface-variant"}`}>
+                Use 8+ characters with at least one letter and one number.
+              </p>
+            </div>
+
+            {/* Status message */}
+            {message && (
+              <p
+                className={`text-body-medium ${messageType === "success" ? "text-success" : "text-destructive"}`}
+                role={messageType === "error" ? "alert" : "status"}
+              >
+                {message}
+              </p>
+            )}
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              disabled={busy || !formValid}
+              className="h-12 w-full gap-2"
+            >
+              {busy ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </form>
-          <button type="button" onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(""); setMessageType("error"); }} className="mt-6 text-sm text-primary hover:underline">{mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}</button>
-          <p className="mt-10 flex gap-2 border-t border-border pt-5 text-xs leading-5 text-muted-foreground"><CheckCircle2 className="h-4 w-4 shrink-0 text-primary" /> Your focused workspace is ready whenever you are.</p>
+
+          {/* Toggle */}
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => {
+              setMode(mode === "login" ? "signup" : "login");
+              setMessage("");
+              setMessageType("error");
+            }}
+            className="mt-6 h-auto px-3 py-1 text-body-medium text-primary hover:underline"
+          >
+            {mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+          </Button>
+
+          {/* Footer reassurance */}
+          <p className="mt-10 flex gap-2 border-t border-outline-variant pt-5 text-label-medium leading-5 text-on-surface-variant">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+            Your focused workspace is ready whenever you are.
+          </p>
         </div>
       </section>
     </main>

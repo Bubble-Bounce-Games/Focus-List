@@ -3,145 +3,535 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* =========================================================================
+   Material Design 3 — Design Token System
+   Brand primary = indigo. Full MD3 tonal role palette + dark mode.
+   Legacy shadcn tokens (background/foreground/card/popover/primary/secondary/
+   muted/accent/destructive/border/input/ring/success) are aliased to MD3 roles
+   so existing components keep working and look MD3-coherent.
+   ========================================================================= */
+
 @theme inline {
-  --color-app: var(--app);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-foreground-strong: var(--foreground-strong);
-  --color-foreground-muted: var(--foreground-muted);
-  --color-success: var(--success);
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* ---- Legacy shadcn token bridges (resolve to MD3 roles) ---- */
+  --color-app: var(--md-background);
+  --color-background: var(--md-background);
+  --color-foreground: var(--md-on-background);
+  --color-foreground-strong: var(--md-on-background);
+  --color-foreground-muted: var(--md-on-surface-variant);
+
+  --color-card: var(--md-surface-container-low);
+  --color-card-foreground: var(--md-on-surface);
+  --color-popover: var(--md-surface-container-high);
+  --color-popover-foreground: var(--md-on-surface);
+
+  --color-primary: var(--md-primary);
+  --color-primary-foreground: var(--md-on-primary);
+  --color-secondary: var(--md-secondary-container);
+  --color-secondary-foreground: var(--md-on-secondary-container);
+  --color-muted: var(--md-surface-container);
+  --color-muted-foreground: var(--md-on-surface-variant);
+  --color-accent: var(--md-secondary-container);
+  --color-accent-foreground: var(--md-on-secondary-container);
+  --color-destructive: var(--md-error);
+  --color-destructive-foreground: var(--md-on-error);
+
+  --color-border: var(--md-outline-variant);
+  --color-input: var(--md-outline-variant);
+  --color-ring: var(--md-primary);
+
+  --color-success: var(--md-success);
+  --color-warning: var(--md-warning);
+  --color-info: var(--md-info);
+
+  /* ---- MD3 role color utilities (so screen agents can use bg-primary-container,
+   text-on-primary-container, bg-surface-container-high, text-on-surface-variant, etc.) ---- */
+  --color-on-primary: var(--md-on-primary);
+  --color-primary-container: var(--md-primary-container);
+  --color-on-primary-container: var(--md-on-primary-container);
+
+  --color-on-secondary: var(--md-on-secondary);
+  --color-secondary-container: var(--md-secondary-container);
+  --color-on-secondary-container: var(--md-on-secondary-container);
+
+  --color-on-tertiary: var(--md-on-tertiary);
+  --color-tertiary-container: var(--md-tertiary-container);
+  --color-on-tertiary-container: var(--md-on-tertiary-container);
+  --color-tertiary: var(--md-tertiary);
+
+  --color-on-error: var(--md-on-error);
+  --color-error-container: var(--md-error-container);
+  --color-on-error-container: var(--md-on-error-container);
+  --color-error: var(--md-error);
+
+  --color-on-success: var(--md-on-success);
+  --color-success-container: var(--md-success-container);
+  --color-on-success-container: var(--md-on-success-container);
+
+  --color-on-warning: var(--md-on-warning);
+  --color-warning-container: var(--md-warning-container);
+  --color-on-warning-container: var(--md-on-warning-container);
+
+  --color-on-info: var(--md-on-info);
+  --color-info-container: var(--md-info-container);
+  --color-on-info-container: var(--md-on-info-container);
+
+  --color-on-background: var(--md-on-background);
+  --color-surface: var(--md-surface);
+  --color-on-surface: var(--md-on-surface);
+  --color-surface-variant: var(--md-surface-variant);
+  --color-on-surface-variant: var(--md-on-surface-variant);
+  --color-surface-container-lowest: var(--md-surface-container-lowest);
+  --color-surface-container-low: var(--md-surface-container-low);
+  --color-surface-container: var(--md-surface-container);
+  --color-surface-container-high: var(--md-surface-container-high);
+  --color-surface-container-highest: var(--md-surface-container-highest);
+
+  --color-outline: var(--md-outline);
+  --color-outline-variant: var(--md-outline-variant);
+  --color-inverse-surface: var(--md-inverse-surface);
+  --color-inverse-on-surface: var(--md-inverse-on-surface);
+  --color-inverse-primary: var(--md-inverse-primary);
+
+  /* ---- Chart palette (re-tinted to the indigo brand family) ---- */
+  --color-chart-1: var(--md-primary);
+  --color-chart-2: var(--md-success);
+  --color-chart-3: var(--md-warning);
+  --color-chart-4: var(--md-tertiary);
+  --color-chart-5: var(--md-error);
+
+  /* ---- Sidebar primitive (kept compatible; retinted) ---- */
+  --color-sidebar: var(--md-surface-container-low);
+  --color-sidebar-foreground: var(--md-on-surface);
+  --color-sidebar-primary: var(--md-primary);
+  --color-sidebar-primary-foreground: var(--md-on-primary);
+  --color-sidebar-accent: var(--md-secondary-container);
+  --color-sidebar-accent-foreground: var(--md-on-secondary-container);
+  --color-sidebar-border: var(--md-outline-variant);
+  --color-sidebar-ring: var(--md-primary);
+
+  /* ---- Typography (system font stack; no webfont download for reliability) ---- */
+  --font-sans: "Roboto", "Helvetica Neue", "Segoe UI", "Arial", system-ui,
+    sans-serif;
+  --font-mono: "SFMono-Regular", "Roboto Mono", Consolas, "Liberation Mono",
+    monospace;
+
+  /* ---- Shape (MD3 base = 12px; sm/md/lg/xl derived) ---- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
+
+  /* ---- MD3 Elevation shadow tokens (generate shadow-e1..e5 utilities) ---- */
+  --shadow-e1: 0 1px 2px 0 rgb(0 0 0 / 0.10), 0 1px 3px 1px rgb(0 0 0 / 0.06);
+  --shadow-e2: 0 1px 2px 0 rgb(0 0 0 / 0.12), 0 2px 6px 2px rgb(0 0 0 / 0.08);
+  --shadow-e3: 0 1px 3px 0 rgb(0 0 0 / 0.14), 0 4px 8px 3px rgb(0 0 0 / 0.10);
+  --shadow-e4: 0 2px 3px 0 rgb(0 0 0 / 0.16), 0 6px 10px 4px rgb(0 0 0 / 0.12);
+  --shadow-e5: 0 4px 4px 0 rgb(0 0 0 / 0.18), 0 8px 12px 6px rgb(0 0 0 / 0.14);
+
+  /* ---- MD3 Motion tokens (exposed as CSS vars; usable inline) ---- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerated: cubic-bezier(0, 0, 0, 1);
+  --duration-short: 150ms;
+  --duration-medium: 250ms;
+  --duration-long: 400ms;
 }
 
+/* =========================================================================
+   Light theme — indigo brand
+   ========================================================================= */
 :root {
-  --radius: 0;
+  /* Base shape token (kept for legacy shadcn border-radius utilities) */
+  --radius: 0.75rem; /* 12px MD3 base */
 
-  /* App surfaces */
-  --app: #f4f4f4;
-  --card: #ffffff;
-  --card-foreground: #161616;
-  --popover: #ffffff;
-  --popover-foreground: #161616;
-  --foreground-strong: #161616;
-  --foreground-muted: #525252;
+  /* MD3 role palette — Light */
+  --md-primary: #4f46e5;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #e4e0fa;
+  --md-on-primary-container: #1b1147;
 
-  /* Primary purple */
-  --primary: #0f62fe;
-  --primary-foreground: #ffffff;
+  --md-secondary: #5d5c72;
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: #e3e0f9;
+  --md-on-secondary-container: #1a1a2c;
 
-  --secondary: #f1f2f8;
-  --secondary-foreground: #161616;
-  --muted: #e8e8e8;
-  --muted-foreground: #525252;
-  --accent: #e8e8e8;
-  --accent-foreground: #161616;
+  --md-tertiary: #7a4f3d;
+  --md-on-tertiary: #ffffff;
+  --md-tertiary-container: #ffdbc9;
+  --md-on-tertiary-container: #2f1500;
 
-  --destructive: #e5484d;
-  --border: #e0e0e0;
-  --input: #8d8d8d;
-  --ring: #0f62fe;
+  --md-error: #ba1a1a;
+  --md-on-error: #ffffff;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #410002;
 
-  --success: #42a65a;
+  --md-success: #1f6b34;
+  --md-on-success: #ffffff;
+  --md-success-container: #a5f0ad;
+  --md-on-success-container: #00210b;
 
-  --chart-1: #3b82f6;
-  --chart-2: #10b981;
-  --chart-3: #f59e0b;
-  --chart-4: #8b5cf6;
-  --chart-5: #ec4899;
+  --md-warning: #7c5800;
+  --md-on-warning: #ffffff;
+  --md-warning-container: #ffddc4;
+  --md-on-warning-container: #261200;
 
-  --sidebar: #ffffff;
-  --sidebar-foreground: #171a2b;
-  --sidebar-primary: #6252e8;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f2f8;
-  --sidebar-accent-foreground: #171a2b;
-  --sidebar-border: #e7e9f0;
-  --sidebar-ring: #6252e8;
+  --md-info: #0061a4;
+  --md-on-info: #ffffff;
+  --md-info-container: #d0e4ff;
+  --md-on-info-container: #001f33;
+
+  --md-background: #fcfaff;
+  --md-on-background: #1b1b21;
+  --md-surface: #fcfaff;
+  --md-on-surface: #1b1b21;
+  --md-surface-variant: #e5e1ec;
+  --md-on-surface-variant: #48454e;
+
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f6f3fa;
+  --md-surface-container: #f1eef5;
+  --md-surface-container-high: #ebe9f0;
+  --md-surface-container-highest: #e5e2ea;
+
+  --md-outline: #787487;
+  --md-outline-variant: #c9c5d0;
+
+  --md-inverse-surface: #303036;
+  --md-inverse-on-surface: #f3f0f7;
+  --md-inverse-primary: #c8c0ff;
+
+  /* Legacy token aliases (so existing bg, text, border utilities resolve) */
+  --app: var(--md-background);
+  --background: var(--md-background);
+  --foreground: var(--md-on-background);
+  --foreground-strong: var(--md-on-background);
+  --foreground-muted: var(--md-on-surface-variant);
+
+  --card: var(--md-surface-container-low);
+  --card-foreground: var(--md-on-surface);
+  --popover: var(--md-surface-container-high);
+  --popover-foreground: var(--md-on-surface);
+
+  --primary: var(--md-primary);
+  --primary-foreground: var(--md-on-primary);
+  --secondary: var(--md-secondary-container);
+  --secondary-foreground: var(--md-on-secondary-container);
+  --muted: var(--md-surface-container);
+  --muted-foreground: var(--md-on-surface-variant);
+  --accent: var(--md-secondary-container);
+  --accent-foreground: var(--md-on-secondary-container);
+
+  --destructive: var(--md-error);
+  --destructive-foreground: var(--md-on-error);
+  --border: var(--md-outline-variant);
+  --input: var(--md-outline-variant);
+  --ring: var(--md-primary);
+
+  --success: var(--md-success);
+  --warning: var(--md-warning);
+  --info: var(--md-info);
+
+  --chart-1: var(--md-primary);
+  --chart-2: var(--md-success);
+  --chart-3: var(--md-warning);
+  --chart-4: var(--md-tertiary);
+  --chart-5: var(--md-error);
+
+  --sidebar: var(--md-surface-container-low);
+  --sidebar-foreground: var(--md-on-surface);
+  --sidebar-primary: var(--md-primary);
+  --sidebar-primary-foreground: var(--md-on-primary);
+  --sidebar-accent: var(--md-secondary-container);
+  --sidebar-accent-foreground: var(--md-on-secondary-container);
+  --sidebar-border: var(--md-outline-variant);
+  --sidebar-ring: var(--md-primary);
 }
 
+/* =========================================================================
+   Dark theme — indigo brand (dark surfaces, NOT pure black)
+   ========================================================================= */
 .dark {
-  --app: #14161f;
-  --card: #1c1f2b;
-  --card-foreground: #f5f6fa;
-  --popover: #1c1f2b;
-  --popover-foreground: #f5f6fa;
-  --foreground-strong: #f5f6fa;
-  --foreground-muted: #9aa1b4;
-  --primary: #7c6ef0;
-  --primary-foreground: #ffffff;
-  --secondary: #262a39;
-  --secondary-foreground: #f5f6fa;
-  --muted: #262a39;
-  --muted-foreground: #9aa1b4;
-  --accent: #262a39;
-  --accent-foreground: #f5f6fa;
-  --destructive: #ff6166;
-  --border: #2c3142;
-  --input: #2c3142;
-  --ring: #7c6ef0;
-  --success: #4ec767;
-  --sidebar: #1c1f2b;
-  --sidebar-foreground: #f5f6fa;
-  --sidebar-primary: #7c6ef0;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #262a39;
-  --sidebar-accent-foreground: #f5f6fa;
-  --sidebar-border: #2c3142;
-  --sidebar-ring: #7c6ef0;
+  --md-primary: #c8c0ff;
+  --md-on-primary: #2a2070;
+  --md-primary-container: #4236c4;
+  --md-on-primary-container: #e4e0ff;
+
+  --md-secondary: #c6c3e0;
+  --md-on-secondary: #2e2d42;
+  --md-secondary-container: #444359;
+  --md-on-secondary-container: #e3e0f9;
+
+  --md-tertiary: #f1b7a0;
+  --md-on-tertiary: #4a2800;
+  --md-tertiary-container: #66391d;
+  --md-on-tertiary-container: #ffdbc9;
+
+  --md-error: #ffb4a9;
+  --md-on-error: #690005;
+  --md-error-container: #930006;
+  --md-on-error-container: #ffdad6;
+
+  --md-success: #94e4a3;
+  --md-on-success: #00390e;
+  --md-success-container: #0f5a1f;
+  --md-on-success-container: #a5f0ad;
+
+  --md-warning: #ffd5a3;
+  --md-on-warning: #3f2a00;
+  --md-warning-container: #5b4200;
+  --md-on-warning-container: #ffddc4;
+
+  --md-info: #a1c9ff;
+  --md-on-info: #003358;
+  --md-info-container: #00497a;
+  --md-on-info-container: #d0e4ff;
+
+  --md-background: #141318;
+  --md-on-background: #e5e1e9;
+  --md-surface: #141318;
+  --md-on-surface: #e5e1e9;
+  --md-surface-variant: #48454e;
+  --md-on-surface-variant: #c9c5d0;
+
+  --md-surface-container-lowest: #0e0d12;
+  --md-surface-container-low: #1c1b21;
+  --md-surface-container: #201f25;
+  --md-surface-container-high: #2b2a30;
+  --md-surface-container-highest: #36343b;
+
+  --md-outline: #938f9a;
+  --md-outline-variant: #48454e;
+
+  --md-inverse-surface: #e5e1e9;
+  --md-inverse-on-surface: #303036;
+  --md-inverse-primary: #4f46e5;
+
+  /* Legacy aliases update for dark */
+  --app: var(--md-background);
+  --background: var(--md-background);
+  --foreground: var(--md-on-background);
+  --foreground-strong: var(--md-on-background);
+  --foreground-muted: var(--md-on-surface-variant);
+
+  --card: var(--md-surface-container-low);
+  --card-foreground: var(--md-on-surface);
+  --popover: var(--md-surface-container-high);
+  --popover-foreground: var(--md-on-surface);
+
+  --primary: var(--md-primary);
+  --primary-foreground: var(--md-on-primary);
+  --secondary: var(--md-secondary-container);
+  --secondary-foreground: var(--md-on-secondary-container);
+  --muted: var(--md-surface-container);
+  --muted-foreground: var(--md-on-surface-variant);
+  --accent: var(--md-secondary-container);
+  --accent-foreground: var(--md-on-secondary-container);
+
+  --destructive: var(--md-error);
+  --destructive-foreground: var(--md-on-error);
+  --border: var(--md-outline-variant);
+  --input: var(--md-outline-variant);
+  --ring: var(--md-primary);
+
+  --success: var(--md-success);
+  --warning: var(--md-warning);
+  --info: var(--md-info);
+
+  --chart-1: var(--md-primary);
+  --chart-2: var(--md-success);
+  --chart-3: var(--md-warning);
+  --chart-4: var(--md-tertiary);
+  --chart-5: var(--md-error);
+
+  --sidebar: var(--md-surface-container-low);
+  --sidebar-foreground: var(--md-on-surface);
+  --sidebar-primary: var(--md-primary);
+  --sidebar-primary-foreground: var(--md-on-primary);
+  --sidebar-accent: var(--md-secondary-container);
+  --sidebar-accent-foreground: var(--md-on-secondary-container);
+  --sidebar-border: var(--md-outline-variant);
+  --sidebar-ring: var(--md-primary);
 }
 
+/* =========================================================================
+   Base typography & body styling (MD3 type scale)
+   ========================================================================= */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   html,
   body {
     height: 100%;
   }
+
   body {
     @apply bg-app text-foreground;
-    overflow: hidden;
+    overflow: hidden; /* desktop fixed-viewport design */
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    font-family: var(--font-sans);
+    font-size: 14px; /* body-medium base */
+    line-height: 1.43;
+    font-weight: 400;
   }
+
+  /* MD3 type scale for built-in heading tags */
+  h1 {
+    font-size: 3.5625rem; /* display-large 57px */
+    line-height: 1.12;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  h2 {
+    font-size: 2.8125rem; /* display-medium 45px */
+    line-height: 1.16;
+    font-weight: 400;
+  }
+  h3 {
+    font-size: 2.25rem; /* display-small 36px */
+    line-height: 1.22;
+    font-weight: 400;
+  }
+  h4 {
+    font-size: 1.75rem; /* headline-medium 28px */
+    line-height: 1.29;
+    font-weight: 500;
+  }
+  h5 {
+    font-size: 1.375rem; /* headline-small 22px */
+    line-height: 1.27;
+    font-weight: 500;
+  }
+  h6 {
+    font-size: 1.125rem; /* title-large 18px */
+    line-height: 1.33;
+    font-weight: 500;
+  }
+
+  /* Tabular figures for numeric data */
+  input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+
   nextjs-portal {
     display: none !important;
   }
 }
+
+/* =========================================================================
+   MD3 Typography utility classes (screen agents can use these for explicit roles)
+   ========================================================================= */
+@layer components {
+  /* Display */
+  .text-display-large {
+    font-size: 3.5625rem;
+    line-height: 1.12;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  .text-display-medium {
+    font-size: 2.8125rem;
+    line-height: 1.16;
+    font-weight: 400;
+  }
+  .text-display-small {
+    font-size: 2.25rem;
+    line-height: 1.22;
+    font-weight: 400;
+  }
+
+  /* Headline */
+  .text-headline-large {
+    font-size: 2rem;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+  .text-headline-medium {
+    font-size: 1.75rem;
+    line-height: 1.29;
+    font-weight: 500;
+  }
+  .text-headline-small {
+    font-size: 1.375rem;
+    line-height: 1.27;
+    font-weight: 500;
+  }
+
+  /* Title */
+  .text-title-large {
+    font-size: 1.375rem;
+    line-height: 1.33;
+    font-weight: 500;
+  }
+  .text-title-medium {
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 500;
+    letter-spacing: 0.009em;
+  }
+  .text-title-small {
+    font-size: 0.875rem;
+    line-height: 1.43;
+    font-weight: 500;
+    letter-spacing: 0.007em;
+  }
+
+  /* Body */
+  .text-body-large {
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 400;
+    letter-spacing: 0.031em;
+  }
+  .text-body-medium {
+    font-size: 0.875rem;
+    line-height: 1.43;
+    font-weight: 400;
+    letter-spacing: 0.018em;
+  }
+  .text-body-small {
+    font-size: 0.75rem;
+    line-height: 1.33;
+    font-weight: 400;
+    letter-spacing: 0.025em;
+  }
+
+  /* Label */
+  .text-label-large {
+    font-size: 0.875rem;
+    line-height: 1.43;
+    font-weight: 500;
+    letter-spacing: 0.011em;
+  }
+  .text-label-medium {
+    font-size: 0.75rem;
+    line-height: 1.33;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .text-label-small {
+    font-size: 0.6875rem;
+    line-height: 1.45;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  /* MD3 Elevation utility classes (alias of shadow-e1..e5) */
+  .elevation-1 { box-shadow: var(--shadow-e1); }
+  .elevation-2 { box-shadow: var(--shadow-e2); }
+  .elevation-3 { box-shadow: var(--shadow-e3); }
+  .elevation-4 { box-shadow: var(--shadow-e4); }
+  .elevation-5 { box-shadow: var(--shadow-e5); }
+}
+
+/* =========================================================================
+   Preserve existing custom utility classes (retinted to MD3 tokens where the
+   old hard-coded hex clashed with the unified indigo brand). Class names and
+   structure preserved so existing screens keep working.
+   ========================================================================= */
 
 .task-board-backdrop::before,
 .task-board-backdrop::after {
@@ -156,28 +546,28 @@
 
 .task-board-backdrop {
   isolation: isolate;
-  border-right: 1px solid #c8d1dc;
+  border-right: 1px solid var(--md-outline-variant);
   background:
-    radial-gradient(circle at 78% 22%, rgb(15 98 254 / 45%), transparent 22%),
-    radial-gradient(circle at 18% 78%, rgb(82 96 115 / 28%), transparent 30%),
-    linear-gradient(135deg, #e9eef4 0%, #f4f5f6 52%, #e3eaf2 100%);
+    radial-gradient(circle at 78% 22%, color-mix(in srgb, var(--md-primary) 40%, transparent), transparent 22%),
+    radial-gradient(circle at 18% 78%, color-mix(in srgb, var(--md-secondary) 25%, transparent), transparent 30%),
+    linear-gradient(135deg, var(--md-surface-container-low) 0%, var(--md-surface-container) 52%, var(--md-surface-container-low) 100%);
 }
 
 .auth-layout {
-  background: #f4f6f8;
+  background: var(--md-surface-container-lowest);
 }
 
 .auth-form-surface {
   position: relative;
-  box-shadow: -18px 0 42px rgb(32 48 64 / 7%);
+  box-shadow: -18px 0 42px color-mix(in srgb, var(--md-on-surface) 7%, transparent);
 }
 
 .auth-form-wrap {
   position: relative;
   padding: 44px 42px;
-  border: 1px solid #dfe3e8;
-  background: rgb(255 255 255 / 92%);
-  box-shadow: 0 22px 55px rgb(32 48 64 / 8%);
+  border: 1px solid var(--md-outline-variant);
+  background: color-mix(in srgb, var(--md-surface-container-lowest) 92%, transparent);
+  box-shadow: 0 22px 55px color-mix(in srgb, var(--md-on-surface) 8%, transparent);
 }
 
 .auth-form-wrap::before {
@@ -187,18 +577,18 @@
   left: 42px;
   width: 74px;
   height: 4px;
-  background: #0f62fe;
+  background: var(--md-primary);
 }
 
 .landing-page {
   background:
-    radial-gradient(circle at 75% 8%, rgb(15 98 254 / 8%), transparent 24%),
-    #f4f6f8;
+    radial-gradient(circle at 75% 8%, color-mix(in srgb, var(--md-primary) 8%, transparent), transparent 24%),
+    var(--md-surface-container-lowest);
 }
 
 .landing-board {
   border-radius: 18px;
-  background: rgb(255 255 255 / 92%);
+  background: color-mix(in srgb, var(--md-surface-container-lowest) 92%, transparent);
 }
 
 .landing-task {
@@ -206,15 +596,15 @@
   align-items: flex-start;
   gap: 14px;
   padding: 16px 0;
-  border-bottom: 1px solid #e8ebee;
+  border-bottom: 1px solid var(--md-outline-variant);
 }
 
 .landing-task svg { width: 19px; height: 19px; margin-top: 2px; }
-.landing-task p { color: #161616; font-size: 14px; font-weight: 600; }
-.landing-task span { display: block; margin-top: 4px; color: #6f7883; font-size: 11px; }
-.landing-task i { display: block; height: 5px; margin-top: 10px; overflow: hidden; background: #e4e9ef; }
-.landing-task em { display: block; height: 100%; background: #0f62fe; }
-.landing-task b { color: #525252; font-size: 12px; font-weight: 600; }
+.landing-task p { color: var(--md-on-surface); font-size: 14px; font-weight: 600; }
+.landing-task span { display: block; margin-top: 4px; color: var(--md-on-surface-variant); font-size: 11px; }
+.landing-task i { display: block; height: 5px; margin-top: 10px; overflow: hidden; background: var(--md-surface-variant); }
+.landing-task em { display: block; height: 100%; background: var(--md-primary); }
+.landing-task b { color: var(--md-on-surface-variant); font-size: 12px; font-weight: 600; }
 
 .task-icon {
   position: absolute;
@@ -224,27 +614,27 @@
   justify-content: center;
   width: 58px;
   height: 58px;
-  border: 1px solid rgb(82 96 115 / 25%);
-  background: rgb(255 255 255 / 72%);
-  color: #0f62fe;
-  box-shadow: 0 12px 28px rgb(22 22 22 / 8%);
+  border: 1px solid color-mix(in srgb, var(--md-outline) 25%, transparent);
+  background: color-mix(in srgb, var(--md-surface-container-lowest) 72%, transparent);
+  color: var(--md-primary);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--md-on-surface) 8%, transparent);
   animation: task-icon-float 8s ease-in-out infinite;
 }
 
 .task-icon-one { top: 18%; right: 18%; transform: rotate(-8deg); }
-.task-icon-two { top: 39%; right: 40%; color: #8a3ffc; transform: rotate(7deg); animation-delay: -2.5s; }
-.task-icon-three { bottom: 19%; right: 13%; color: #198038; transform: rotate(-5deg); animation-delay: -5s; }
-.task-icon-four { top: 34%; right: 8%; color: #da1e28; transform: rotate(8deg); animation-delay: -1.5s; }
-.task-icon-five { bottom: 34%; right: 30%; color: #005d5d; transform: rotate(-7deg); animation-delay: -4s; }
-.task-icon-six { top: 62%; right: 9%; color: #8a3800; transform: rotate(5deg); animation-delay: -6s; }
-.task-icon-seven { bottom: 13%; right: 43%; color: #525252; transform: rotate(-4deg); animation-delay: -3s; }
+.task-icon-two { top: 39%; right: 40%; color: var(--md-tertiary); transform: rotate(7deg); animation-delay: -2.5s; }
+.task-icon-three { bottom: 19%; right: 13%; color: var(--md-success); transform: rotate(-5deg); animation-delay: -5s; }
+.task-icon-four { top: 34%; right: 8%; color: var(--md-error); transform: rotate(8deg); animation-delay: -1.5s; }
+.task-icon-five { bottom: 34%; right: 30%; color: var(--md-info); transform: rotate(-7deg); animation-delay: -4s; }
+.task-icon-six { top: 62%; right: 9%; color: var(--md-warning); transform: rotate(5deg); animation-delay: -6s; }
+.task-icon-seven { bottom: 13%; right: 43%; color: var(--md-on-surface-variant); transform: rotate(-4deg); animation-delay: -3s; }
 
 .task-preview {
   width: min(100%, 600px);
   padding: 20px 24px;
-  border: 1px solid rgb(82 96 115 / 25%);
-  background: rgb(255 255 255 / 78%);
-  box-shadow: 0 20px 45px rgb(22 22 22 / 9%);
+  border: 1px solid color-mix(in srgb, var(--md-outline) 25%, transparent);
+  background: color-mix(in srgb, var(--md-surface-container-lowest) 78%, transparent);
+  box-shadow: 0 20px 45px color-mix(in srgb, var(--md-on-surface) 9%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -264,7 +654,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #a6b2c2;
+  background: var(--md-outline-variant);
 }
 
 .task-preview-row {
@@ -273,19 +663,19 @@
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  border-top: 1px solid rgb(82 96 115 / 14%);
+  border-top: 1px solid color-mix(in srgb, var(--md-outline) 14%, transparent);
 }
 
 .task-preview-row svg {
   width: 18px;
   height: 18px;
-  color: #0f62fe;
+  color: var(--md-primary);
 }
 
 .task-preview-row b,
 .task-preview-row strong {
   display: block;
-  color: #343a40;
+  color: var(--md-on-surface);
   font-size: 12px;
   font-weight: 600;
 }
@@ -293,24 +683,24 @@
 .task-preview-row span {
   display: block;
   margin-top: 3px;
-  color: #6f7883;
+  color: var(--md-on-surface-variant);
   font-size: 10px;
 }
 
-.task-preview-row strong { text-align: right; color: #525252; }
+.task-preview-row strong { text-align: right; color: var(--md-on-surface-variant); }
 
 .task-preview-row i {
   display: block;
   height: 5px;
   margin-top: 8px;
   overflow: hidden;
-  background: #d9e2ec;
+  background: var(--md-surface-variant);
 }
 
 .task-preview-row em {
   display: block;
   height: 100%;
-  background: #0f62fe;
+  background: var(--md-primary);
 }
 
 .task-board-backdrop::before {
@@ -340,14 +730,14 @@
   50% { translate: 0 -12px; }
 }
 
-/* ---- Custom range slider ---- */
+/* ---- Custom range slider (progress / value) ---- */
 .fl-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 8px;
   border-radius: 9999px;
-  background: var(--fl-track, #eceef5);
+  background: var(--fl-track, var(--md-surface-variant));
   outline: none;
   cursor: pointer;
 }
@@ -356,21 +746,21 @@
   border-radius: 9999px;
   background: linear-gradient(
     to right,
-    var(--fl-fill, #6252e8) 0%,
-    var(--fl-fill, #6252e8) var(--fl-pct, 0%),
-    var(--fl-track, #eceef5) var(--fl-pct, 0%),
-    var(--fl-track, #eceef5) 100%
+    var(--fl-fill, var(--md-primary)) 0%,
+    var(--fl-fill, var(--md-primary)) var(--fl-pct, 0%),
+    var(--fl-track, var(--md-surface-variant)) var(--fl-pct, 0%),
+    var(--fl-track, var(--md-surface-variant)) 100%
   );
 }
 .fl-slider::-moz-range-track {
   height: 8px;
   border-radius: 9999px;
-  background: var(--fl-track, #eceef5);
+  background: var(--fl-track, var(--md-surface-variant));
 }
 .fl-slider::-moz-range-progress {
   height: 8px;
   border-radius: 9999px;
-  background: var(--fl-fill, #6252e8);
+  background: var(--fl-fill, var(--md-primary));
 }
 .fl-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -378,15 +768,15 @@
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #ffffff;
-  border: 2px solid var(--fl-fill, #6252e8);
-  box-shadow: 0 1px 3px rgba(23, 26, 43, 0.18);
+  background: var(--md-surface-container-lowest);
+  border: 2px solid var(--fl-fill, var(--md-primary));
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-on-surface) 18%, transparent);
   margin-top: -5px;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .fl-slider::-webkit-slider-thumb:hover {
   transform: scale(1.12);
-  box-shadow: 0 2px 6px rgba(23, 26, 43, 0.22);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--md-on-surface) 22%, transparent);
 }
 .fl-slider::-webkit-slider-thumb:active {
   transform: scale(1.18);
@@ -395,33 +785,33 @@
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #ffffff;
-  border: 2px solid var(--fl-fill, #6252e8);
-  box-shadow: 0 1px 3px rgba(23, 26, 43, 0.18);
+  background: var(--md-surface-container-lowest);
+  border: 2px solid var(--fl-fill, var(--md-primary));
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--md-on-surface) 18%, transparent);
   cursor: pointer;
 }
 .fl-slider:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fl-fill, #6252e8) 35%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fl-fill, var(--md-primary)) 35%, transparent);
   border-radius: 9999px;
 }
 
-/* ---- Thin custom scrollbar ---- */
+/* ---- Thin custom scrollbar (MD3-tinted) ---- */
 .fl-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #cfd2dd transparent;
+  scrollbar-color: var(--md-outline-variant) transparent;
 }
 .fl-scroll::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .fl-scroll::-webkit-scrollbar-thumb {
-  background: #cfd2dd;
+  background: var(--md-outline-variant);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 .fl-scroll::-webkit-scrollbar-thumb:hover {
-  background: #b8bccb;
+  background: var(--md-outline);
   background-clip: content-box;
 }
 .fl-scroll::-webkit-scrollbar-track {

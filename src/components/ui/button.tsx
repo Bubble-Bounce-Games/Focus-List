@@ -4,28 +4,47 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Material Design 3 Button
+ *
+ * Variants map to MD3 button types (legacy shadcn variant names preserved):
+ *   default     → MD3 Filled     (bg-primary / on-primary)
+ *   secondary   → MD3 Tonal      (bg-secondary-container / on-secondary-container)
+ *   tonal       → MD3 Tonal alt  (alias of secondary, MD3 name)
+ *   outline     → MD3 Outlined   (border outline-variant, text-primary)
+ *   ghost       → MD3 Text       (transparent, text-primary)
+ *   destructive → MD3 Filled error (bg-error / on-error)
+ *   link        → inline link    (text-primary + underline on hover)
+ *
+ * Shape: pill (`rounded-full`) for all variants except `link`.
+ * State layers: hover 8% / focus-visible 10% / active 12% of content color.
+ * Motion: --duration-short --ease-standard.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium tracking-[0.01em] outline-none focus-visible:outline-none transition-[background-color,box-shadow,color,border-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] disabled:pointer-events-none disabled:opacity-38 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 select-none",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+          "bg-primary text-primary-foreground shadow-e1 hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12] aria-invalid:bg-error aria-invalid:text-on-error",
         destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-error text-on-error shadow-e1 hover:bg-on-error/[0.08] focus-visible:bg-on-error/[0.10] active:bg-on-error/[0.12]",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border-2 border-outline-variant text-primary bg-transparent hover:bg-primary/[0.08] focus-visible:bg-primary/[0.10] active:bg-primary/[0.12] dark:border-outline-variant",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground shadow-e1 hover:bg-on-secondary-container/[0.08] focus-visible:bg-on-secondary-container/[0.10] active:bg-on-secondary-container/[0.12]",
+        tonal:
+          "bg-secondary text-secondary-foreground shadow-e1 hover:bg-on-secondary-container/[0.08] focus-visible:bg-on-secondary-container/[0.10] active:bg-on-secondary-container/[0.12]",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-transparent text-primary hover:bg-primary/[0.08] focus-visible:bg-primary/[0.10] active:bg-primary/[0.12]",
+        link:
+          "bg-transparent text-primary underline-offset-4 hover:underline hover:bg-transparent focus-visible:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        default: "h-10 px-5 has-[>svg]:px-5",
+        sm: "h-8 px-3 text-sm gap-1.5 has-[>svg]:px-3",
+        lg: "h-11 px-6 text-base has-[>svg]:px-6",
+        icon: "size-10 p-0 has-[>svg]:p-0",
       },
     },
     defaultVariants: {
