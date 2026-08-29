@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 type ComboboxProps = {
   value: string;
@@ -44,7 +45,7 @@ export function Combobox({
 
   return (
     <div ref={containerRef} className="relative">
-      <input
+      <Input
         id={id}
         type="text"
         value={value}
@@ -64,14 +65,12 @@ export function Combobox({
         placeholder={placeholder}
         autoComplete="off"
         aria-invalid={invalid}
-        className={`h-11 w-full rounded-xl border bg-card px-3.5 pr-9 text-sm text-foreground-strong outline-none transition-colors placeholder:text-muted-foreground focus:border-[#6252e8] ${
-          invalid ? "border-destructive" : "border-border"
-        }`}
+        className="h-11 pr-9"
       />
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
 
       {open && filtered.length > 0 && (
-        <div className="fl-scroll absolute z-50 mt-1.5 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-lg">
+        <div className="fl-scroll absolute z-50 mt-1.5 max-h-52 w-full overflow-y-auto rounded-md border border-outline-variant bg-surface-container-high p-1 shadow-e2">
           {!exactMatch && value.trim() && (
             <button
               type="button"
@@ -80,7 +79,7 @@ export function Combobox({
                 onChange(value.trim());
                 setOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm text-muted-foreground hover:bg-secondary"
+              className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-label-large text-primary transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
             >
               <span>Use “{value.trim()}” (new)</span>
             </button>
@@ -94,11 +93,11 @@ export function Combobox({
                 onChange(option);
                 setOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm text-foreground-strong hover:bg-secondary"
+              className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-label-large text-on-surface transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
             >
               {option}
               {option.toLowerCase() === value.trim().toLowerCase() && (
-                <Check className="h-4 w-4" style={{ color: "#6252e8" }} />
+                <Check className="size-4 text-primary" />
               )}
             </button>
           ))}

@@ -79,7 +79,7 @@ export function ActiveTaskList({
 
   return (
     <div className="fl-scroll h-full overflow-y-auto pr-1">
-      <div className="flex flex-col gap-2.5 pb-1">
+      <div className="flex flex-col gap-1 pb-1">
         <AnimatePresence initial={false}>
           {tasks.map((task) => (
             <motion.div key={task.id} layout>

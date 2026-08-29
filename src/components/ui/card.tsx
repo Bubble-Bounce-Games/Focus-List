@@ -2,12 +2,19 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Material Design 3 Card (Elevated Surface)
+ *
+ * bg-card (= surface-container-low) + text-card-foreground (= on-surface),
+ * rounded-lg (16px), border-outline-variant, optional elevation-1 shadow.
+ * CardHeader/Title/Description/Action/Content/Footer structure preserved.
+ */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-lg border border-outline-variant py-6 shadow-e1",
         className
       )}
       {...props}
@@ -32,7 +39,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("text-title-medium leading-none text-on-surface", className)}
       {...props}
     />
   )
@@ -42,7 +49,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-body-medium text-on-surface-variant", className)}
       {...props}
     />
   )

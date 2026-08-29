@@ -92,7 +92,7 @@ export function ProgressSlider({
       style={
         {
           "--fl-fill": accent,
-          "--fl-track": "#eceef5",
+          "--fl-track": "var(--md-surface-variant)",
           "--fl-pct": pct,
         } as React.CSSProperties
       }

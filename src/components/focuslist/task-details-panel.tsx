@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import type { DetailField, Task } from "@/lib/focuslist/types";
+import { Textarea } from "@/components/ui/textarea";
 
 // Typing writes straight to Supabase after a short pause. There is no save
 // button, so each row reports its own state instead.
@@ -29,21 +30,21 @@ const FIELDS: readonly FieldSpec[] = [
     label: "Progress",
     placeholder: "What has moved since last time?",
     icon: ListChecks,
-    tone: "#6252e8",
+    tone: "var(--md-primary)",
   },
   {
     field: "blocker",
     label: "Blocker",
     placeholder: "What is standing in the way?",
     icon: AlertTriangle,
-    tone: "#e5484d",
+    tone: "var(--md-error)",
   },
   {
     field: "notes",
     label: "Notes",
     placeholder: "Anything else worth remembering.",
     icon: StickyNote,
-    tone: "#7a8194",
+    tone: "var(--md-on-surface-variant)",
   },
 ];
 
@@ -54,8 +55,8 @@ type TaskDetailsPanelProps = {
 
 export function TaskDetailsPanel({ task, onSave }: TaskDetailsPanelProps) {
   return (
-    <div className="fl-scroll max-h-[248px] overflow-y-auto border-t border-border bg-app/70 px-3 sm:px-4">
-      <div className="divide-y divide-border/70">
+    <div className="fl-scroll max-h-[248px] overflow-y-auto border-t border-outline-variant bg-surface-container-low px-3 sm:px-4">
+      <div className="divide-y divide-outline-variant/70">
         {FIELDS.map((spec) => (
           <DetailRow
             key={spec.field}
@@ -133,26 +134,26 @@ function DetailRow({ spec, initialValue, onSave }: DetailRowProps) {
       <div className="flex w-[92px] shrink-0 items-center gap-1.5 pt-1.5">
         <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: spec.tone }} />
         <span
-          className="text-xs font-semibold"
+          className="text-label-medium font-medium"
           style={{ color: spec.tone }}
         >
           {spec.label}
         </span>
       </div>
 
-      <textarea
+      <Textarea
         value={draft}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={commit}
         rows={2}
         placeholder={spec.placeholder}
         aria-label={spec.label}
-        className="min-w-0 flex-1 resize-none rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-sm leading-relaxed text-foreground-strong outline-none transition-colors placeholder:text-muted-foreground hover:border-border focus:border-[#6252e8] focus:bg-card"
+        className="min-h-0 flex-1 resize-none border-2 border-transparent bg-transparent px-2 py-1.5 text-body-medium leading-relaxed text-on-surface shadow-none outline-none transition-colors duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] placeholder:text-on-surface-variant hover:border-outline-variant focus-visible:border-primary focus-visible:bg-surface-container-lowest focus-visible:ring-2 focus-visible:ring-primary/40"
       />
 
       <span
         aria-live="polite"
-        className="w-11 shrink-0 pt-2 text-right text-[11px] tabular-nums text-muted-foreground"
+        className="w-11 shrink-0 pt-2 text-right text-label-small tabular-nums text-on-surface-variant"
       >
         {status === "saved" ? "Saved" : status === "pending" ? "…" : ""}
       </span>
