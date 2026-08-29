@@ -247,3 +247,6 @@ next-env.d.ts
 .idea/
 .vscode/
 *.swp
+
+# Local secrets — never commit real values
+.env.secrets
