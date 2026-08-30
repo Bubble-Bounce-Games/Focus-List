@@ -28,12 +28,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!supabase) return;
     let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
+    void (async () => {
+      let nextSession: Session | null = null;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        nextSession = sessionData.session;
+
+        if (nextSession) {
+          const { data: userData, error } = await supabase.auth.getUser();
+          if (error || !userData.user) {
+            await supabase.auth.signOut({ scope: "local" });
+            nextSession = null;
+          } else {
+            nextSession = { ...nextSession, user: userData.user };
+          }
+        }
+      } catch {
+        nextSession = null;
+      }
+
       if (active) {
-        setSession(data.session);
+        setSession(nextSession);
         setLoading(false);
       }
-    });
+    })();
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setLoading(false);
