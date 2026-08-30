@@ -56,6 +56,9 @@ For AWS S3 static hosting, use `yarn build:aws` and the manual GitHub Actions
 workflow in [docs/aws-s3.md](./docs/aws-s3.md). The S3 build does not use the
 GitHub Pages `/Focus-List` base path.
 
+For production HTTPS and the custom domain, follow
+[docs/aws-cloudfront.md](./docs/aws-cloudfront.md).
+
 ## AWS accounts and storage
 
 The account screen is enabled when `NEXT_PUBLIC_COGNITO_USER_POOL_ID` and
