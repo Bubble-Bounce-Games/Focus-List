@@ -1,89 +1,192 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { colorForName } from "./palette";
-import { MAX_PROGRESS, MIN_PROGRESS, type DetailField, type Project, type Tag, type Task } from "./types";
+import {
+  updatePrivateS3State,
+  usePrivateS3State,
+} from "./private-s3-state";
+import {
+  MAX_PROGRESS,
+  MIN_PROGRESS,
+  type DetailField,
+  type Project,
+  type Tag,
+  type Task,
+} from "./types";
 
 export function clampProgress(value: number): number {
   if (!Number.isFinite(value)) return MIN_PROGRESS;
   return Math.min(MAX_PROGRESS, Math.max(MIN_PROGRESS, Math.round(value)));
 }
-function now() { return new Date().toISOString(); }
-function completionStamp(progress: number, previous: string | null) { return progress < MAX_PROGRESS ? null : previous ?? now(); }
-export function projectMap(projects: Project[]): Record<string, Project> { return Object.fromEntries(projects.map((project) => [project.id, project])); }
-export function tagMap(tags: Tag[]): Record<string, Tag> { return Object.fromEntries(tags.map((tag) => [tag.id, tag])); }
 
-type Row = Record<string, unknown>;
-function mapProject(row: Row): Project { return { id: String(row.id), name: String(row.name), color: String(row.color) }; }
-function mapTag(row: Row): Tag { return { id: String(row.id), name: String(row.name), color: String(row.color) }; }
-function mapTask(row: Row): Task {
-  return { id: String(row.id), title: String(row.title), projectId: String(row.project_id), tagId: String(row.tag_id), progress: Number(row.progress), completedAt: row.completed_at ? String(row.completed_at) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at), progressNote: String(row.progress_note ?? ""), blocker: String(row.blocker ?? ""), notes: String(row.notes ?? ""), dueDate: row.due_date ? String(row.due_date) : null, archivedAt: row.archived_at ? String(row.archived_at) : null, deletedAt: row.deleted_at ? String(row.deleted_at) : null };
+function now(): string {
+  return new Date().toISOString();
 }
 
-function useCloudRows<T>(table: "tasks" | "projects" | "tags"): T[] {
-  const [rows, setRows] = useState<T[]>([]);
-  const channelName = useRef(`focus-list-${table}-${uuid()}`);
-  useEffect(() => {
-    const client = getSupabaseBrowserClient();
-    if (!client) return;
-    let active = true;
-    const load = async () => { const { data } = await client.from(table).select("*"); if (active && data) setRows(data as T[]); };
-    void load();
-    const channel = client.channel(channelName.current).on("postgres_changes", { event: "*", schema: "public", table }, () => void load()).subscribe();
-    return () => { active = false; void client.removeChannel(channel); };
-  }, [table]);
-  return rows;
+function completionStamp(progress: number, previous: string | null): string | null {
+  return progress < MAX_PROGRESS ? null : previous ?? now();
 }
-export function useAllTasks(): Task[] { return useCloudRows<Row>("tasks").map(mapTask); }
-export function useProjects(): Project[] { return useCloudRows<Row>("projects").map(mapProject).sort((a, b) => a.name.localeCompare(b.name)); }
-export function useTags(): Tag[] { return useCloudRows<Row>("tags").map(mapTag).sort((a, b) => a.name.localeCompare(b.name)); }
 
-async function context() {
-  const client = getSupabaseBrowserClient();
-  if (!client) return null;
-  const { data } = await client.auth.getUser();
-  return data.user ? { client, userId: data.user.id } : null;
+export function projectMap(projects: Project[]): Record<string, Project> {
+  return Object.fromEntries(projects.map((project) => [project.id, project]));
 }
-export type NewTaskInput = { title: string; projectId: string; tagId: string; progress: number };
-export type TaskPatch = Partial<Pick<Task, "title" | "projectId" | "tagId" | "progress" | "progressNote" | "blocker" | "notes" | "dueDate">>;
 
-export async function createTask(input: NewTaskInput): Promise<Task | undefined> {
-  const c = await context(); if (!c) return undefined;
+export function tagMap(tags: Tag[]): Record<string, Tag> {
+  return Object.fromEntries(tags.map((tag) => [tag.id, tag]));
+}
+
+export function useAllTasks(): Task[] {
+  return usePrivateS3State().tasks;
+}
+
+export function useProjects(): Project[] {
+  return usePrivateS3State().projects.slice().sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function useTags(): Tag[] {
+  return usePrivateS3State().tags.slice().sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export type NewTaskInput = {
+  title: string;
+  projectId: string;
+  tagId: string;
+  progress: number;
+};
+
+export type TaskPatch = Partial<
+  Pick<Task, "title" | "projectId" | "tagId" | "progress" | "progressNote" | "blocker" | "notes" | "dueDate">
+>;
+
+export async function createTask(input: NewTaskInput): Promise<Task> {
+  const timestamp = now();
   const progress = clampProgress(input.progress);
-  const { data } = await c.client.from("tasks").insert({ id: uuid(), user_id: c.userId, title: input.title.trim(), project_id: input.projectId, tag_id: input.tagId, progress, completed_at: completionStamp(progress, null) }).select().single();
-  return data ? mapTask(data) : undefined;
+  const task: Task = {
+    id: uuid(),
+    title: input.title.trim(),
+    projectId: input.projectId,
+    tagId: input.tagId,
+    progress,
+    completedAt: completionStamp(progress, null),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    progressNote: "",
+    blocker: "",
+    notes: "",
+    dueDate: null,
+    archivedAt: null,
+    deletedAt: null,
+  };
+  await updatePrivateS3State((state) => ({ ...state, tasks: [...state.tasks, task] }));
+  return task;
 }
+
 export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
-  const c = await context(); if (!c) return;
-  const { data: existing } = await c.client.from("tasks").select("*").eq("id", id).single(); if (!existing) return;
-  const progress = patch.progress === undefined ? Number(existing.progress) : clampProgress(patch.progress);
-  await c.client.from("tasks").update({ ...(patch.title === undefined ? {} : { title: patch.title.trim() }), ...(patch.projectId === undefined ? {} : { project_id: patch.projectId }), ...(patch.tagId === undefined ? {} : { tag_id: patch.tagId }), ...(patch.progressNote === undefined ? {} : { progress_note: patch.progressNote }), ...(patch.blocker === undefined ? {} : { blocker: patch.blocker }), ...(patch.notes === undefined ? {} : { notes: patch.notes }), ...(patch.dueDate === undefined ? {} : { due_date: patch.dueDate }), progress, completed_at: completionStamp(progress, existing.completed_at), updated_at: now() }).eq("id", id);
+  await updatePrivateS3State((state) => ({
+    ...state,
+    tasks: state.tasks.map((task) => {
+      if (task.id !== id) return task;
+      const progress = patch.progress === undefined ? task.progress : clampProgress(patch.progress);
+      return {
+        ...task,
+        ...patch,
+        ...(patch.title === undefined ? {} : { title: patch.title.trim() }),
+        progress,
+        completedAt: completionStamp(progress, task.completedAt),
+        updatedAt: now(),
+      };
+    }),
+  }));
 }
-export async function setProgress(id: string, value: number) { await updateTask(id, { progress: value }); }
-export async function setTaskDetail(id: string, field: DetailField, value: string) { await updateTask(id, { [field]: value }); }
-export async function deleteTask(id: string) { const c = await context(); if (c) await c.client.from("tasks").update({ deleted_at: now(), updated_at: now() }).eq("id", id); }
-export async function archiveTask(id: string) { const c = await context(); if (c) await c.client.from("tasks").update({ archived_at: now(), updated_at: now() }).eq("id", id); }
+
+export async function setProgress(id: string, value: number): Promise<void> {
+  await updateTask(id, { progress: value });
+}
+
+export async function setTaskDetail(id: string, field: DetailField, value: string): Promise<void> {
+  await updateTask(id, { [field]: value });
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  const timestamp = now();
+  await updatePrivateS3State((state) => ({
+    ...state,
+    tasks: state.tasks.map((task) => task.id === id
+      ? { ...task, deletedAt: timestamp, updatedAt: timestamp }
+      : task),
+  }));
+}
+
+export async function archiveTask(id: string): Promise<void> {
+  const timestamp = now();
+  await updatePrivateS3State((state) => ({
+    ...state,
+    tasks: state.tasks.map((task) => task.id === id
+      ? { ...task, archivedAt: timestamp, updatedAt: timestamp }
+      : task),
+  }));
+}
+
 export async function duplicateTask(id: string): Promise<Task | undefined> {
-  const c = await context(); if (!c) return undefined;
-  const { data: source } = await c.client.from("tasks").select("*").eq("id", id).single(); if (!source) return undefined;
-  const timestamp = now(); const { data } = await c.client.from("tasks").insert({ id: uuid(), user_id: c.userId, project_id: source.project_id, tag_id: source.tag_id, title: `${source.title} (copy)`, progress: source.progress, completed_at: completionStamp(Number(source.progress), null), progress_note: source.progress_note, blocker: source.blocker, notes: source.notes, created_at: timestamp, updated_at: timestamp }).select().single();
-  return data ? mapTask(data) : undefined;
+  let duplicate: Task | undefined;
+  await updatePrivateS3State((state) => {
+    const source = state.tasks.find((task) => task.id === id);
+    if (!source) return state;
+    const timestamp = now();
+    const copy: Task = {
+      ...source,
+      id: uuid(),
+      title: `${source.title} (copy)`,
+      completedAt: completionStamp(source.progress, null),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      archivedAt: null,
+      deletedAt: null,
+    };
+    duplicate = copy;
+    return { ...state, tasks: [...state.tasks, copy] };
+  });
+  return duplicate;
 }
+
 export async function findOrCreateProject(name: string): Promise<Project> {
-  const c = await context(); const trimmed = name.trim(); const fallback = { id: uuid(), name: trimmed, color: colorForName(trimmed) }; if (!c) return fallback;
-  const { data: existing } = await c.client.from("projects").select("*").eq("name", trimmed).maybeSingle(); if (existing) return mapProject(existing);
-  const { data } = await c.client.from("projects").insert({ ...fallback, user_id: c.userId }).select().single(); return data ? mapProject(data) : fallback;
+  const trimmed = name.trim();
+  let project: Project | undefined;
+  await updatePrivateS3State((state) => {
+    project = state.projects.find((item) => item.name === trimmed);
+    if (project) return state;
+    const created = { id: uuid(), name: trimmed, color: colorForName(trimmed) };
+    project = created;
+    return { ...state, projects: [...state.projects, created] };
+  });
+  return project as Project;
 }
+
 export async function renameProject(id: string, name: string): Promise<Project | undefined> {
-  const c = await context(); if (!c) return undefined;
-  const trimmed = name.trim(); if (!trimmed) return undefined;
-  const { data } = await c.client.from("projects").update({ name: trimmed, color: colorForName(trimmed) }).eq("id", id).select().single();
-  return data ? mapProject(data) : undefined;
+  const trimmed = name.trim();
+  if (!trimmed) return undefined;
+  let project: Project | undefined;
+  await updatePrivateS3State((state) => ({
+    ...state,
+    projects: state.projects.map((item) => {
+      if (item.id !== id) return item;
+      project = { ...item, name: trimmed, color: colorForName(trimmed) };
+      return project;
+    }),
+  }));
+  return project;
 }
+
 export async function findOrCreateTag(name: string): Promise<Tag> {
-  const c = await context(); const trimmed = name.trim(); const fallback = { id: uuid(), name: trimmed, color: colorForName(trimmed) }; if (!c) return fallback;
-  const { data: existing } = await c.client.from("tags").select("*").eq("name", trimmed).maybeSingle(); if (existing) return mapTag(existing);
-  const { data } = await c.client.from("tags").insert({ ...fallback, user_id: c.userId }).select().single(); return data ? mapTag(data) : fallback;
+  const trimmed = name.trim();
+  let tag: Tag | undefined;
+  await updatePrivateS3State((state) => {
+    tag = state.tags.find((item) => item.name === trimmed);
+    if (tag) return state;
+    const created = { id: uuid(), name: trimmed, color: colorForName(trimmed) };
+    tag = created;
+    return { ...state, tags: [...state.tags, created] };
+  });
+  return tag as Tag;
 }

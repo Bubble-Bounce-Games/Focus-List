@@ -1,14 +1,20 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  AUTH_CHANGED_EVENT,
+  getCognitoUserPool,
+  getCurrentUser,
+  signOut as cognitoSignOut,
+  type FocusListUser,
+} from "@/lib/cognito/client";
+import { resetPrivateS3State } from "@/lib/focuslist/private-s3-state";
 
 type AuthContextValue = {
   configured: boolean;
   loading: boolean;
-  user: User | null;
-  session: Session | null;
+  user: FocusListUser | null;
+  refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -16,61 +22,44 @@ const AuthContext = createContext<AuthContextValue>({
   configured: false,
   loading: false,
   user: null,
-  session: null,
+  refresh: async () => undefined,
   signOut: async () => undefined,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const supabase = getSupabaseBrowserClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(Boolean(supabase));
+  const configured = Boolean(getCognitoUserPool());
+  const [user, setUser] = useState<FocusListUser | null>(null);
+  const [loading, setLoading] = useState(configured);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setUser(await getCurrentUser());
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    if (!supabase) return;
-    let active = true;
-    void (async () => {
-      let nextSession: Session | null = null;
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        nextSession = sessionData.session;
-
-        if (nextSession) {
-          const { data: userData, error } = await supabase.auth.getUser();
-          if (error || !userData.user) {
-            await supabase.auth.signOut({ scope: "local" });
-            nextSession = null;
-          } else {
-            nextSession = { ...nextSession, user: userData.user };
-          }
-        }
-      } catch {
-        nextSession = null;
-      }
-
-      if (active) {
-        setSession(nextSession);
-        setLoading(false);
-      }
-    })();
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
+    if (!configured) return;
+    void getCurrentUser().then((nextUser) => {
+      setUser(nextUser);
       setLoading(false);
     });
+    const handleAuthChange = () => void refresh();
+    window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChange);
     return () => {
-      active = false;
-      data.subscription.unsubscribe();
+      window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChange);
     };
-  }, [supabase]);
+  }, [configured, refresh]);
 
   return (
     <AuthContext.Provider
       value={{
-        configured: Boolean(supabase),
+        configured,
         loading,
-        user: session?.user ?? null,
-        session,
+        user,
+        refresh,
         signOut: async () => {
-          await supabase?.auth.signOut();
+          cognitoSignOut();
+          resetPrivateS3State();
         },
       }}
     >
