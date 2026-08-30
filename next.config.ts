@@ -6,6 +6,7 @@ const basePath = githubPages ? "/Focus-List" : "";
 
 const nextConfig: NextConfig = {
   output: staticExport || githubPages ? "export" : "standalone",
+  trailingSlash: staticExport || githubPages,
   basePath,
   assetPrefix: githubPages ? `${basePath}/` : undefined,
   // The app is reached at http://focus-list.local (see scripts/local-domain.sh),
