@@ -43,6 +43,7 @@ import {
   type Task,
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
+import { migrateCurrentUserToPrivateS3 } from "@/lib/focuslist/private-s3-state";
 import {
   CALENDAR_REMINDERS_KEY,
   asCalendarReminders,
@@ -941,6 +942,26 @@ function AuthenticatedPage({
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [projectCreateFrameOpen, setProjectCreateFrameOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void migrateCurrentUserToPrivateS3()
+      .then((result) => {
+        if (!active || result.status !== "migrated") return;
+        const total = Object.values(result.counts).reduce((sum, count) => sum + count, 0);
+        toast.success("Private cloud copy verified", {
+          description: `${total} records safely copied to S3.`,
+        });
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        const description = error instanceof Error ? error.message : "The S3 copy could not be verified.";
+        toast.error("Private cloud copy paused", { description });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const search = asString(searchValue);

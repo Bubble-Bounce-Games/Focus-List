@@ -53,6 +53,10 @@ Create an IAM OIDC provider for:
 The IAM role trust policy should limit access to this repo and the `aws-s3`
 environment:
 
+GitHub sends an immutable subject for this repository. The organization and
+repository IDs in this value are required; the name-only subject will be
+rejected by AWS.
+
 ```json
 {
   "Version": "2012-10-17",
@@ -66,7 +70,7 @@ environment:
       "Condition": {
         "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:Bubble-Bounce-Games/Focus-List:environment:aws-s3"
+          "token.actions.githubusercontent.com:sub": "repo:Bubble-Bounce-Games@215603182/Focus-List@1324662628:environment:aws-s3"
         }
       }
     }
@@ -92,10 +96,8 @@ Attach an IAM permissions policy that can update the target bucket:
     {
       "Effect": "Allow",
       "Action": [
-        "s3:DeleteObject",
         "s3:GetObject",
-        "s3:PutObject",
-        "s3:PutObjectAcl"
+        "s3:PutObject"
       ],
       "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
     }
@@ -126,3 +128,42 @@ http://YOUR_BUCKET_NAME.s3-website-YOUR_REGION.amazonaws.com/**
 ```
 
 If you use CloudFront or a custom domain, add that HTTPS URL too.
+
+## Manual AWS Checklist
+
+The repository and GitHub configuration cannot change these settings inside
+your AWS account. Complete these steps in the AWS Console:
+
+1. In **IAM > Identity providers**, confirm the provider URL is
+   `https://token.actions.githubusercontent.com` and its audience is
+   `sts.amazonaws.com`.
+2. In **IAM > Roles > GitHubActionsFocusListS3Deploy > Trust relationships**,
+   apply the trust policy above with the immutable GitHub subject.
+3. Attach the S3 permissions policy above to that role, replacing
+   `YOUR_BUCKET_NAME` with
+   `focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an`.
+4. In the S3 bucket's **Properties**, enable static website hosting with
+   `index.html` as the index document and `404.html` as the error document.
+5. For the direct S3 website endpoint, turn off Block Public Access for this
+   bucket and apply the public-read bucket policy above. If account-level Block
+   Public Access is enabled, it will override the bucket setting; use the
+   private CloudFront setup instead of weakening the account-wide protection.
+6. For the recommended HTTPS setup, keep the bucket private and configure
+   CloudFront instead of enabling public S3 website access.
+7. After the first successful deployment, add the final website URL to
+   Supabase Authentication redirect URLs.
+
+Do not create or share AWS access keys. GitHub Actions uses the IAM role through
+OIDC.
+
+## Already Configured in GitHub
+
+The `aws-s3` GitHub environment is configured with:
+
+- AWS region: `ap-southeast-1`
+- S3 bucket: `focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an`
+- IAM role: `arn:aws:iam::990723918097:role/GitHubActionsFocusListS3Deploy`
+- Supabase public build settings stored outside the repository
+
+The deployment workflow builds the static website and uploads it without the
+`--delete` option, so unrelated existing objects are not removed.
