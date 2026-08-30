@@ -1,4 +1,4 @@
-// Core domain types for Focus List. These shapes map to the Supabase rows that
+// Core domain types for Focus List. These shapes map to the private S3 state that
 // the components render.
 
 export type Project = {

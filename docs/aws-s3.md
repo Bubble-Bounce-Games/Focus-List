@@ -9,11 +9,13 @@ Create a GitHub environment named `aws-s3`, then add these environment variables
 - `AWS_REGION` - for example `us-east-1`
 - `AWS_S3_BUCKET` - your bucket name
 - `AWS_ROLE_TO_ASSUME` - IAM role ARN trusted by GitHub Actions OIDC
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_COGNITO_USER_POOL_ID`
+- `NEXT_PUBLIC_COGNITO_APP_CLIENT_ID`
+- `NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL`
 
-The Supabase values are public browser keys, but keep them as GitHub variables
-or secrets so builds stay environment-driven.
+The Cognito IDs and API URL are public browser configuration, but keep them as
+GitHub variables so builds stay environment-driven. Never add a Cognito client
+secret or AWS access key to the frontend.
 
 ## S3 Website Settings
 
@@ -118,16 +120,17 @@ Or in GitHub, open **Actions > Deploy AWS S3 > Run workflow**.
 After deployment, open the bucket website endpoint from the S3 bucket
 **Properties > Static website hosting** section.
 
-## Supabase Redirect URLs
+## Cognito Return URLs
 
-In Supabase **Authentication > URL Configuration**, add the S3 website endpoint
-or CloudFront/custom-domain URL:
+In **Cognito > User pools > Applications > App clients**, add the final HTTPS
+login URL as an allowed callback URL:
 
 ```text
-http://YOUR_BUCKET_NAME.s3-website-YOUR_REGION.amazonaws.com/**
+https://YOUR_DOMAIN/login
 ```
 
-If you use CloudFront or a custom domain, add that HTTPS URL too.
+Cognito requires HTTPS except for localhost testing. Use CloudFront or another
+HTTPS frontend before production login.
 
 ## Manual AWS Checklist
 
@@ -150,8 +153,8 @@ your AWS account. Complete these steps in the AWS Console:
    private CloudFront setup instead of weakening the account-wide protection.
 6. For the recommended HTTPS setup, keep the bucket private and configure
    CloudFront instead of enabling public S3 website access.
-7. After the first successful deployment, add the final website URL to
-   Supabase Authentication redirect URLs.
+7. After CloudFront is configured, add the final HTTPS login URL to the Cognito
+   app client's callback and sign-out URLs.
 
 Do not create or share AWS access keys. GitHub Actions uses the IAM role through
 OIDC.
@@ -163,7 +166,7 @@ The `aws-s3` GitHub environment is configured with:
 - AWS region: `ap-southeast-1`
 - S3 bucket: `focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an`
 - IAM role: `arn:aws:iam::990723918097:role/GitHubActionsFocusListS3Deploy`
-- Supabase public build settings stored outside the repository
+- Cognito public IDs and the private data API URL stored outside the repository
 
 The deployment workflow builds the static website and uploads it without the
 `--delete` option, so unrelated existing objects are not removed.

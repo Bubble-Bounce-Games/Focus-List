@@ -1,8 +1,14 @@
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Project, Tag, Task } from "./types";
+"use client";
 
-const PINNED_NOTES_KEY = "fl.pinnedNotes";
-const CALENDAR_REMINDERS_KEY = "fl.calendarReminders";
+import {
+  useCallback,
+  useRef,
+  useSyncExternalStore,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+import { getCognitoIdToken } from "@/lib/cognito/client";
+import type { Project, Tag, Task } from "./types";
 
 export type PrivateS3State = {
   schemaVersion: 1;
@@ -19,36 +25,39 @@ export type VersionedPrivateS3State = {
   etag: string | null;
 };
 
-export type PrivateS3MigrationResult = {
-  status: "already-migrated" | "migrated";
-  counts: {
-    projects: number;
-    tags: number;
-    tasks: number;
-    notes: number;
-    reminders: number;
-  };
+type CollectionField = "notes" | "reminders";
+
+const EMPTY_STATE: PrivateS3State = {
+  schemaVersion: 1,
+  projects: [],
+  tags: [],
+  tasks: [],
+  notes: [],
+  reminders: [],
+  updatedAt: null,
 };
 
-type SupabaseRow = Record<string, unknown>;
-
-let migrationPromise: Promise<PrivateS3MigrationResult> | null = null;
+let currentState = EMPTY_STATE;
+let currentEtag: string | null = null;
+let loaded = false;
+let loadPromise: Promise<PrivateS3State> | null = null;
+let mutationQueue: Promise<unknown> = Promise.resolve();
+const listeners = new Set<() => void>();
 
 function dataApiUrl(): string | null {
   const value = process.env.NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL?.trim();
   return value ? value.replace(/\/$/, "") : null;
 }
 
-async function accessToken(): Promise<string> {
-  const supabase = getSupabaseBrowserClient();
-  if (!supabase) throw new Error("Supabase authentication is not configured");
+function notify(): void {
+  listeners.forEach((listener) => listener());
+}
 
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session?.access_token) {
-    throw new Error("A valid login session is required");
-  }
-
-  return data.session.access_token;
+function publish(state: PrivateS3State, etag: string | null): void {
+  currentState = state;
+  currentEtag = etag;
+  loaded = true;
+  notify();
 }
 
 async function stateRequest(
@@ -59,7 +68,7 @@ async function stateRequest(
   const baseUrl = dataApiUrl();
   if (!baseUrl) throw new Error("Private S3 data API is not configured");
 
-  const token = await accessToken();
+  const token = await getCognitoIdToken();
   const response = await fetch(`${baseUrl}/state`, {
     method,
     cache: "no-store",
@@ -71,7 +80,14 @@ async function stateRequest(
     ...(state ? { body: JSON.stringify(state) } : {}),
   });
 
-  const payload = (await response.json()) as PrivateS3State | { error?: string };
+  const text = await response.text();
+  let payload: PrivateS3State | { error?: string } = {};
+  try {
+    payload = text ? JSON.parse(text) as PrivateS3State | { error?: string } : {};
+  } catch {
+    // API Gateway can return a non-JSON authorization error.
+  }
+
   if (!response.ok) {
     const message = "error" in payload && payload.error
       ? payload.error
@@ -96,124 +112,89 @@ export async function savePrivateS3State(
   return stateRequest("PUT", state, etag);
 }
 
-function mapProject(row: SupabaseRow): Project {
-  return {
-    id: String(row.id),
-    name: String(row.name),
-    color: String(row.color),
-  };
-}
-
-function mapTag(row: SupabaseRow): Tag {
-  return {
-    id: String(row.id),
-    name: String(row.name),
-    color: String(row.color),
-  };
-}
-
-function mapTask(row: SupabaseRow): Task {
-  return {
-    id: String(row.id),
-    title: String(row.title),
-    projectId: String(row.project_id),
-    tagId: String(row.tag_id),
-    progress: Number(row.progress),
-    completedAt: row.completed_at ? String(row.completed_at) : null,
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
-    progressNote: String(row.progress_note ?? ""),
-    blocker: String(row.blocker ?? ""),
-    notes: String(row.notes ?? ""),
-    dueDate: row.due_date ? String(row.due_date) : null,
-    archivedAt: row.archived_at ? String(row.archived_at) : null,
-    deletedAt: row.deleted_at ? String(row.deleted_at) : null,
-  };
-}
-
-function localArray(key: string): unknown[] {
-  try {
-    const value = JSON.parse(window.localStorage.getItem(key) ?? "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
-}
-
-function counts(state: PrivateS3State): PrivateS3MigrationResult["counts"] {
-  return {
-    projects: state.projects.length,
-    tags: state.tags.length,
-    tasks: state.tasks.length,
-    notes: state.notes.length,
-    reminders: state.reminders.length,
-  };
-}
-
-function ids(values: unknown[]): string[] {
-  return values
-    .map((value) => {
-      if (!value || typeof value !== "object" || !("id" in value)) return "";
-      return String(value.id);
+export function ensurePrivateS3State(): Promise<PrivateS3State> {
+  if (loaded) return Promise.resolve(currentState);
+  loadPromise ??= loadPrivateS3State()
+    .then(({ state, etag }) => {
+      publish(state, etag);
+      return state;
     })
-    .filter(Boolean)
-    .sort();
+    .finally(() => {
+      loadPromise = null;
+    });
+  return loadPromise;
 }
 
-function sameIds(left: unknown[], right: unknown[]): boolean {
-  return JSON.stringify(ids(left)) === JSON.stringify(ids(right));
+export function resetPrivateS3State(): void {
+  currentState = EMPTY_STATE;
+  currentEtag = null;
+  loaded = false;
+  loadPromise = null;
+  mutationQueue = Promise.resolve();
+  notify();
 }
 
-function verified(source: PrivateS3State, stored: PrivateS3State): boolean {
-  return (
-    sameIds(source.projects, stored.projects) &&
-    sameIds(source.tags, stored.tags) &&
-    sameIds(source.tasks, stored.tasks) &&
-    sameIds(source.notes, stored.notes) &&
-    sameIds(source.reminders, stored.reminders)
+export function subscribePrivateS3State(listener: () => void): () => void {
+  listeners.add(listener);
+  void ensurePrivateS3State().catch(() => notify());
+  return () => listeners.delete(listener);
+}
+
+export function getPrivateS3Snapshot(): PrivateS3State {
+  return currentState;
+}
+
+export function usePrivateS3State(): PrivateS3State {
+  return useSyncExternalStore(
+    subscribePrivateS3State,
+    getPrivateS3Snapshot,
+    () => EMPTY_STATE,
   );
 }
 
-async function runMigration(): Promise<PrivateS3MigrationResult> {
-  const existing = await loadPrivateS3State();
-  if (existing.state.updatedAt) {
-    return { status: "already-migrated", counts: counts(existing.state) };
-  }
+export function updatePrivateS3State(
+  updater: (state: PrivateS3State) => PrivateS3State,
+): Promise<PrivateS3State> {
+  const operation = mutationQueue.then(async () => {
+    await ensurePrivateS3State();
+    const previousState = currentState;
+    const previousEtag = currentEtag;
+    const nextState = updater(previousState);
+    publish(nextState, previousEtag);
 
-  const supabase = getSupabaseBrowserClient();
-  if (!supabase) throw new Error("Supabase authentication is not configured");
-
-  const [projectsResult, tagsResult, tasksResult] = await Promise.all([
-    supabase.from("projects").select("*"),
-    supabase.from("tags").select("*"),
-    supabase.from("tasks").select("*"),
-  ]);
-
-  const queryError = projectsResult.error ?? tagsResult.error ?? tasksResult.error;
-  if (queryError) throw new Error(`Unable to read Supabase data: ${queryError.message}`);
-
-  const source: PrivateS3State = {
-    schemaVersion: 1,
-    projects: (projectsResult.data ?? []).map(mapProject),
-    tags: (tagsResult.data ?? []).map(mapTag),
-    tasks: (tasksResult.data ?? []).map(mapTask),
-    notes: localArray(PINNED_NOTES_KEY),
-    reminders: localArray(CALENDAR_REMINDERS_KEY),
-    updatedAt: null,
-  };
-
-  await savePrivateS3State(source, existing.etag);
-  const stored = await loadPrivateS3State();
-  if (!verified(source, stored.state)) {
-    throw new Error("Private S3 verification did not match the Supabase source");
-  }
-
-  return { status: "migrated", counts: counts(stored.state) };
+    try {
+      const saved = await savePrivateS3State(nextState, previousEtag);
+      publish(saved.state, saved.etag);
+      return saved.state;
+    } catch (error) {
+      publish(previousState, previousEtag);
+      throw error;
+    }
+  });
+  mutationQueue = operation.catch(() => undefined);
+  return operation;
 }
 
-export function migrateCurrentUserToPrivateS3(): Promise<PrivateS3MigrationResult> {
-  migrationPromise ??= runMigration().finally(() => {
-    migrationPromise = null;
-  });
-  return migrationPromise;
+export function usePrivateS3Collection<T>(
+  field: CollectionField,
+  initial: T,
+): [T, Dispatch<SetStateAction<T>>] {
+  const initialRef = useRef(initial);
+  const value = useSyncExternalStore(
+    subscribePrivateS3State,
+    useCallback(() => getPrivateS3Snapshot()[field] as T, [field]),
+    useCallback(() => initialRef.current, []),
+  );
+
+  const setValue = useCallback<Dispatch<SetStateAction<T>>>((next) => {
+    void updatePrivateS3State((state) => {
+      const previous = state[field] as T;
+      const resolved = typeof next === "function"
+        ? (next as (value: T) => T)(previous)
+        : next;
+      return { ...state, [field]: resolved };
+    });
+  }, [field]);
+
+  return [value, setValue];
 }

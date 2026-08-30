@@ -2,9 +2,15 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, UserRound } from "lucide-react";
-import type { AuthError } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, MailCheck, UserRound } from "lucide-react";
+import {
+  confirmSignUp,
+  getCognitoUserPool,
+  notifyAuthChanged,
+  resendConfirmationCode,
+  signIn,
+  signUp,
+} from "@/lib/cognito/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,41 +18,25 @@ import { Label } from "@/components/ui/label";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const faviconPath = `${basePath}/Favicon.png`;
 
-function getEmailRedirectUrl() {
-  return `${window.location.origin}${basePath}/login`;
-}
-
-function getAuthErrorMessage(error: AuthError) {
-  if (error.code === "email_not_confirmed") {
-    return "Check your email and confirm your account before signing in.";
-  }
-  if (error.code === "invalid_credentials") {
-    return "That email and password do not match.";
-  }
-  if (error.code === "user_already_exists") {
-    return "An account with this email already exists. Sign in instead.";
-  }
-
-  const text = error.message.toLowerCase();
-  if (text.includes("email not confirmed")) {
-    return "Check your email and confirm your account before signing in.";
-  }
-  if (text.includes("invalid login credentials")) {
-    return "That email and password do not match.";
-  }
-  if (text.includes("user already registered")) {
-    return "An account with this email already exists. Sign in instead.";
-  }
-
-  return error.message;
+function getAuthErrorMessage(error: unknown) {
+  const value = error as { code?: string; name?: string; message?: string };
+  const code = value.code ?? value.name ?? "";
+  if (code === "UserNotConfirmedException") return "Enter the confirmation code sent to your email.";
+  if (code === "NotAuthorizedException") return "That email and password do not match.";
+  if (code === "UsernameExistsException") return "An account with this email already exists. Sign in instead.";
+  if (code === "CodeMismatchException") return "That confirmation code is incorrect.";
+  if (code === "ExpiredCodeException") return "That code has expired. Request a new one.";
+  if (code === "LimitExceededException") return "Too many attempts. Wait a moment and try again.";
+  return value.message ?? "Unable to complete authentication. Try again.";
 }
 
 export function AuthPage() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const configured = Boolean(getCognitoUserPool());
+  const [mode, setMode] = useState<"login" | "signup" | "confirm">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmationCode, setConfirmationCode] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"error" | "success">("error");
   const [busy, setBusy] = useState(false);
@@ -54,34 +44,65 @@ export function AuthPage() {
   const [touched, setTouched] = useState({ email: false, password: false });
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordValid = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
-  const formValid = emailValid && passwordValid;
+  const formValid = mode === "confirm"
+    ? emailValid && /^\d{6}$/.test(confirmationCode)
+    : emailValid && passwordValid;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setTouched({ email: true, password: true });
-    if (!supabase) {
+    setTouched({ email: true, password: mode === "confirm" ? false : true });
+    if (!configured) {
       setMessageType("error");
-      setMessage("This deployment is missing the Supabase connection settings.");
+      setMessage("This deployment is missing the Cognito connection settings.");
       return;
     }
-    if (!emailValid || !passwordValid) return;
+    if (!formValid) return;
     setBusy(true); setMessage("");
     try {
-      const result = mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: getEmailRedirectUrl() } });
-      if (result.error) {
-        setMessageType("error");
-        setMessage(getAuthErrorMessage(result.error));
-      } else if (mode === "signup" && !result.data.session) {
+      if (mode === "signup") {
+        const result = await signUp(email, password);
+        if (result.userConfirmed) {
+          setMode("login");
+          setMessageType("success");
+          setMessage("Account created. You can now sign in.");
+          return;
+        }
+        setMode("confirm");
         setMessageType("success");
-        setMessage("Check your email and confirm your account before signing in.");
+        setMessage("We sent a six-digit confirmation code to your email.");
+      } else if (mode === "confirm") {
+        await confirmSignUp(email, confirmationCode);
         setMode("login");
+        setConfirmationCode("");
+        setMessageType("success");
+        setMessage("Email confirmed. Sign in to open your workspace.");
       } else {
+        await signIn(email, password);
+        notifyAuthChanged();
         router.push("/");
       }
-    } catch { setMessageType("error"); setMessage("Unable to reach the service. Check your connection and try again."); }
+    } catch (error) {
+      const value = error as { code?: string; name?: string };
+      if ((value.code ?? value.name) === "UserNotConfirmedException") setMode("confirm");
+      setMessageType("error");
+      setMessage(getAuthErrorMessage(error));
+    }
     finally { setBusy(false); }
+  }
+
+  async function resendCode() {
+    if (!emailValid) return;
+    setBusy(true);
+    try {
+      await resendConfirmationCode(email);
+      setMessageType("success");
+      setMessage("A new confirmation code was sent to your email.");
+    } catch (error) {
+      setMessageType("error");
+      setMessage(getAuthErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -103,10 +124,14 @@ export function AuthPage() {
               <UserRound className="h-5 w-5" />
             </div>
             <h1 className="text-headline-small font-semibold text-on-surface">
-              {mode === "login" ? "Welcome back" : "Create your account"}
+              {mode === "login" ? "Welcome back" : mode === "signup" ? "Create your account" : "Confirm your email"}
             </h1>
             <p className="mt-2 text-body-medium text-on-surface-variant">
-              {mode === "login" ? "Pick up where your best work begins." : "Build a calmer way to organize your day."}
+              {mode === "login"
+                ? "Pick up where your best work begins."
+                : mode === "signup"
+                ? "Build a calmer way to organize your day."
+                : "Enter the code Amazon Cognito sent to your inbox."}
             </p>
           </div>
 
@@ -133,8 +158,7 @@ export function AuthPage() {
               )}
             </div>
 
-            {/* Password */}
-            <div className="space-y-2">
+            {mode !== "confirm" ? <div className="space-y-2">
               <Label htmlFor="auth-password">Password</Label>
               <span className="relative block">
                 <Input
@@ -163,7 +187,25 @@ export function AuthPage() {
               <p className={`text-label-medium ${touched.password && !passwordValid ? "text-error" : "text-on-surface-variant"}`}>
                 Use 8+ characters with at least one letter and one number.
               </p>
-            </div>
+            </div> : (
+              <div className="space-y-2">
+                <Label htmlFor="confirmation-code">Confirmation code</Label>
+                <Input
+                  id="confirmation-code"
+                  required
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={confirmationCode}
+                  onChange={(event) => setConfirmationCode(event.target.value.replace(/\D/g, ""))}
+                  className="tracking-[0.2em]"
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={resendCode} disabled={busy} className="px-2">
+                  Send a new code
+                </Button>
+              </div>
+            )}
 
             {/* Status message */}
             {message && (
@@ -181,8 +223,8 @@ export function AuthPage() {
               disabled={busy || !formValid}
               className="h-12 w-full gap-2"
             >
-              {busy ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
-              <ArrowRight className="h-4 w-4" />
+              {busy ? "Please wait..." : mode === "login" ? "Sign in" : mode === "signup" ? "Create account" : "Confirm email"}
+              {mode === "confirm" ? <MailCheck className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
 
@@ -197,7 +239,7 @@ export function AuthPage() {
             }}
             className="mt-6 h-auto px-3 py-1 text-body-medium text-primary hover:underline"
           >
-            {mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+            {mode === "login" ? "Need an account? Sign up" : "Return to sign in"}
           </Button>
 
           {/* Footer reassurance */}

@@ -4,7 +4,7 @@ A calm, cloud-synced personal task manager. Track each task's progress with a
 slider — when a task reaches 100% it automatically moves into the Done
 section, grouped by its original project and tag.
 
-Tasks, projects, and tags are stored in Supabase per signed-in account, so the
+Tasks, projects, notes, and reminders are stored in private S3 per signed-in Cognito account, so the
 same workspace is available when you log in from another device or location.
 
 ## Features
@@ -18,7 +18,7 @@ same workspace is available when you log in from another device or location.
 - **Sorting** by progress (low/high), newest, oldest, project, or task name.
 - **Done section** grouped by project, collapsible, with completion dates.
 - **Add/Edit slide-over panel** with unsaved-changes guard.
-- **Cloud persistence** — Supabase stores tasks/projects/tags per account;
+- **Cloud persistence** — private S3 stores workspace data per account;
   localStorage stores small UI preferences (filters, sort).
 - **Desktop-optimized, fixed viewport** — no full-page scrolling.
 
@@ -26,7 +26,8 @@ same workspace is available when you log in from another device or location.
 
 - [Next.js 16](https://nextjs.org/) (App Router) + TypeScript
 - [Tailwind CSS 4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
-- [Supabase](https://supabase.com/) for authentication and per-user cloud data
+- [Amazon Cognito](https://aws.amazon.com/cognito/) for authentication and email confirmation
+- Private Amazon S3, API Gateway, and Lambda for per-user cloud data
 - [Framer Motion](https://www.framer.com/motion/) for restrained animations
 - [Lucide](https://lucide.dev/) icons
 
@@ -55,38 +56,25 @@ For AWS S3 static hosting, use `yarn build:aws` and the manual GitHub Actions
 workflow in [docs/aws-s3.md](./docs/aws-s3.md). The S3 build does not use the
 GitHub Pages `/Focus-List` base path.
 
-## Supabase accounts
+## AWS accounts and storage
 
-The account sign-in screen is enabled when `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set. Create a Supabase project, copy those
-values from **Project Settings > API**, and run [`supabase/schema.sql`](./supabase/schema.sql)
-in the SQL Editor. The schema creates user-owned projects, tags, and tasks with
-Row Level Security policies.
-The same schema creates a private profile record automatically for each new
-account and backfills accounts that already exist.
+The account screen is enabled when `NEXT_PUBLIC_COGNITO_USER_POOL_ID` and
+`NEXT_PUBLIC_COGNITO_APP_CLIENT_ID` are set. Cognito handles signup, email
+confirmation, login sessions, and password verification. The SPA app client
+must not have a client secret.
 
-In **Authentication > Providers**, enable Email. For local development add
-`http://localhost:3000/**` to **Authentication > URL Configuration > Redirect URLs**.
-For GitHub Pages, set the Site URL to
-`https://bubble-bounce-games.github.io/Focus-List` and add
-`https://bubble-bounce-games.github.io/Focus-List/**` to Redirect URLs. Never
-expose a Supabase service-role key in this app; the browser uses only the
-publishable/anon key and RLS.
-
-After running the schema, each new account starts with an empty workspace. The
-app reads and writes tasks, projects, and tags in Supabase, scoped by the
-signed-in user's `auth.uid()`. Supabase keeps the browser session across tab
-closes; signing out clears the session, and signing in again restores the same
-cloud data. Realtime is enabled by the final statements in the schema so open
-devices refresh when data changes.
+`NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL` connects the browser to API Gateway.
+API Gateway validates the Cognito token before Lambda reads or writes the
+signed-in user's versioned JSON document in private S3. See
+[`docs/phase 1/Step1.md`](./docs/phase%201/Step1.md) for the AWS setup.
 
 ## Local data
 
-- **Supabase** stores tasks, projects, and tags per authenticated user.
+- **Private S3** stores projects, tags, tasks, pinned notes, and reminders per authenticated user.
 - **localStorage** stores only UI preferences (search text, selected filters,
   sort order) under the `fl.*` keys.
 - Clearing your browser's site data signs out and resets UI preferences, but
-  tasks, projects, and tags return after signing in again.
+  cloud workspace data returns after signing in again.
 
 ## Project conventions
 

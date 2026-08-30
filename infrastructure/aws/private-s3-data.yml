@@ -10,13 +10,12 @@ Parameters:
     Type: String
     Description: Exact public website origin allowed to call the data API.
     Default: http://focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an.s3-website-ap-southeast-1.amazonaws.com
-  SupabaseUrl:
+  CognitoUserPoolId:
     Type: String
-    Description: Existing Supabase project URL used only to validate user sessions.
-  SupabasePublishableKey:
+    Description: Cognito user pool that authenticates Focus List users.
+  CognitoAppClientId:
     Type: String
-    NoEcho: true
-    Description: Existing Supabase publishable key used to validate user sessions.
+    Description: Public SPA app client ID accepted by the data API.
   MaxStateBytes:
     Type: Number
     Default: 1048576
@@ -91,8 +90,6 @@ Resources:
         Variables:
           DATA_BUCKET: !Ref DataBucket
           MAX_STATE_BYTES: !Ref MaxStateBytes
-          SUPABASE_URL: !Ref SupabaseUrl
-          SUPABASE_PUBLISHABLE_KEY: !Ref SupabasePublishableKey
       Code:
         ZipFile: |
           const {
@@ -104,8 +101,6 @@ Resources:
           const s3 = new S3Client({});
           const bucket = process.env.DATA_BUCKET;
           const maxStateBytes = Number(process.env.MAX_STATE_BYTES);
-          const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, "");
-          const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 
           function reply(statusCode, body, headers = {}) {
             return {
@@ -117,28 +112,6 @@ Resources:
               },
               body: body === undefined ? "" : JSON.stringify(body),
             };
-          }
-
-          function bearerToken(headers = {}) {
-            const value = headers.authorization || headers.Authorization || "";
-            const match = value.match(/^Bearer\s+(.+)$/i);
-            return match ? match[1] : null;
-          }
-
-          async function authenticatedUser(headers) {
-            const token = bearerToken(headers);
-            if (!token) return null;
-
-            const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
-              headers: {
-                apikey: supabaseKey,
-                authorization: `Bearer ${token}`,
-              },
-            });
-
-            if (!response.ok) return null;
-            const user = await response.json();
-            return typeof user.id === "string" && user.id ? user : null;
           }
 
           function emptyState() {
@@ -178,12 +151,12 @@ Resources:
               return reply(404, { error: "Not found" });
             }
 
-            const user = await authenticatedUser(event.headers);
-            if (!user) {
+            const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+            if (typeof userId !== "string" || !userId) {
               return reply(401, { error: "A valid login session is required" });
             }
 
-            const key = `users/${user.id}/state.json`;
+            const key = `users/${userId}/state.json`;
 
             if (method === "GET") {
               try {
@@ -282,11 +255,42 @@ Resources:
       IntegrationUri: !GetAtt DataApiFunction.Arn
       PayloadFormatVersion: "2.0"
 
+  DataApiAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref DataApi
+      AuthorizerType: JWT
+      IdentitySource:
+        - $request.header.Authorization
+      JwtConfiguration:
+        Audience:
+          - !Ref CognitoAppClientId
+        Issuer: !Sub https://cognito-idp.${AWS::Region}.${AWS::URLSuffix}/${CognitoUserPoolId}
+      Name: FocusListCognitoAuthorizer
+
   DataApiRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref DataApi
       RouteKey: $default
+      Target: !Sub integrations/${DataApiIntegration}
+
+  DataApiGetStateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DataApi
+      AuthorizationType: JWT
+      AuthorizerId: !Ref DataApiAuthorizer
+      RouteKey: GET /state
+      Target: !Sub integrations/${DataApiIntegration}
+
+  DataApiPutStateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DataApi
+      AuthorizationType: JWT
+      AuthorizerId: !Ref DataApiAuthorizer
+      RouteKey: PUT /state
       Target: !Sub integrations/${DataApiIntegration}
 
   DataApiStage:

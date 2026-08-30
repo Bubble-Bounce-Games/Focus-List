@@ -19,8 +19,8 @@ jobs:
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }}
+      NEXT_PUBLIC_COGNITO_APP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_COGNITO_APP_CLIENT_ID }}
       NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL: ${{ vars.NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL }}
     steps:
       - name: Checkout
@@ -48,6 +48,9 @@ jobs:
         run: |
           test -n "$AWS_REGION"
           test -n "$AWS_S3_BUCKET"
+          test -n "$NEXT_PUBLIC_COGNITO_USER_POOL_ID"
+          test -n "$NEXT_PUBLIC_COGNITO_APP_CLIENT_ID"
+          test -n "$NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL"
 
       - name: Configure S3 static website
         run: aws s3 website "s3://$AWS_S3_BUCKET" --index-document index.html --error-document 404.html
