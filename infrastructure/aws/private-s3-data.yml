@@ -400,6 +400,8 @@ Resources:
 
   DataApiStage:
     Type: AWS::ApiGatewayV2::Stage
+    DependsOn:
+      - DataApiSignupRoute
     Properties:
       ApiId: !Ref DataApi
       StageName: $default
