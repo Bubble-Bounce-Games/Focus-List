@@ -7,7 +7,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { getCognitoIdToken } from "@/lib/cognito/client";
+import { getCognitoIdToken, hasCurrentCognitoUser } from "@/lib/cognito/client";
 import type { Project, Tag, Task } from "./types";
 
 export type PrivateS3State = {
@@ -114,6 +114,10 @@ export async function savePrivateS3State(
 
 export function ensurePrivateS3State(): Promise<PrivateS3State> {
   if (loaded) return Promise.resolve(currentState);
+  if (!hasCurrentCognitoUser()) {
+    loaded = true;
+    return Promise.resolve(currentState);
+  }
   loadPromise ??= loadPrivateS3State()
     .then(({ state, etag }) => {
       publish(state, etag);

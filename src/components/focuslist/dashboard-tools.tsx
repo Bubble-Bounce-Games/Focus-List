@@ -23,6 +23,8 @@ type DashboardToolsProps = {
   onClose: () => void;
   onRestore?: (task: Task) => void;
   onSetReminder?: (taskId: string, date: string | null) => void;
+  authenticated: boolean;
+  onRequireAuth: () => void;
 };
 
 function createdLabel(value: string) {
@@ -42,7 +44,11 @@ function dateTitle(value: string) {
   }).format(new Date(`${value}T00:00:00`));
 }
 
-function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
+function CalendarTool({
+  tasks,
+  authenticated,
+  onRequireAuth,
+}: Pick<DashboardToolsProps, "tasks" | "authenticated" | "onRequireAuth">) {
   const today = new Date();
   const todayKey = toDateKey(today);
   const currentYear = today.getFullYear();
@@ -92,6 +98,10 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
 
   function handleAddReminder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!authenticated) {
+      onRequireAuth();
+      return;
+    }
     const title = draft.trim();
     if (!title) return;
     setCalendarReminders((current) => [
@@ -229,7 +239,14 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
   );
 }
 
-export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToolsProps) {
+export function DashboardTools({
+  view,
+  tasks,
+  onClose,
+  onRestore,
+  authenticated,
+  onRequireAuth,
+}: DashboardToolsProps) {
   const dueTasks = tasks.filter((task) => !task.completedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const title = view === "calendar" ? "Reminder calendar" : view === "archive" ? "Archive" : "Deleted items";
   const Icon = view === "calendar" ? CalendarDays : view === "archive" ? FolderArchive : Trash2;
@@ -255,7 +272,11 @@ export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToo
       </header>
       <div className="fl-scroll flex-1 overflow-y-auto p-4 sm:p-6">
         {view === "calendar" ? (
-          <CalendarTool tasks={tasks} />
+          <CalendarTool
+            tasks={tasks}
+            authenticated={authenticated}
+            onRequireAuth={onRequireAuth}
+          />
         ) : rows.length === 0 ? (
           <EmptyState
             icon={<CheckCircle2 className="size-6 text-success" />}

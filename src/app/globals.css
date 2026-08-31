@@ -580,32 +580,6 @@
   background: var(--md-primary);
 }
 
-.landing-page {
-  background:
-    radial-gradient(circle at 75% 8%, color-mix(in srgb, var(--md-primary) 8%, transparent), transparent 24%),
-    var(--md-surface-container-lowest);
-}
-
-.landing-board {
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--md-surface-container-lowest) 92%, transparent);
-}
-
-.landing-task {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--md-outline-variant);
-}
-
-.landing-task svg { width: 19px; height: 19px; margin-top: 2px; }
-.landing-task p { color: var(--md-on-surface); font-size: 14px; font-weight: 600; }
-.landing-task span { display: block; margin-top: 4px; color: var(--md-on-surface-variant); font-size: 11px; }
-.landing-task i { display: block; height: 5px; margin-top: 10px; overflow: hidden; background: var(--md-surface-variant); }
-.landing-task em { display: block; height: 100%; background: var(--md-primary); }
-.landing-task b { color: var(--md-on-surface-variant); font-size: 12px; font-weight: 600; }
-
 .task-icon {
   position: absolute;
   z-index: 1;

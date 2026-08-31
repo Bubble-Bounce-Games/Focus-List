@@ -43,7 +43,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(nextUser);
       setLoading(false);
     });
-    const handleAuthChange = () => void refresh();
+    const handleAuthChange = () => {
+      resetPrivateS3State();
+      void refresh();
+    };
     window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChange);
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChange);

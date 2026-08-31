@@ -111,7 +111,7 @@ AllowedHttpsOrigin
 1. Open `https://focus-list.abhijeetanand.com`.
 2. Confirm HTTP redirects to HTTPS.
 3. Confirm `/login/` loads directly.
-4. Create and confirm a Cognito account.
+4. Create a Cognito account and confirm the dashboard opens immediately.
 5. Create a project, task, note, and reminder.
 6. Sign out and back in, then confirm the data returns.
 7. In the website S3 bucket, enable **Block all public access** after CloudFront

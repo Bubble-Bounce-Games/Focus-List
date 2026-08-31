@@ -14,6 +14,10 @@ Parameters:
     Type: String
     Description: HTTPS CloudFront or custom-domain origin allowed to call the data API.
     Default: https://focus-list.abhijeetanand.com
+  AllowedGithubPagesOrigin:
+    Type: String
+    Description: GitHub Pages origin allowed to call the data API during the AWS cutover.
+    Default: https://bubble-bounce-games.github.io
   CognitoUserPoolId:
     Type: String
     Description: Cognito user pool that authenticates Focus List users.
@@ -76,6 +80,12 @@ Resources:
                 Resource: !Sub ${DataBucket.Arn}/users/*
               - Effect: Allow
                 Action:
+                  - cognito-idp:AdminCreateUser
+                  - cognito-idp:AdminDeleteUser
+                  - cognito-idp:AdminSetUserPassword
+                Resource: !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}
+              - Effect: Allow
+                Action:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
@@ -94,6 +104,7 @@ Resources:
         Variables:
           DATA_BUCKET: !Ref DataBucket
           MAX_STATE_BYTES: !Ref MaxStateBytes
+          USER_POOL_ID: !Ref CognitoUserPoolId
       Code:
         ZipFile: |
           const {
@@ -101,10 +112,18 @@ Resources:
             PutObjectCommand,
             S3Client,
           } = require("@aws-sdk/client-s3");
+          const {
+            AdminCreateUserCommand,
+            AdminDeleteUserCommand,
+            AdminSetUserPasswordCommand,
+            CognitoIdentityProviderClient,
+          } = require("@aws-sdk/client-cognito-identity-provider");
 
           const s3 = new S3Client({});
+          const cognito = new CognitoIdentityProviderClient({});
           const bucket = process.env.DATA_BUCKET;
           const maxStateBytes = Number(process.env.MAX_STATE_BYTES);
+          const userPoolId = process.env.USER_POOL_ID;
 
           function reply(statusCode, body, headers = {}) {
             return {
@@ -139,6 +158,73 @@ Resources:
               .every((field) => Array.isArray(value[field]));
           }
 
+          function requestBody(event) {
+            const encoded = event.body || "";
+            const raw = event.isBase64Encoded
+              ? Buffer.from(encoded, "base64").toString("utf8")
+              : encoded;
+            return JSON.parse(raw);
+          }
+
+          async function createAccount(event) {
+            let input;
+            try {
+              input = requestBody(event);
+            } catch {
+              return reply(400, { error: "Request body must be valid JSON" });
+            }
+
+            const email = typeof input.email === "string"
+              ? input.email.trim().toLowerCase()
+              : "";
+            const password = typeof input.password === "string" ? input.password : "";
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              return reply(400, { code: "InvalidEmail", error: "Enter a valid email address" });
+            }
+            if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+              return reply(400, {
+                code: "InvalidPasswordException",
+                error: "Use 8 or more characters with at least one letter and one number",
+              });
+            }
+
+            let created = false;
+            try {
+              await cognito.send(new AdminCreateUserCommand({
+                UserPoolId: userPoolId,
+                Username: email,
+                UserAttributes: [{ Name: "email", Value: email }],
+                MessageAction: "SUPPRESS",
+              }));
+              created = true;
+              await cognito.send(new AdminSetUserPasswordCommand({
+                UserPoolId: userPoolId,
+                Username: email,
+                Password: password,
+                Permanent: true,
+              }));
+              return reply(201, { created: true });
+            } catch (error) {
+              if (created) {
+                await cognito.send(new AdminDeleteUserCommand({
+                  UserPoolId: userPoolId,
+                  Username: email,
+                })).catch(() => undefined);
+              }
+              if (error.name === "UsernameExistsException") {
+                return reply(409, {
+                  code: error.name,
+                  error: "An account with this email already exists",
+                });
+              }
+              if (error.name === "InvalidPasswordException") {
+                return reply(400, { code: error.name, error: error.message });
+              }
+              console.error("Unable to create account", error);
+              return reply(500, { error: "Unable to create account" });
+            }
+          }
+
           exports.handler = async (event) => {
             const method = event.requestContext?.http?.method || "";
             const path = event.rawPath || "/";
@@ -149,6 +235,10 @@ Resources:
 
             if (method === "GET" && path === "/health") {
               return reply(200, { status: "ok" });
+            }
+
+            if (method === "POST" && path === "/signup") {
+              return createAccount(event);
             }
 
             if (path !== "/state" || !["GET", "PUT"].includes(method)) {
@@ -243,11 +333,13 @@ Resources:
           - if-match
         AllowMethods:
           - GET
+          - POST
           - PUT
           - OPTIONS
         AllowOrigins:
           - !Ref AllowedOrigin
           - !Ref AllowedHttpsOrigin
+          - !Ref AllowedGithubPagesOrigin
         ExposeHeaders:
           - etag
         MaxAge: 300
@@ -298,12 +390,24 @@ Resources:
       RouteKey: PUT /state
       Target: !Sub integrations/${DataApiIntegration}
 
+  DataApiSignupRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref DataApi
+      AuthorizationType: NONE
+      RouteKey: POST /signup
+      Target: !Sub integrations/${DataApiIntegration}
+
   DataApiStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref DataApi
       StageName: $default
       AutoDeploy: true
+      RouteSettings:
+        "POST /signup":
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
 
   DataApiInvokePermission:
     Type: AWS::Lambda::Permission

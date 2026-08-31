@@ -6,17 +6,17 @@ Focus List uses AWS services for both authentication and application data:
 
 ```text
 Amazon Cognito
-  Creates accounts, verifies email addresses, and issues login tokens
+  Stores accounts, verifies passwords, and issues login tokens
 
 API Gateway and Lambda
-  Validate the Cognito token and authorize access to one user's data
+  Create active accounts and authorize access to one user's data
 
 Private Amazon S3 bucket
   Stores projects, tags, tasks, pinned notes, and reminders
 ```
 
-S3 does not process passwords or send email; Cognito provides those
-authentication features.
+S3 does not process passwords. Cognito stores password credentials, while the
+API creates an active account without requiring an email confirmation code.
 
 ## Existing AWS Resources
 
@@ -82,15 +82,17 @@ CognitoAppClientId
   The Client ID under Cognito > Applications > App clients
 ```
 
-10. Keep the existing values for `DataBucketName`, `AllowedOrigin`, and
-    `MaxStateBytes`.
+10. Keep the existing values for `DataBucketName`, `AllowedOrigin`,
+    `AllowedHttpsOrigin`, `AllowedGithubPagesOrigin`, and `MaxStateBytes`.
 11. Select **Next** through the stack options.
 12. Acknowledge that CloudFormation may update IAM resources.
 13. Select **Submit** to make a direct update.
 14. Wait for `UPDATE_COMPLETE`.
 
 The template provides protected `GET /state` and `PUT /state` routes with a
-Cognito JWT authorizer. `GET /health` remains public for availability checks.
+Cognito JWT authorizer. `POST /signup` creates an active Cognito account and is
+throttled separately; it cannot read or write user S3 objects. `GET /health`
+remains public for availability checks.
 
 ## Configure GitHub
 
@@ -114,15 +116,14 @@ AWS_ROLE_TO_ASSUME
 ## Deploy and Test
 
 1. Run **Actions > Deploy AWS S3 > Run workflow**.
-2. Open the website and select **Create account**.
-3. Enter an email address and password.
-4. Find the six-digit Cognito confirmation code in the email inbox.
-5. Enter the code on the confirmation screen.
-6. Sign in.
-7. Create one project, task, pinned note, and reminder.
-8. Sign out and sign in again. Confirm all four items are still present.
-9. Sign in on another device and confirm the same data loads.
-10. Open the private S3 bucket and confirm an object exists at:
+2. Open the website and confirm the dashboard appears without signing in.
+3. Select **Add Task** or **Create Project** and confirm the login page opens.
+4. Create an account with an email address and password.
+5. Confirm the app signs in immediately and returns to the dashboard.
+6. Create one project, task, pinned note, and reminder.
+7. Sign out and sign in again. Confirm all four items are still present.
+8. Sign in on another device and confirm the same data loads.
+9. Open the private S3 bucket and confirm an object exists at:
 
 ```text
 users/<cognito-user-id>/state.json
@@ -130,12 +131,12 @@ users/<cognito-user-id>/state.json
 
 Do not make this object public.
 
-## Email Delivery
+## Account Activation
 
-Cognito's default email sender is suitable for initial testing. For production
-branding and higher delivery limits, configure an Amazon SES verified identity
-later. S3 is only the application data store and does not send confirmation
-email.
+`POST /signup` uses `AdminCreateUser` with email delivery suppressed, sets the
+submitted password as permanent, and then the browser signs in through the
+public Cognito app client. The Lambda role is scoped to this user pool. Private
+S3 state routes still require a valid Cognito token.
 
 ## Important HTTPS Requirement
 

@@ -27,7 +27,7 @@ another device or location.
 
 - [Next.js 16](https://nextjs.org/) (App Router) + TypeScript
 - [Tailwind CSS 4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
-- [Amazon Cognito](https://aws.amazon.com/cognito/) for authentication and email confirmation
+- [Amazon Cognito](https://aws.amazon.com/cognito/) for account authentication
 - Private Amazon S3, API Gateway, and Lambda for per-user cloud data
 - [Framer Motion](https://www.framer.com/motion/) for restrained animations
 - [Lucide](https://lucide.dev/) icons
@@ -63,9 +63,10 @@ For production HTTPS and the custom domain, follow
 ## AWS accounts and storage
 
 The account screen is enabled when `NEXT_PUBLIC_COGNITO_USER_POOL_ID` and
-`NEXT_PUBLIC_COGNITO_APP_CLIENT_ID` are set. Cognito handles signup, email
-confirmation, login sessions, and password verification. The SPA app client
-must not have a client secret.
+`NEXT_PUBLIC_COGNITO_APP_CLIENT_ID` are set. Cognito handles login sessions and
+password verification. The private-data API creates active accounts through a
+restricted Cognito administrator action, so signup does not require an email
+confirmation step. The SPA app client must not have a client secret.
 
 `NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL` connects the browser to API Gateway.
 API Gateway validates the Cognito token before Lambda reads or writes the

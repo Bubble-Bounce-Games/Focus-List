@@ -2,14 +2,12 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, MailCheck, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, UserRound } from "lucide-react";
 import {
-  confirmSignUp,
+  createAccount,
   getCognitoUserPool,
   notifyAuthChanged,
-  resendConfirmationCode,
   signIn,
-  signUp,
 } from "@/lib/cognito/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,22 +19,19 @@ const logoPath = `${basePath}/brand/focus-list-mark.png`;
 function getAuthErrorMessage(error: unknown) {
   const value = error as { code?: string; name?: string; message?: string };
   const code = value.code ?? value.name ?? "";
-  if (code === "UserNotConfirmedException") return "Enter the confirmation code sent to your email.";
+  if (code === "UserNotConfirmedException") return "This older account is not active. Create a new account to continue.";
   if (code === "NotAuthorizedException") return "That email and password do not match.";
   if (code === "UsernameExistsException") return "An account with this email already exists. Sign in instead.";
-  if (code === "CodeMismatchException") return "That confirmation code is incorrect.";
-  if (code === "ExpiredCodeException") return "That code has expired. Request a new one.";
   if (code === "LimitExceededException") return "Too many attempts. Wait a moment and try again.";
   return value.message ?? "Unable to complete authentication. Try again.";
 }
 
-export function AuthPage() {
+export function AuthPage({ initialMode = "login" }: { initialMode?: "login" | "signup" }) {
   const router = useRouter();
   const configured = Boolean(getCognitoUserPool());
-  const [mode, setMode] = useState<"login" | "signup" | "confirm">("login");
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmationCode, setConfirmationCode] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"error" | "success">("error");
   const [busy, setBusy] = useState(false);
@@ -44,13 +39,11 @@ export function AuthPage() {
   const [touched, setTouched] = useState({ email: false, password: false });
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordValid = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
-  const formValid = mode === "confirm"
-    ? emailValid && /^\d{6}$/.test(confirmationCode)
-    : emailValid && passwordValid;
+  const formValid = emailValid && passwordValid;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setTouched({ email: true, password: mode === "confirm" ? false : true });
+    setTouched({ email: true, password: true });
     if (!configured) {
       setMessageType("error");
       setMessage("This deployment is missing the Cognito connection settings.");
@@ -60,49 +53,20 @@ export function AuthPage() {
     setBusy(true); setMessage("");
     try {
       if (mode === "signup") {
-        const result = await signUp(email, password);
-        if (result.userConfirmed) {
-          setMode("login");
-          setMessageType("success");
-          setMessage("Account created. You can now sign in.");
-          return;
-        }
-        setMode("confirm");
-        setMessageType("success");
-        setMessage("We sent a six-digit confirmation code to your email.");
-      } else if (mode === "confirm") {
-        await confirmSignUp(email, confirmationCode);
-        setMode("login");
-        setConfirmationCode("");
-        setMessageType("success");
-        setMessage("Email confirmed. Sign in to open your workspace.");
+        await createAccount(email, password);
+        await signIn(email, password);
+        notifyAuthChanged();
+        router.push("/");
       } else {
         await signIn(email, password);
         notifyAuthChanged();
         router.push("/");
       }
     } catch (error) {
-      const value = error as { code?: string; name?: string };
-      if ((value.code ?? value.name) === "UserNotConfirmedException") setMode("confirm");
       setMessageType("error");
       setMessage(getAuthErrorMessage(error));
     }
     finally { setBusy(false); }
-  }
-
-  async function resendCode() {
-    if (!emailValid) return;
-    setBusy(true);
-    try {
-      await resendConfirmationCode(email);
-      setMessageType("success");
-      setMessage("A new confirmation code was sent to your email.");
-    } catch (error) {
-      setMessageType("error");
-      setMessage(getAuthErrorMessage(error));
-    } finally {
-      setBusy(false);
-    }
   }
 
   return (
@@ -124,14 +88,12 @@ export function AuthPage() {
               <UserRound className="h-5 w-5" />
             </div>
             <h1 className="text-headline-small font-semibold text-on-surface">
-              {mode === "login" ? "Welcome back" : mode === "signup" ? "Create your account" : "Confirm your email"}
+              {mode === "login" ? "Welcome back" : "Create your account"}
             </h1>
             <p className="mt-2 text-body-medium text-on-surface-variant">
               {mode === "login"
                 ? "Pick up where your best work begins."
-                : mode === "signup"
-                ? "Build a calmer way to organize your day."
-                : "Enter the code Amazon Cognito sent to your inbox."}
+                : "Create your workspace and start immediately."}
             </p>
           </div>
 
@@ -158,7 +120,7 @@ export function AuthPage() {
               )}
             </div>
 
-            {mode !== "confirm" ? <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="auth-password">Password</Label>
               <span className="relative block">
                 <Input
@@ -187,25 +149,7 @@ export function AuthPage() {
               <p className={`text-label-medium ${touched.password && !passwordValid ? "text-error" : "text-on-surface-variant"}`}>
                 Use 8+ characters with at least one letter and one number.
               </p>
-            </div> : (
-              <div className="space-y-2">
-                <Label htmlFor="confirmation-code">Confirmation code</Label>
-                <Input
-                  id="confirmation-code"
-                  required
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  placeholder="123456"
-                  value={confirmationCode}
-                  onChange={(event) => setConfirmationCode(event.target.value.replace(/\D/g, ""))}
-                  className="tracking-[0.2em]"
-                />
-                <Button type="button" variant="ghost" size="sm" onClick={resendCode} disabled={busy} className="px-2">
-                  Send a new code
-                </Button>
-              </div>
-            )}
+            </div>
 
             {/* Status message */}
             {message && (
@@ -223,8 +167,8 @@ export function AuthPage() {
               disabled={busy || !formValid}
               className="h-12 w-full gap-2"
             >
-              {busy ? "Please wait..." : mode === "login" ? "Sign in" : mode === "signup" ? "Create account" : "Confirm email"}
-              {mode === "confirm" ? <MailCheck className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+              {busy ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </form>
 

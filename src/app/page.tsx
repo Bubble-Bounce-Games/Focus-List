@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sparkles, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,16 +58,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import Link from "next/link";
 import {
-  ArrowRight,
   AlignCenter,
   AlignLeft,
   AlignRight,
   Bold,
   CalendarDays,
-  CheckCircle2,
-  Circle,
   Clock3,
   Eye,
   Italic,
@@ -78,8 +75,6 @@ import {
   Underline,
 } from "lucide-react";
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const logoPath = `${basePath}/brand/focus-list-mark.png`;
 type WorkspaceTab = "active" | "completed";
 type PinnedNote = {
   id: string;
@@ -237,7 +232,13 @@ function reminderTone(value: string): {
   };
 }
 
-function FocusSidePanel() {
+function FocusSidePanel({
+  authenticated,
+  onRequireAuth,
+}: {
+  authenticated: boolean;
+  onRequireAuth: () => void;
+}) {
   const tasks = useAllTasks();
   const projects = useProjects();
   const projectsById = projectMap(projects);
@@ -357,6 +358,10 @@ function FocusSidePanel() {
   );
 
   const handleSaveNote = useCallback(() => {
+    if (!authenticated) {
+      onRequireAuth();
+      return;
+    }
     const text = note.trim();
     if (!text) return;
     setPinnedNotes((current) => {
@@ -400,6 +405,7 @@ function FocusSidePanel() {
     setActiveNoteId(null);
   }, [
     activeNoteId,
+    authenticated,
     marker,
     note,
     noteAlign,
@@ -410,6 +416,7 @@ function FocusSidePanel() {
     noteUnderline,
     setNote,
     setPinnedNotes,
+    onRequireAuth,
   ]);
 
   const handleViewNote = useCallback(
@@ -902,13 +909,17 @@ function FocusSidePanel() {
   );
 }
 
-function AuthenticatedPage({
+function DashboardPage({
   user,
   signOut,
 }: {
-  user: { email?: string };
-  signOut: () => Promise<void>;
+  user: { email?: string } | null;
+  signOut?: () => Promise<void>;
 }) {
+  const router = useRouter();
+  const authenticated = user !== null;
+  const requireAuth = useCallback(() => router.push("/login"), [router]);
+  const openSignup = useCallback(() => router.push("/signup"), [router]);
   const projects = useProjects();
   const tags = useTags();
   const allTasks = useAllTasks();
@@ -1078,11 +1089,15 @@ function AuthenticatedPage({
   /* ----------------------------- Panel flow ------------------------------ */
 
   const openCreate = useCallback(() => {
+    if (!authenticated) {
+      requireAuth();
+      return;
+    }
     setEditingTask(null);
     setInitialProjectName(selectedProject?.name ?? "");
     setPanelMode("create");
     setPanelOpen(true);
-  }, [selectedProject?.name]);
+  }, [authenticated, requireAuth, selectedProject?.name]);
 
   const openEdit = useCallback((task: Task) => {
     setEditingTask(task);
@@ -1137,17 +1152,34 @@ function AuthenticatedPage({
   );
 
   const handleCreateProject = useCallback(async (name: string) => {
+    if (!authenticated) {
+      requireAuth();
+      return;
+    }
     const project = await findOrCreateProject(name);
     setSelectedProjectId(project.id);
     setInitialProjectName(project.name);
     setEditingTask(null);
     toast.success("Project created", { description: project.name });
-  }, [setSelectedProjectId]);
+  }, [authenticated, requireAuth, setSelectedProjectId]);
 
   const openProjectCreateFrame = useCallback(() => {
+    if (!authenticated) {
+      requireAuth();
+      return;
+    }
     setProjectMenuOpen(true);
     setProjectCreateFrameOpen(true);
-  }, []);
+  }, [authenticated, requireAuth]);
+
+  const handleCreateFrameOpenChange = useCallback((open: boolean) => {
+    if (open && !authenticated) {
+      setProjectMenuOpen(false);
+      requireAuth();
+      return;
+    }
+    setProjectCreateFrameOpen(open);
+  }, [authenticated, requireAuth]);
 
   const handleRenameProject = useCallback(async (id: string, name: string) => {
     const project = await renameProject(id, name);
@@ -1199,8 +1231,10 @@ function AuthenticatedPage({
         sort={sort}
         onSortChange={setSort}
         onAddTask={openCreate}
-        userEmail={user.email}
-        onSignOut={() => void signOut()}
+        userEmail={user?.email}
+        onSignIn={requireAuth}
+        onCreateAccount={openSignup}
+        onSignOut={signOut ? () => void signOut() : undefined}
         onOpenTool={setToolView}
         searchInputRef={searchRef}
       />
@@ -1218,7 +1252,7 @@ function AuthenticatedPage({
         onSelectProject={setSelectedProjectId}
         onSelectTag={setSelectedTagId}
         onProjectMenuOpenChange={setProjectMenuOpen}
-        onCreateFrameOpenChange={setProjectCreateFrameOpen}
+        onCreateFrameOpenChange={handleCreateFrameOpenChange}
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
         onClear={handleClearFilters}
@@ -1276,7 +1310,7 @@ function AuthenticatedPage({
           )}
         </section>
 
-        <FocusSidePanel />
+        <FocusSidePanel authenticated={authenticated} onRequireAuth={requireAuth} />
       </main>
 
       <AddTaskPanel
@@ -1302,6 +1336,8 @@ function AuthenticatedPage({
           tasks={allTasks}
           onClose={() => setToolView(null)}
           onSetReminder={handleSetReminder}
+          authenticated={authenticated}
+          onRequireAuth={requireAuth}
         />
       )}
     </div>
@@ -1328,87 +1364,5 @@ export default function Page() {
     );
   }
 
-  if (!user) return <LandingPage />;
-
-  return <AuthenticatedPage user={user} signOut={signOut} />;
-}
-
-function LandingPage() {
-  return (
-    <main className="landing-page min-h-screen overflow-auto bg-background">
-      <header className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4 lg:px-12">
-        <div className="flex items-center gap-3 text-title-large text-on-surface">
-          <img src={logoPath} alt="" className="size-9 object-contain" />
-          Focus List
-        </div>
-        <Button asChild variant="default" size="default">
-          <Link href="/login">
-            Sign in <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-      </header>
-      <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:px-12 lg:py-20">
-        <div className="max-w-xl">
-          <p className="mb-5 text-label-large uppercase tracking-[0.16em] text-primary">A clearer workday</p>
-          <h1 className="max-w-lg text-display-small text-on-surface sm:text-display-medium">Your work, in focus.</h1>
-          <p className="mt-6 max-w-lg text-body-large leading-8 text-on-surface-variant">Capture what matters, see your momentum, and make steady progress without losing the thread.</p>
-          <Button asChild variant="default" size="lg" className="mt-8 h-12 px-6 shadow-e3">
-            <Link href="/login">
-              Start your workspace <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <div className="mt-8 flex flex-wrap gap-5 text-body-medium text-on-surface-variant">
-            <span className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-success" /> Progress you can see
-            </span>
-            <span className="flex items-center gap-2">
-              <Clock3 className="size-4 text-primary" /> Less mental overhead
-            </span>
-          </div>
-        </div>
-        <div className="landing-board relative mx-auto w-full max-w-2xl rounded-xl border border-outline-variant p-5 shadow-e3 sm:p-8">
-          <div className="mb-7 flex items-center justify-between border-b border-outline-variant pb-5">
-            <div>
-              <p className="text-label-medium uppercase tracking-[0.14em] text-primary">Today</p>
-              <p className="mt-1 text-headline-small text-on-surface">Active Tasks</p>
-            </div>
-            <CalendarDays className="size-6 text-on-surface-variant" />
-          </div>
-          <div className="space-y-3">
-            <div className="landing-task">
-              <Circle className="text-primary" />
-              <div className="min-w-0 flex-1">
-                <p>Prepare the project brief</p>
-                <span>Planning</span>
-                <i><em className="w-[72%]" /></i>
-              </div>
-              <b>72%</b>
-            </div>
-            <div className="landing-task">
-              <Circle className="text-tertiary" />
-              <div className="min-w-0 flex-1">
-                <p>Review the week’s priorities</p>
-                <span>Personal</span>
-                <i><em className="w-[48%]" style={{ backgroundColor: "var(--md-tertiary)" }} /></i>
-              </div>
-              <b>48%</b>
-            </div>
-            <div className="landing-task">
-              <Circle className="text-success" />
-              <div className="min-w-0 flex-1">
-                <p>Make time for deep work</p>
-                <span>Focus</span>
-                <i><em className="w-[24%]" style={{ backgroundColor: "var(--md-success)" }} /></i>
-              </div>
-              <b>24%</b>
-            </div>
-          </div>
-          <div className="mt-8 flex items-center justify-between border-t border-outline-variant pt-5 text-body-medium">
-            <span className="text-on-surface-variant">Completed today</span>
-            <strong className="text-success">2 tasks</strong>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+  return <DashboardPage user={user} signOut={signOut} />;
 }

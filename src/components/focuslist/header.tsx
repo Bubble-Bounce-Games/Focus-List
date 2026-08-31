@@ -31,6 +31,8 @@ type HeaderProps = {
   onSortChange: (sort: SortKey) => void;
   onAddTask: () => void;
   userEmail?: string;
+  onSignIn?: () => void;
+  onCreateAccount?: () => void;
   onSignOut?: () => void;
   onOpenTool?: (view: "calendar" | "archive" | "trash") => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
@@ -43,6 +45,8 @@ export function Header({
   onSortChange,
   onAddTask,
   userEmail,
+  onSignIn,
+  onCreateAccount,
   onSignOut,
   onOpenTool,
   searchInputRef,
@@ -158,20 +162,33 @@ export function Header({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel className="font-normal">
-              <span className="block text-xs text-on-surface-variant">Signed in as</span>
-              <span className="block truncate text-sm text-on-surface">{userEmail}</span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="px-3 py-2 text-xs leading-5 text-on-surface-variant">
-              <span className="block font-medium text-on-surface">Personal workspace</span>
-              <span className="block">Cloud sync is active across your devices.</span>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => onOpenTool?.("archive")}>Archive</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onOpenTool?.("trash")}>Deleted items</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onSignOut}>Sign out</DropdownMenuItem>
+            {userEmail ? (
+              <>
+                <DropdownMenuLabel className="font-normal">
+                  <span className="block text-xs text-on-surface-variant">Signed in as</span>
+                  <span className="block truncate text-sm text-on-surface">{userEmail}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="px-3 py-2 text-xs leading-5 text-on-surface-variant">
+                  <span className="block font-medium text-on-surface">Personal workspace</span>
+                  <span className="block">Cloud sync is active across your devices.</span>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onOpenTool?.("archive")}>Archive</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onOpenTool?.("trash")}>Deleted items</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={onSignOut}>Sign out</DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuLabel>
+                  Sign in to save and sync your workspace.
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={onSignIn}>Sign in</DropdownMenuItem>
+                <DropdownMenuItem onSelect={onCreateAccount}>Create account</DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
