@@ -7,7 +7,7 @@
     "build": "next build --webpack && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "build:sites": "SITES_STATIC_EXPORT=1 next build --webpack",
     "build:aws": "SITES_STATIC_EXPORT=1 next build --webpack",
-    "build:github": "GITHUB_PAGES=1 next build --webpack",
+    "build:github": "GITHUB_PAGES=1 GITHUB_PAGES_CUSTOM_DOMAIN=1 next build --webpack",
     "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "icons": "node scripts/generate-icons.mjs",
