@@ -43,12 +43,11 @@ import {
   type Task,
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
-import { usePrivateS3Collection } from "@/lib/focuslist/private-s3-state";
+import { useBrowserCollection } from "@/lib/focuslist/browser-state";
 import {
   asCalendarReminders,
   type CalendarReminder,
 } from "@/lib/focuslist/calendar-reminders";
-import { useAuth } from "@/components/auth-provider";
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,16 +56,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import Link from "next/link";
 import {
-  ArrowRight,
   AlignCenter,
   AlignLeft,
   AlignRight,
   Bold,
   CalendarDays,
-  CheckCircle2,
-  Circle,
   Clock3,
   Eye,
   Italic,
@@ -78,8 +73,6 @@ import {
   Underline,
 } from "lucide-react";
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const logoPath = `${basePath}/brand/focus-list-mark.png`;
 type WorkspaceTab = "active" | "completed";
 type PinnedNote = {
   id: string;
@@ -245,11 +238,11 @@ function FocusSidePanel() {
     "fl.noteDraft",
     "Pin quick notes here while you plan your next task."
   );
-  const [pinnedNotesValue, setPinnedNotes] = usePrivateS3Collection<unknown>(
+  const [pinnedNotesValue, setPinnedNotes] = useBrowserCollection<unknown>(
     "notes",
     []
   );
-  const [calendarReminderValue, setCalendarReminders] = usePrivateS3Collection<unknown>(
+  const [calendarReminderValue, setCalendarReminders] = useBrowserCollection<unknown>(
     "reminders",
     []
   );
@@ -902,13 +895,7 @@ function FocusSidePanel() {
   );
 }
 
-function AuthenticatedPage({
-  user,
-  signOut,
-}: {
-  user: { email?: string };
-  signOut: () => Promise<void>;
-}) {
+function DashboardPage() {
   const projects = useProjects();
   const tags = useTags();
   const allTasks = useAllTasks();
@@ -1199,8 +1186,6 @@ function AuthenticatedPage({
         sort={sort}
         onSortChange={setSort}
         onAddTask={openCreate}
-        userEmail={user.email}
-        onSignOut={() => void signOut()}
         onOpenTool={setToolView}
         searchInputRef={searchRef}
       />
@@ -1309,106 +1294,5 @@ function AuthenticatedPage({
 }
 
 export default function Page() {
-  const { loading, user, signOut } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <span className="flex size-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-e1">
-            <ClipboardList className="size-6" />
-          </span>
-          <span
-            className="size-8 rounded-full border-2 border-on-surface-variant border-t-primary animate-spin"
-            aria-hidden="true"
-          />
-        </div>
-        <p className="text-body-large text-on-surface-variant">Loading Focus List...</p>
-      </div>
-    );
-  }
-
-  if (!user) return <LandingPage />;
-
-  return <AuthenticatedPage user={user} signOut={signOut} />;
-}
-
-function LandingPage() {
-  return (
-    <main className="landing-page min-h-screen overflow-auto bg-background">
-      <header className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4 lg:px-12">
-        <div className="flex items-center gap-3 text-title-large text-on-surface">
-          <img src={logoPath} alt="" className="size-9 object-contain" />
-          Focus List
-        </div>
-        <Button asChild variant="default" size="default">
-          <Link href="/login">
-            Sign in <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-      </header>
-      <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:px-12 lg:py-20">
-        <div className="max-w-xl">
-          <p className="mb-5 text-label-large uppercase tracking-[0.16em] text-primary">A clearer workday</p>
-          <h1 className="max-w-lg text-display-small text-on-surface sm:text-display-medium">Your work, in focus.</h1>
-          <p className="mt-6 max-w-lg text-body-large leading-8 text-on-surface-variant">Capture what matters, see your momentum, and make steady progress without losing the thread.</p>
-          <Button asChild variant="default" size="lg" className="mt-8 h-12 px-6 shadow-e3">
-            <Link href="/login">
-              Start your workspace <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <div className="mt-8 flex flex-wrap gap-5 text-body-medium text-on-surface-variant">
-            <span className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-success" /> Progress you can see
-            </span>
-            <span className="flex items-center gap-2">
-              <Clock3 className="size-4 text-primary" /> Less mental overhead
-            </span>
-          </div>
-        </div>
-        <div className="landing-board relative mx-auto w-full max-w-2xl rounded-xl border border-outline-variant p-5 shadow-e3 sm:p-8">
-          <div className="mb-7 flex items-center justify-between border-b border-outline-variant pb-5">
-            <div>
-              <p className="text-label-medium uppercase tracking-[0.14em] text-primary">Today</p>
-              <p className="mt-1 text-headline-small text-on-surface">Active Tasks</p>
-            </div>
-            <CalendarDays className="size-6 text-on-surface-variant" />
-          </div>
-          <div className="space-y-3">
-            <div className="landing-task">
-              <Circle className="text-primary" />
-              <div className="min-w-0 flex-1">
-                <p>Prepare the project brief</p>
-                <span>Planning</span>
-                <i><em className="w-[72%]" /></i>
-              </div>
-              <b>72%</b>
-            </div>
-            <div className="landing-task">
-              <Circle className="text-tertiary" />
-              <div className="min-w-0 flex-1">
-                <p>Review the week’s priorities</p>
-                <span>Personal</span>
-                <i><em className="w-[48%]" style={{ backgroundColor: "var(--md-tertiary)" }} /></i>
-              </div>
-              <b>48%</b>
-            </div>
-            <div className="landing-task">
-              <Circle className="text-success" />
-              <div className="min-w-0 flex-1">
-                <p>Make time for deep work</p>
-                <span>Focus</span>
-                <i><em className="w-[24%]" style={{ backgroundColor: "var(--md-success)" }} /></i>
-              </div>
-              <b>24%</b>
-            </div>
-          </div>
-          <div className="mt-8 flex items-center justify-between border-t border-outline-variant pt-5 text-body-medium">
-            <span className="text-on-surface-variant">Completed today</span>
-            <strong className="text-success">2 tasks</strong>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+  return <DashboardPage />;
 }

@@ -19,7 +19,6 @@ import {
   Search,
 } from "lucide-react";
 import { SORT_OPTIONS, type SortKey } from "@/lib/focuslist/types";
-import { cn } from "@/lib/utils";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const logoPath = `${basePath}/brand/focus-list-mark.png`;
@@ -30,8 +29,6 @@ type HeaderProps = {
   sort: SortKey;
   onSortChange: (sort: SortKey) => void;
   onAddTask: () => void;
-  userEmail?: string;
-  onSignOut?: () => void;
   onOpenTool?: (view: "calendar" | "archive" | "trash") => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
 };
@@ -42,8 +39,6 @@ export function Header({
   sort,
   onSortChange,
   onAddTask,
-  userEmail,
-  onSignOut,
   onOpenTool,
   searchInputRef,
 }: HeaderProps) {
@@ -141,39 +136,6 @@ export function Header({
           <CalendarDays className="h-5 w-5" />
         </Button>
 
-        {/* Account avatar — MD3 avatar with primary-container tonal */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "flex size-10 items-center justify-center rounded-full bg-primary-container text-label-large font-semibold text-on-primary-container",
-                "transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)]",
-                "hover:bg-on-primary-container/[0.08] focus-visible:bg-on-primary-container/[0.10] active:bg-on-primary-container/[0.12]",
-                "outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-              )}
-              aria-label="Account settings"
-            >
-              {(userEmail?.[0] ?? "A").toUpperCase()}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel className="font-normal">
-              <span className="block text-xs text-on-surface-variant">Signed in as</span>
-              <span className="block truncate text-sm text-on-surface">{userEmail}</span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="px-3 py-2 text-xs leading-5 text-on-surface-variant">
-              <span className="block font-medium text-on-surface">Personal workspace</span>
-              <span className="block">Cloud sync is active across your devices.</span>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => onOpenTool?.("archive")}>Archive</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onOpenTool?.("trash")}>Deleted items</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onSignOut}>Sign out</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   );

@@ -5,6 +5,7 @@ const githubPages = process.env.GITHUB_PAGES === "1";
 const basePath = githubPages ? "/Focus-List" : "";
 
 const nextConfig: NextConfig = {
+  agentRules: false,
   output: staticExport || githubPages ? "export" : "standalone",
   trailingSlash: staticExport || githubPages,
   basePath,

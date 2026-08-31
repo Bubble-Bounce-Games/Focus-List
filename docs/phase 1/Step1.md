@@ -1,145 +1,41 @@
-# Step 1: Connect Cognito Authentication to Private S3
+# Step 1: Browser-Only Dashboard Storage
 
-## Goal
+Focus List now opens directly on the dashboard. There is no account, login,
+email confirmation, Cognito user pool, private-data API, Lambda function, or
+private S3 data bucket required by the application.
 
-Focus List uses AWS services for both authentication and application data:
+## How Saving Works
 
-```text
-Amazon Cognito
-  Creates accounts, verifies email addresses, and issues login tokens
-
-API Gateway and Lambda
-  Validate the Cognito token and authorize access to one user's data
-
-Private Amazon S3 bucket
-  Stores projects, tags, tasks, pinned notes, and reminders
-```
-
-S3 does not process passwords or send email; Cognito provides those
-authentication features.
-
-## Existing AWS Resources
+The browser automatically saves projects, tags, active and completed tasks,
+pinned notes, and calendar reminders. The workspace key is:
 
 ```text
-Public website bucket
-  focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an
-
-Private data bucket
-  focus-list-private-data-990723918097-ap-southeast-1
-
-CloudFormation stack
-  focus-list-private-s3-data
+focus-list.workspace.v1
 ```
 
-Never enable public access or static website hosting on the private data bucket.
+This data remains available after a reload, closing the tab, or restarting the
+same browser. It is specific to that browser and device. Clearing website data,
+using private browsing, or opening the site on another device creates a new
+empty workspace.
 
-## How Data Access Works
+## What AWS S3 Does
+
+The public website S3 bucket stores only compiled HTML, JavaScript, CSS, and
+images. It does not store visitor projects or tasks. The failed private-data
+CloudFormation stack is no longer part of the website deployment.
+
+Do not delete this public website bucket:
 
 ```text
-Signed-in browser
-  -> sends a Cognito ID token to the Focus List data API
-  -> API Gateway validates the token with a JWT authorizer
-  -> Lambda reads the verified Cognito user ID from the token
-  -> Lambda reads or writes users/<cognito-user-id>/state.json
+focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an
 ```
 
-The browser never receives AWS credentials and cannot choose another user's S3
-object key.
+## Verification
 
-## Repository Configuration
+1. Open the public website.
+2. Create a project and task.
+3. Add a pinned note and calendar reminder.
+4. Reload the page and confirm all four items remain.
+5. Close and reopen the browser and confirm they still remain.
 
-The static frontend build requires these public configuration variables:
-
-```env
-NEXT_PUBLIC_COGNITO_USER_POOL_ID=
-NEXT_PUBLIC_COGNITO_APP_CLIENT_ID=
-NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL=
-```
-
-These identifiers are not passwords. Do not create an app client secret for a
-browser SPA and never place AWS access keys in frontend variables.
-
-## Update the Existing CloudFormation Stack
-
-Use the repository template whenever the private data infrastructure needs an
-update:
-
-1. Sign in to AWS and select **Asia Pacific (Singapore)**, `ap-southeast-1`.
-2. Open **CloudFormation > Stacks**.
-3. Select `focus-list-private-s3-data`.
-4. Select **Update**.
-5. Select **Replace current template**.
-6. Select **Upload a template file**.
-7. Upload `infrastructure/aws/private-s3-data.yml`.
-8. Select **Next**.
-9. Enter the new Cognito parameters:
-
-```text
-CognitoUserPoolId
-  The User pool ID from Cognito
-
-CognitoAppClientId
-  The Client ID under Cognito > Applications > App clients
-```
-
-10. Keep the existing values for `DataBucketName`, `AllowedOrigin`, and
-    `MaxStateBytes`.
-11. Select **Next** through the stack options.
-12. Acknowledge that CloudFormation may update IAM resources.
-13. Select **Submit** to make a direct update.
-14. Wait for `UPDATE_COMPLETE`.
-
-The template provides protected `GET /state` and `PUT /state` routes with a
-Cognito JWT authorizer. `GET /health` remains public for availability checks.
-
-## Configure GitHub
-
-Open **GitHub repository > Settings > Environments > aws-s3** and add these
-environment variables:
-
-```text
-NEXT_PUBLIC_COGNITO_USER_POOL_ID
-NEXT_PUBLIC_COGNITO_APP_CLIENT_ID
-NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL
-```
-
-The existing AWS deployment variables must remain:
-
-```text
-AWS_REGION
-AWS_S3_BUCKET
-AWS_ROLE_TO_ASSUME
-```
-
-## Deploy and Test
-
-1. Run **Actions > Deploy AWS S3 > Run workflow**.
-2. Open the website and select **Create account**.
-3. Enter an email address and password.
-4. Find the six-digit Cognito confirmation code in the email inbox.
-5. Enter the code on the confirmation screen.
-6. Sign in.
-7. Create one project, task, pinned note, and reminder.
-8. Sign out and sign in again. Confirm all four items are still present.
-9. Sign in on another device and confirm the same data loads.
-10. Open the private S3 bucket and confirm an object exists at:
-
-```text
-users/<cognito-user-id>/state.json
-```
-
-Do not make this object public.
-
-## Email Delivery
-
-Cognito's default email sender is suitable for initial testing. For production
-branding and higher delivery limits, configure an Amazon SES verified identity
-later. S3 is only the application data store and does not send confirmation
-email.
-
-## Important HTTPS Requirement
-
-The current S3 website endpoint uses HTTP. Before production use, place
-CloudFront in front of the public website bucket and connect the custom domain
-over HTTPS. Then add the final HTTPS login URL to the Cognito app client's
-allowed callback and sign-out URLs.
+The deployment instructions are in [docs/aws-s3.md](../aws-s3.md).

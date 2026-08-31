@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import type { Task } from "@/lib/focuslist/types";
 import { asCalendarReminders } from "@/lib/focuslist/calendar-reminders";
-import { usePrivateS3Collection } from "@/lib/focuslist/private-s3-state";
+import { useBrowserCollection } from "@/lib/focuslist/browser-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "./empty-state";
@@ -61,7 +61,7 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
   );
   const yearOptions = Array.from({ length: 8 }, (_, index) => currentYear - 1 + index);
   const visibleMonths = Array.from({ length: 12 }, (_, offset) => new Date(startYear, startMonth + offset, 1));
-  const [calendarReminderValue, setCalendarReminders] = usePrivateS3Collection<unknown>(
+  const [calendarReminderValue, setCalendarReminders] = useBrowserCollection<unknown>(
     "reminders",
     []
   );
