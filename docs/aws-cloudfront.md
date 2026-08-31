@@ -24,11 +24,11 @@ CloudFront requires its ACM certificate in **US East (N. Virginia)**.
 7. Select **RSA 2048** and then **Request**.
 8. Open the pending certificate and copy its validation CNAME name and value.
 
-## Part 2: Validate Through Porkbun
+## Part 2: Validate Through Wix DNS
 
-1. Open **Porkbun > Domain Management**.
-2. Open the details for `abhijeetanand.com`.
-3. Open **DNS Records** and select **Add Record**.
+1. Open the Wix dashboard for `abhijeetanand.com`.
+2. Open **Domains > Advanced > Manage DNS records**.
+3. Add a `CNAME` record.
 4. Select `CNAME`.
 5. In **Host**, enter the ACM validation name without the final
    `.abhijeetanand.com` portion.
@@ -71,9 +71,9 @@ CertificateArn
 The stack replaces the website bucket's public-read policy with a policy that
 allows only this CloudFront distribution to read objects.
 
-## Part 4: Point Porkbun to CloudFront
+## Part 4: Point Wix DNS to CloudFront
 
-In Porkbun, add this DNS record:
+In Wix DNS, add this record:
 
 ```text
 Type
@@ -90,31 +90,14 @@ Remove an existing `focus-list` A, ALIAS, CNAME, or URL-forwarding record if it
 conflicts. Do not remove the separate ACM validation CNAME; ACM uses it for
 automatic certificate renewal.
 
-## Part 5: Allow the HTTPS Site to Use the Data API
-
-1. Change the AWS region back to **Asia Pacific (Singapore)**,
-   `ap-southeast-1`.
-2. Open the `focus-list-private-s3-data` CloudFormation stack.
-3. Select **Update > Replace current template**.
-4. Upload the current `infrastructure/aws/private-s3-data.yml`.
-5. Keep the existing parameters and confirm:
-
-```text
-AllowedHttpsOrigin
-  https://focus-list.abhijeetanand.com
-```
-
-6. Make a direct update and wait for `UPDATE_COMPLETE`.
-
-## Part 6: Final Checks
+## Part 5: Final Checks
 
 1. Open `https://focus-list.abhijeetanand.com`.
 2. Confirm HTTP redirects to HTTPS.
-3. Confirm `/login/` loads directly.
-4. Create and confirm a Cognito account.
-5. Create a project, task, note, and reminder.
-6. Sign out and back in, then confirm the data returns.
-7. In the website S3 bucket, enable **Block all public access** after CloudFront
+3. Confirm the dashboard opens without a login page.
+4. Create a project, task, note, and reminder.
+5. Reload the page and confirm the browser restores the data.
+6. In the website S3 bucket, enable **Block all public access** after CloudFront
    works. The CloudFront OAC policy is not public and continues to work.
 
 Do not disable the private data bucket's public-access block at any point.

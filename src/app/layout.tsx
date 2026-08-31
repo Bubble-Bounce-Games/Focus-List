@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/components/auth-provider";
 
 export const metadata: Metadata = {
   title: "Focus List — Personal Task Manager",
   description:
-    "A calm cloud-synced personal task manager. Track progress with a slider and keep all your work in one unified list.",
+    "A calm personal task manager. Track progress with a slider and keep all your work in one unified list.",
 };
 
 export default function RootLayout({
@@ -26,10 +25,8 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            {children}
-            <Toaster position="bottom-right" richColors closeButton />
-          </AuthProvider>
+          {children}
+          <Toaster position="bottom-right" richColors closeButton />
         </ThemeProvider>
       </body>
     </html>

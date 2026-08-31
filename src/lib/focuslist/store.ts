@@ -3,9 +3,9 @@
 import { v4 as uuid } from "uuid";
 import { colorForName } from "./palette";
 import {
-  updatePrivateS3State,
-  usePrivateS3State,
-} from "./private-s3-state";
+  updateBrowserState,
+  useBrowserState,
+} from "./browser-state";
 import {
   MAX_PROGRESS,
   MIN_PROGRESS,
@@ -37,15 +37,15 @@ export function tagMap(tags: Tag[]): Record<string, Tag> {
 }
 
 export function useAllTasks(): Task[] {
-  return usePrivateS3State().tasks;
+  return useBrowserState().tasks;
 }
 
 export function useProjects(): Project[] {
-  return usePrivateS3State().projects.slice().sort((a, b) => a.name.localeCompare(b.name));
+  return useBrowserState().projects.slice().sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function useTags(): Tag[] {
-  return usePrivateS3State().tags.slice().sort((a, b) => a.name.localeCompare(b.name));
+  return useBrowserState().tags.slice().sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export type NewTaskInput = {
@@ -78,12 +78,12 @@ export async function createTask(input: NewTaskInput): Promise<Task> {
     archivedAt: null,
     deletedAt: null,
   };
-  await updatePrivateS3State((state) => ({ ...state, tasks: [...state.tasks, task] }));
+  await updateBrowserState((state) => ({ ...state, tasks: [...state.tasks, task] }));
   return task;
 }
 
 export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
-  await updatePrivateS3State((state) => ({
+  await updateBrowserState((state) => ({
     ...state,
     tasks: state.tasks.map((task) => {
       if (task.id !== id) return task;
@@ -110,7 +110,7 @@ export async function setTaskDetail(id: string, field: DetailField, value: strin
 
 export async function deleteTask(id: string): Promise<void> {
   const timestamp = now();
-  await updatePrivateS3State((state) => ({
+  await updateBrowserState((state) => ({
     ...state,
     tasks: state.tasks.map((task) => task.id === id
       ? { ...task, deletedAt: timestamp, updatedAt: timestamp }
@@ -120,7 +120,7 @@ export async function deleteTask(id: string): Promise<void> {
 
 export async function archiveTask(id: string): Promise<void> {
   const timestamp = now();
-  await updatePrivateS3State((state) => ({
+  await updateBrowserState((state) => ({
     ...state,
     tasks: state.tasks.map((task) => task.id === id
       ? { ...task, archivedAt: timestamp, updatedAt: timestamp }
@@ -130,7 +130,7 @@ export async function archiveTask(id: string): Promise<void> {
 
 export async function duplicateTask(id: string): Promise<Task | undefined> {
   let duplicate: Task | undefined;
-  await updatePrivateS3State((state) => {
+  await updateBrowserState((state) => {
     const source = state.tasks.find((task) => task.id === id);
     if (!source) return state;
     const timestamp = now();
@@ -153,7 +153,7 @@ export async function duplicateTask(id: string): Promise<Task | undefined> {
 export async function findOrCreateProject(name: string): Promise<Project> {
   const trimmed = name.trim();
   let project: Project | undefined;
-  await updatePrivateS3State((state) => {
+  await updateBrowserState((state) => {
     project = state.projects.find((item) => item.name === trimmed);
     if (project) return state;
     const created = { id: uuid(), name: trimmed, color: colorForName(trimmed) };
@@ -167,7 +167,7 @@ export async function renameProject(id: string, name: string): Promise<Project |
   const trimmed = name.trim();
   if (!trimmed) return undefined;
   let project: Project | undefined;
-  await updatePrivateS3State((state) => ({
+  await updateBrowserState((state) => ({
     ...state,
     projects: state.projects.map((item) => {
       if (item.id !== id) return item;
@@ -181,7 +181,7 @@ export async function renameProject(id: string, name: string): Promise<Project |
 export async function findOrCreateTag(name: string): Promise<Tag> {
   const trimmed = name.trim();
   let tag: Tag | undefined;
-  await updatePrivateS3State((state) => {
+  await updateBrowserState((state) => {
     tag = state.tags.find((item) => item.name === trimmed);
     if (tag) return state;
     const created = { id: uuid(), name: trimmed, color: colorForName(trimmed) };

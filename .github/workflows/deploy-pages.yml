@@ -18,22 +18,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment:
-      name: aws-s3
     env:
       GITHUB_PAGES: "1"
-      NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID || secrets.NEXT_PUBLIC_COGNITO_USER_POOL_ID }}
-      NEXT_PUBLIC_COGNITO_APP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_COGNITO_APP_CLIENT_ID || secrets.NEXT_PUBLIC_COGNITO_APP_CLIENT_ID }}
-      NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL: ${{ vars.NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL || secrets.NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Validate build settings
-        run: |
-          test -n "$NEXT_PUBLIC_COGNITO_USER_POOL_ID"
-          test -n "$NEXT_PUBLIC_COGNITO_APP_CLIENT_ID"
-          test -n "$NEXT_PUBLIC_FOCUS_LIST_DATA_API_URL"
 
       - name: Setup Node
         uses: actions/setup-node@v4
