@@ -40,8 +40,12 @@ yarn verify
 
 ## Deployment
 
-The app exports as a static Next.js site. Use the **Deploy AWS S3** GitHub
-Actions workflow described in [docs/aws-s3.md](./docs/aws-s3.md). For HTTPS and
-the custom domain, follow [docs/aws-cloudfront.md](./docs/aws-cloudfront.md).
+The simplest live deployment is GitHub Pages at
+`https://focus-list.abhijeetanand.com`. The **Deploy GitHub Pages** workflow
+builds the static site for the domain root and publishes the `public/CNAME`
+custom-domain marker.
+
+The AWS S3 workflow remains available as an alternate static host, described in
+[docs/aws-s3.md](./docs/aws-s3.md).
 
 See [AGENTS.md](./AGENTS.md) for repository conventions.

@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 const staticExport = process.env.SITES_STATIC_EXPORT === "1";
 const githubPages = process.env.GITHUB_PAGES === "1";
-const basePath = githubPages ? "/Focus-List" : "";
+const githubPagesCustomDomain =
+  process.env.GITHUB_PAGES_CUSTOM_DOMAIN === "1";
+const basePath = githubPages && !githubPagesCustomDomain ? "/Focus-List" : "";
 
 const nextConfig: NextConfig = {
   agentRules: false,
