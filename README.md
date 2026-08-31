@@ -4,8 +4,9 @@ A calm, cloud-synced personal task manager. Track each task's progress with a
 slider — when a task reaches 100% it automatically moves into the Done
 section, grouped by its original project and tag.
 
-Tasks, projects, notes, and reminders are stored in private S3 per signed-in Cognito account, so the
-same workspace is available when you log in from another device or location.
+Tasks, projects, notes, and reminders are stored in private S3 per signed-in
+Cognito account, so the same workspace is available when you log in from
+another device or location.
 
 ## Features
 
@@ -33,7 +34,7 @@ same workspace is available when you log in from another device or location.
 
 ## Getting started
 
-Requires [Node.js](https://nodejs.org/) 20+ and [Yarn](https://classic.yarnpkg.com/) 1.x.
+Requires [Node.js](https://nodejs.org/) 22+ and [Yarn](https://classic.yarnpkg.com/) 1.x.
 
 ```bash
 yarn install
@@ -55,6 +56,9 @@ and is what CI runs on every push.
 For AWS S3 static hosting, use `yarn build:aws` and the manual GitHub Actions
 workflow in [docs/aws-s3.md](./docs/aws-s3.md). The S3 build does not use the
 GitHub Pages `/Focus-List` base path.
+
+For production HTTPS and the custom domain, follow
+[docs/aws-cloudfront.md](./docs/aws-cloudfront.md).
 
 ## AWS accounts and storage
 

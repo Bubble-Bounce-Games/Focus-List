@@ -15,8 +15,8 @@ Private Amazon S3 bucket
   Stores projects, tags, tasks, pinned notes, and reminders
 ```
 
-Supabase is no longer used by the application. S3 does not process passwords or
-send email; Cognito provides those authentication features.
+S3 does not process passwords or send email; Cognito provides those
+authentication features.
 
 ## Existing AWS Resources
 
@@ -61,8 +61,8 @@ browser SPA and never place AWS access keys in frontend variables.
 
 ## Update the Existing CloudFormation Stack
 
-The existing stack still validates old Supabase tokens until it is updated.
-Update it before deploying the Cognito frontend.
+Use the repository template whenever the private data infrastructure needs an
+update:
 
 1. Sign in to AWS and select **Asia Pacific (Singapore)**, `ap-southeast-1`.
 2. Open **CloudFormation > Stacks**.
@@ -89,9 +89,8 @@ CognitoAppClientId
 13. Select **Submit** to make a direct update.
 14. Wait for `UPDATE_COMPLETE`.
 
-This update removes the Supabase settings from Lambda and adds protected
-`GET /state` and `PUT /state` routes with a Cognito JWT authorizer. `GET /health`
-remains public for availability checks.
+The template provides protected `GET /state` and `PUT /state` routes with a
+Cognito JWT authorizer. `GET /health` remains public for availability checks.
 
 ## Configure GitHub
 
@@ -111,10 +110,6 @@ AWS_REGION
 AWS_S3_BUCKET
 AWS_ROLE_TO_ASSUME
 ```
-
-The old `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` variables can be deleted after the new
-deployment passes all tests.
 
 ## Deploy and Test
 

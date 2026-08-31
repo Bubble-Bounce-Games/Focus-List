@@ -10,6 +10,10 @@ Parameters:
     Type: String
     Description: Exact public website origin allowed to call the data API.
     Default: http://focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an.s3-website-ap-southeast-1.amazonaws.com
+  AllowedHttpsOrigin:
+    Type: String
+    Description: HTTPS CloudFront or custom-domain origin allowed to call the data API.
+    Default: https://focus-list.abhijeetanand.com
   CognitoUserPoolId:
     Type: String
     Description: Cognito user pool that authenticates Focus List users.
@@ -243,6 +247,7 @@ Resources:
           - OPTIONS
         AllowOrigins:
           - !Ref AllowedOrigin
+          - !Ref AllowedHttpsOrigin
         ExposeHeaders:
           - etag
         MaxAge: 300

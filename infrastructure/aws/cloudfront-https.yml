@@ -1,0 +1,181 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: HTTPS CloudFront delivery for the Focus List static S3 website.
+
+Parameters:
+  WebsiteBucketName:
+    Type: String
+    Description: Existing S3 bucket containing the static website export.
+    Default: focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an
+  WebsiteBucketRegion:
+    Type: String
+    Description: AWS Region containing the existing website bucket.
+    Default: ap-southeast-1
+  DomainName:
+    Type: String
+    Description: Lowercase custom hostname served by CloudFront.
+    Default: focus-list.abhijeetanand.com
+  CertificateArn:
+    Type: String
+    Description: ACM certificate ARN for DomainName issued in us-east-1.
+
+Resources:
+  WebsiteOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Signed CloudFront access to the Focus List website bucket.
+        Name: !Sub ${AWS::StackName}-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  StaticRouteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub ${AWS::StackName}-static-routes
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Resolve extensionless Next.js static-export routes.
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          var lastSegment = uri.substring(uri.lastIndexOf("/") + 1);
+
+          if (uri.endsWith("/")) {
+            request.uri += "index.html";
+          } else if (lastSegment.indexOf(".") === -1) {
+            request.uri += "/index.html";
+          }
+
+          return request;
+        }
+
+  WebsiteCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub ${AWS::StackName}-cache
+        Comment: Short HTML freshness with longer immutable asset caching support.
+        DefaultTTL: 300
+        MaxTTL: 86400
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  SecurityHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub ${AWS::StackName}-security-headers
+        Comment: Browser security headers for Focus List.
+        SecurityHeadersConfig:
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+          XSSProtection:
+            ModeBlock: true
+            Override: true
+            Protection: true
+
+  WebsiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - !Ref DomainName
+        Comment: Focus List HTTPS website distribution.
+        CustomErrorResponses:
+          - ErrorCachingMinTTL: 0
+            ErrorCode: 403
+            ResponseCode: 404
+            ResponsePagePath: /404.html
+          - ErrorCachingMinTTL: 0
+            ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: /404.html
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachePolicyId: !Ref WebsiteCachePolicy
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt StaticRouteFunction.FunctionARN
+          ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+          TargetOriginId: FocusListWebsiteBucket
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Origins:
+          - DomainName: !Sub ${WebsiteBucketName}.s3.${WebsiteBucketRegion}.${AWS::URLSuffix}
+            Id: FocusListWebsiteBucket
+            OriginAccessControlId: !GetAtt WebsiteOriginAccessControl.Id
+            S3OriginConfig: {}
+        PriceClass: PriceClass_200
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+      Tags:
+        - Key: Application
+          Value: FocusList
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucketName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::${WebsiteBucketName}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${WebsiteDistribution}
+
+Outputs:
+  DistributionId:
+    Description: CloudFront distribution ID.
+    Value: !Ref WebsiteDistribution
+  DistributionDomainName:
+    Description: Add this value as the Porkbun CNAME target after deployment.
+    Value: !GetAtt WebsiteDistribution.DomainName
+  HttpsWebsiteUrl:
+    Description: Final public Focus List URL.
+    Value: !Sub https://${DomainName}
+  PorkbunCnameHost:
+    Description: Host field for the Porkbun CNAME record.
+    Value: focus-list
+  PorkbunCnameTarget:
+    Description: Answer field for the Porkbun CNAME record.
+    Value: !GetAtt WebsiteDistribution.DomainName
