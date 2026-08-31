@@ -22,7 +22,7 @@ import { SORT_OPTIONS, type SortKey } from "@/lib/focuslist/types";
 import { cn } from "@/lib/utils";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const faviconPath = `${basePath}/Favicon.png`;
+const logoPath = `${basePath}/brand/focus-list-mark.png`;
 
 type HeaderProps = {
   search: string;
@@ -56,7 +56,7 @@ export function Header({
       {/* Logo + title */}
       <div className="flex items-center gap-2">
         <img
-          src={faviconPath}
+          src={logoPath}
           alt=""
           className="h-9 w-9 object-contain"
           aria-hidden

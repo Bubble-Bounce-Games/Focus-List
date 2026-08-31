@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const faviconPath = `${basePath}/Favicon.png`;
+const logoPath = `${basePath}/brand/focus-list-mark.png`;
 
 function getAuthErrorMessage(error: unknown) {
   const value = error as { code?: string; name?: string; message?: string };
@@ -111,7 +111,7 @@ export function AuthPage() {
         <div className="auth-form-wrap rounded-xl">
           {/* Brand */}
           <div className="mb-10 flex items-center gap-3 text-title-large font-semibold text-on-surface">
-            <img src={faviconPath} alt="" className="h-9 w-9 object-contain" />
+            <img src={logoPath} alt="" className="h-9 w-9 object-contain" />
             Focus List
           </div>
 

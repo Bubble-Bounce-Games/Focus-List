@@ -79,7 +79,7 @@ import {
 } from "lucide-react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const faviconPath = `${basePath}/Favicon.png`;
+const logoPath = `${basePath}/brand/focus-list-mark.png`;
 type WorkspaceTab = "active" | "completed";
 type PinnedNote = {
   id: string;
@@ -1338,7 +1338,7 @@ function LandingPage() {
     <main className="landing-page min-h-screen overflow-auto bg-background">
       <header className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4 lg:px-12">
         <div className="flex items-center gap-3 text-title-large text-on-surface">
-          <img src={faviconPath} alt="" className="size-9 object-contain" />
+          <img src={logoPath} alt="" className="size-9 object-contain" />
           Focus List
         </div>
         <Button asChild variant="default" size="default">
