@@ -48,6 +48,15 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --parameter-overrides CodeBucket="$AWS_S3_BUCKET" CodeKey="$ACCOUNT_API_CODE_KEY"
 
+      - name: Show stack events on failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name "$ACCOUNT_API_STACK" \
+            --max-items 20 \
+            --query "StackEvents[*].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]" \
+            --output table
+
       - name: Show API URL
         run: |
           aws cloudformation describe-stacks \
