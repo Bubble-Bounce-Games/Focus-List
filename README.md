@@ -3,8 +3,9 @@
 Focus List is a responsive personal task dashboard for projects, active work,
 completed tasks, pinned notes, and calendar reminders.
 
-The website opens on a simple sign-in page. After login, the dashboard loads
-the user's saved workspace.
+The website opens on a simple sign-in page. A new username is saved
+automatically on first sign-in; after login, the dashboard loads that user's
+saved workspace.
 
 ## Features
 
@@ -21,7 +22,7 @@ Projects, tags, tasks, notes, and reminders persist after reloads and sign-out.
 
 When `NEXT_PUBLIC_FOCUS_LIST_ACCOUNT_API_URL` is configured, users sign in with
 a simple username/password account and save their workspace through AWS so it
-loads after login on another device.
+loads after login on another device. There is no separate sign-up screen.
 
 ## Development
 
