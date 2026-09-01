@@ -67,6 +67,7 @@ these permissions to the role `GitHubActionsFocusListS3Deploy`.
       "Action": [
         "dynamodb:CreateTable",
         "dynamodb:DescribeTable",
+        "dynamodb:DeleteTable",
         "dynamodb:UpdateTimeToLive",
         "dynamodb:DescribeTimeToLive"
       ],
@@ -79,7 +80,9 @@ these permissions to the role `GitHubActionsFocusListS3Deploy`.
         "apigateway:POST",
         "apigateway:PUT",
         "apigateway:PATCH",
-        "apigateway:DELETE"
+        "apigateway:DELETE",
+        "apigateway:TagResource",
+        "apigateway:UntagResource"
       ],
       "Resource": "arn:aws:apigateway:ap-southeast-1::/*"
     },
