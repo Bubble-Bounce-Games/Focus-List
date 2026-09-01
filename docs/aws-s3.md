@@ -3,12 +3,65 @@
 Focus List is deployed as a static Next.js export. The S3 bucket hosts the
 website files only; dashboard data stays in each visitor's browser.
 
+## Goal
+
+Serve the website at:
+
+```text
+http://focus-list.abhijeetanand.com
+```
+
+This is the simplest S3-only custom-domain setup. It does not use CloudFront,
+ACM, Cognito, Supabase, or API Gateway.
+
+Important: direct S3 static website hosting is **HTTP only**. For HTTPS, use
+GitHub Pages or CloudFront.
+
+## Required S3 Bucket
+
+Create a new S3 bucket named exactly:
+
+```text
+focus-list.abhijeetanand.com
+```
+
+The bucket name must match the domain. The old bucket with the long name can
+stay, but direct S3 custom-domain routing will not use it.
+
+Use these S3 settings:
+
+- Region: `ap-southeast-1`
+- Static website hosting: enabled
+- Index document: `index.html`
+- Error document: `404.html`
+- Block all public access: off for this website bucket only
+- Bucket policy: public read for website files
+
+Bucket policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com/*"
+    }
+  ]
+}
+```
+
+Do not use this policy on any private data bucket.
+
 ## GitHub Environment
 
 In the GitHub environment named `aws-s3`, keep these variables:
 
 - `AWS_REGION`: `ap-southeast-1`
-- `AWS_S3_BUCKET`: `focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an`
+- `AWS_S3_BUCKET`: `focus-list.abhijeetanand.com`
 - `AWS_ROLE_TO_ASSUME`: `arn:aws:iam::990723918097:role/GitHubActionsFocusListS3Deploy`
 
 Cognito and private data API variables are not required.
@@ -25,16 +78,19 @@ configure and upload to the website bucket:
     {
       "Effect": "Allow",
       "Action": ["s3:ListBucket", "s3:GetBucketWebsite", "s3:PutBucketWebsite"],
-      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an"
+      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com"
     },
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an/*"
+      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com/*"
     }
   ]
 }
 ```
+
+If the existing role only points to the old long bucket, update the role policy
+to use the new bucket ARN above.
 
 ## Deploy
 
@@ -48,11 +104,26 @@ The workflow builds the static export, configures `index.html` and `404.html`,
 then uploads `out/` to the website bucket. It no longer checks Cognito or API
 Gateway settings.
 
-The direct website endpoint is:
+The direct website endpoint for the custom-domain bucket is:
 
 ```text
-http://focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an.s3-website-ap-southeast-1.amazonaws.com/
+http://focus-list.abhijeetanand.com.s3-website-ap-southeast-1.amazonaws.com/
 ```
 
-For HTTPS and `focus-list.abhijeetanand.com`, complete the CloudFront steps in
-[docs/aws-cloudfront.md](./aws-cloudfront.md).
+## Porkbun DNS
+
+In Porkbun DNS for `abhijeetanand.com`, add or update this record:
+
+```text
+Type: CNAME
+Host: focus-list
+Answer: focus-list.abhijeetanand.com.s3-website-ap-southeast-1.amazonaws.com
+TTL: default
+```
+
+Delete any old `focus-list` record that points to GitHub Pages or CloudFront.
+After DNS propagates, open:
+
+```text
+http://focus-list.abhijeetanand.com
+```
