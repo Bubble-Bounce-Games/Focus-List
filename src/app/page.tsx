@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Sparkles, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,7 +13,6 @@ import {
   type TaskFormData,
 } from "@/components/focuslist/add-task-panel";
 import { DeleteConfirm } from "@/components/focuslist/delete-confirm";
-import { AccountDialog } from "@/components/focuslist/account-dialog";
 
 import {
   createTask,
@@ -49,6 +48,8 @@ import {
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
 import {
+  signInAccount,
+  type AccountSnapshot,
   useAccountSnapshot,
   useBrowserCollection,
 } from "@/lib/focuslist/browser-state";
@@ -59,6 +60,8 @@ import {
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -938,8 +941,6 @@ function DashboardPage() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [projectCreateFrameOpen, setProjectCreateFrameOpen] = useState(false);
-  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
-  const [accountReason, setAccountReason] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const search = asString(searchValue);
@@ -1012,8 +1013,7 @@ function DashboardPage() {
 
   const requireAccount = useCallback((reason: string): boolean => {
     if (account.status === "signed-in") return true;
-    setAccountReason(reason);
-    setAccountDialogOpen(true);
+    toast.error("Sign in required", { description: reason });
     return false;
   }, [account.status]);
 
@@ -1084,7 +1084,7 @@ function DashboardPage() {
   /* ----------------------------- Panel flow ------------------------------ */
 
   const openCreate = useCallback(() => {
-    if (!requireAccount("Sign in or create an account to save tasks across devices.")) {
+    if (!requireAccount("Sign in to save tasks across devices.")) {
       return;
     }
     setEditingTask(null);
@@ -1104,7 +1104,7 @@ function DashboardPage() {
 
   const handleSubmit = useCallback(
     async (data: TaskFormData) => {
-      if (!requireAccount("Sign in or create an account before saving a task.")) {
+      if (!requireAccount("Sign in before saving a task.")) {
         return;
       }
       const project = await findOrCreateProject(data.projectName);
@@ -1149,7 +1149,7 @@ function DashboardPage() {
   );
 
   const handleCreateProject = useCallback(async (name: string) => {
-    if (!requireAccount("Sign in or create an account to save project folders.")) {
+    if (!requireAccount("Sign in to save project folders.")) {
       return;
     }
     const project = await findOrCreateProject(name);
@@ -1160,7 +1160,7 @@ function DashboardPage() {
   }, [requireAccount, setSelectedProjectId]);
 
   const openProjectCreateFrame = useCallback(() => {
-    if (!requireAccount("Sign in or create an account to save project folders.")) {
+    if (!requireAccount("Sign in to save project folders.")) {
       return;
     }
     setProjectMenuOpen(true);
@@ -1225,6 +1225,10 @@ function DashboardPage() {
     );
   }
 
+  if (account.status !== "signed-in") {
+    return <SignInLanding account={account} />;
+  }
+
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
       <Header
@@ -1233,10 +1237,6 @@ function DashboardPage() {
         sort={sort}
         onSortChange={setSort}
         onAddTask={openCreate}
-        onOpenAccount={() => {
-          setAccountReason(null);
-          setAccountDialogOpen(true);
-        }}
         onOpenTool={setToolView}
         searchInputRef={searchRef}
         account={account}
@@ -1334,12 +1334,6 @@ function DashboardPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
       />
-      <AccountDialog
-        open={accountDialogOpen}
-        reason={accountReason}
-        account={account}
-        onOpenChange={setAccountDialogOpen}
-      />
       {toolView && (
         <DashboardTools
           view={toolView}
@@ -1351,6 +1345,99 @@ function DashboardPage() {
         />
       )}
     </div>
+  );
+}
+
+function SignInLanding({ account }: { account: AccountSnapshot }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const cleanUsername = username.trim();
+    if (!cleanUsername || password.length < 4) {
+      setError("Use your username and at least 4 password characters.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await signInAccount(cleanUsername, password);
+      setPassword("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Sign in failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const loading = account.status === "loading";
+
+  return (
+    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
+      <section className="w-full max-w-sm rounded-lg border border-outline-variant bg-surface-container-lowest p-6 shadow-e2">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="flex size-11 items-center justify-center rounded-full bg-primary text-on-primary">
+            <ClipboardList className="size-5" />
+          </span>
+          <div>
+            <h1 className="text-title-large font-semibold text-on-surface">
+              Focus List
+            </h1>
+            <p className="text-body-small text-on-surface-variant">
+              Sign in to open your dashboard.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="signin-username">Username</Label>
+            <Input
+              id="signin-username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
+              placeholder="your-name"
+              disabled={busy || loading}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="signin-password">Password</Label>
+            <Input
+              id="signin-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              placeholder="Password"
+              disabled={busy || loading}
+            />
+          </div>
+
+          {!account.apiConfigured && (
+            <p className="rounded-md border border-error/30 bg-error-container px-3 py-2 text-body-small text-on-error-container">
+              Account storage is not connected yet.
+            </p>
+          )}
+          {(error || account.message) && (
+            <p className="rounded-md border border-error/30 bg-error-container px-3 py-2 text-body-small text-on-error-container">
+              {error ?? account.message}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={busy || loading || !account.apiConfigured}
+          >
+            {busy || loading ? "Please wait..." : "Sign in"}
+          </Button>
+        </form>
+      </section>
+    </main>
   );
 }
 
