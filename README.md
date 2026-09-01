@@ -40,12 +40,11 @@ yarn verify
 
 ## Deployment
 
-The simplest live deployment is GitHub Pages at
-`https://focus-list.abhijeetanand.com`. The **Deploy GitHub Pages** workflow
-builds the static site for the domain root and publishes the `public/CNAME`
-custom-domain marker.
-
-The AWS S3 workflow remains available as an alternate static host, described in
+The app exports as a static Next.js site. The current S3 custom-domain target is
+`http://focus-list.abhijeetanand.com`, described in
 [docs/aws-s3.md](./docs/aws-s3.md).
+
+For HTTPS, use GitHub Pages or the CloudFront path in
+[docs/aws-cloudfront.md](./docs/aws-cloudfront.md).
 
 See [AGENTS.md](./AGENTS.md) for repository conventions.
