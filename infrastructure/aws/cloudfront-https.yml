@@ -5,7 +5,7 @@ Parameters:
   WebsiteBucketName:
     Type: String
     Description: Existing S3 bucket containing the static website export.
-    Default: focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an
+    Default: focus-list.abhijeet-anand.com
   WebsiteBucketRegion:
     Type: String
     Description: AWS Region containing the existing website bucket.
@@ -13,7 +13,7 @@ Parameters:
   DomainName:
     Type: String
     Description: Lowercase custom hostname served by CloudFront.
-    Default: focus-list.abhijeetanand.com
+    Default: focus-list.abhijeet-anand.com
   CertificateArn:
     Type: String
     Description: ACM certificate ARN for DomainName issued in us-east-1.

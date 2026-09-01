@@ -1,0 +1,59 @@
+name: Deploy CloudFront HTTPS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cloudfront-https
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: aws-s3
+    env:
+      AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+      CLOUDFRONT_STACK: focus-list-cloudfront-https
+      CLOUDFRONT_CERTIFICATE_ARN: ${{ vars.CLOUDFRONT_CERTIFICATE_ARN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Validate CloudFront settings
+        run: |
+          test -n "$AWS_ROLE_TO_ASSUME"
+          test -n "$CLOUDFRONT_CERTIFICATE_ARN"
+
+      - name: Deploy CloudFront stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name "$CLOUDFRONT_STACK" \
+            --template-file infrastructure/aws/cloudfront-https.yml \
+            --parameter-overrides CertificateArn="$CLOUDFRONT_CERTIFICATE_ARN"
+
+      - name: Show stack events on failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name "$CLOUDFRONT_STACK" \
+            --max-items 20 \
+            --query "StackEvents[*].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]" \
+            --output table
+
+      - name: Show DNS target
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name "$CLOUDFRONT_STACK" \
+            --query "Stacks[0].Outputs[?OutputKey=='PorkbunCnameTarget'].OutputValue" \
+            --output text
