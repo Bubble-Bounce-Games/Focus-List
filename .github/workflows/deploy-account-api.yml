@@ -21,7 +21,7 @@ jobs:
       AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
       AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
       ACCOUNT_API_STACK: focus-list-simple-account-api
-      ACCOUNT_API_CODE_KEY: account-api/account-api.zip
+      ACCOUNT_API_CODE_KEY: account-api/${{ github.sha }}/account-api.zip
     steps:
       - name: Checkout
         uses: actions/checkout@v4
