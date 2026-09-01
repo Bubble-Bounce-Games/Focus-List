@@ -41,7 +41,7 @@ yarn verify
 ## Deployment
 
 The app exports as a static Next.js site. The current S3 custom-domain target is
-`http://focus-list.abhijeetanand.com`, described in
+`http://focus-list.abhijeet-anand.com`, described in
 [docs/aws-s3.md](./docs/aws-s3.md).
 
 For HTTPS, use GitHub Pages or the CloudFront path in
