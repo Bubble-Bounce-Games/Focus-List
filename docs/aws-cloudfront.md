@@ -5,7 +5,7 @@
 Serve Focus List at:
 
 ```text
-https://focus-list.abhijeetanand.com
+https://focus-list.abhijeet-anand.com
 ```
 
 CloudFront terminates HTTPS, serves the static export globally, and uses Origin
@@ -19,19 +19,19 @@ CloudFront requires its ACM certificate in **US East (N. Virginia)**.
 2. Open **Certificate Manager**.
 3. Select **Request a certificate**.
 4. Select **Request a public certificate**.
-5. Enter `focus-list.abhijeetanand.com` as the fully qualified domain name.
+5. Enter `focus-list.abhijeet-anand.com` as the fully qualified domain name.
 6. Select **DNS validation**.
 7. Select **RSA 2048** and then **Request**.
 8. Open the pending certificate and copy its validation CNAME name and value.
 
-## Part 2: Validate Through Wix DNS
+## Part 2: Validate Through Porkbun DNS
 
-1. Open the Wix dashboard for `abhijeetanand.com`.
-2. Open **Domains > Advanced > Manage DNS records**.
+1. Open Porkbun for `abhijeet-anand.com`.
+2. Open **DNS Records**.
 3. Add a `CNAME` record.
 4. Select `CNAME`.
 5. In **Host**, enter the ACM validation name without the final
-   `.abhijeetanand.com` portion.
+   `.abhijeet-anand.com` portion.
 6. In **Answer**, paste the complete ACM validation value.
 7. Keep the default TTL and add the record.
 8. Return to ACM and wait for the certificate status to become `Issued`.
@@ -43,6 +43,92 @@ arn:aws:acm:us-east-1:
 
 ## Part 3: Create the CloudFront Stack
 
+The easiest path is to let GitHub Actions create the stack.
+
+First add this variable to the GitHub `aws-s3` environment:
+
+```text
+CLOUDFRONT_CERTIFICATE_ARN
+  The issued us-east-1 ACM certificate ARN
+```
+
+The existing GitHub deploy role also needs these extra permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:GetTemplate",
+        "cloudformation:GetTemplateSummary"
+      ],
+      "Resource": "arn:aws:cloudformation:us-east-1:990723918097:stack/focus-list-cloudfront-https/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:CreateCachePolicy",
+        "cloudfront:CreateCloudFrontOriginAccessIdentity",
+        "cloudfront:CreateDistribution",
+        "cloudfront:CreateFunction",
+        "cloudfront:CreateOriginAccessControl",
+        "cloudfront:CreateResponseHeadersPolicy",
+        "cloudfront:DeleteCachePolicy",
+        "cloudfront:DeleteCloudFrontOriginAccessIdentity",
+        "cloudfront:DeleteDistribution",
+        "cloudfront:DeleteFunction",
+        "cloudfront:DeleteOriginAccessControl",
+        "cloudfront:DeleteResponseHeadersPolicy",
+        "cloudfront:DescribeFunction",
+        "cloudfront:GetCachePolicy",
+        "cloudfront:GetCloudFrontOriginAccessIdentity",
+        "cloudfront:GetDistribution",
+        "cloudfront:GetDistributionConfig",
+        "cloudfront:GetFunction",
+        "cloudfront:GetOriginAccessControl",
+        "cloudfront:GetResponseHeadersPolicy",
+        "cloudfront:PublishFunction",
+        "cloudfront:TagResource",
+        "cloudfront:UntagResource",
+        "cloudfront:UpdateCachePolicy",
+        "cloudfront:UpdateDistribution",
+        "cloudfront:UpdateFunction",
+        "cloudfront:UpdateOriginAccessControl",
+        "cloudfront:UpdateResponseHeadersPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:DeleteBucketPolicy",
+        "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy"
+      ],
+      "Resource": "arn:aws:s3:::focus-list.abhijeet-anand.com"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "acm:DescribeCertificate",
+      "Resource": "arn:aws:acm:us-east-1:990723918097:certificate/*"
+    }
+  ]
+}
+```
+
+Then open **GitHub > Actions > Deploy CloudFront HTTPS > Run workflow**.
+
+After the workflow succeeds, open the run log and copy the DNS target shown in
+the **Show DNS target** step.
+
+Manual CloudFormation option:
+
 Stay in `us-east-1` for this stack.
 
 1. Open **CloudFormation > Create stack > With new resources**.
@@ -53,13 +139,13 @@ Stay in `us-east-1` for this stack.
 
 ```text
 WebsiteBucketName
-  focus-list.abhijeetanand.com-990723918097-ap-southeast-1-an
+  focus-list.abhijeet-anand.com
 
 WebsiteBucketRegion
   ap-southeast-1
 
 DomainName
-  focus-list.abhijeetanand.com
+  focus-list.abhijeet-anand.com
 
 CertificateArn
   The issued us-east-1 ACM certificate ARN
@@ -71,9 +157,9 @@ CertificateArn
 The stack replaces the website bucket's public-read policy with a policy that
 allows only this CloudFront distribution to read objects.
 
-## Part 4: Point Wix DNS to CloudFront
+## Part 4: Point Porkbun DNS to CloudFront
 
-In Wix DNS, add this record:
+In Porkbun DNS, replace the current `focus-list` CNAME with this record:
 
 ```text
 Type
@@ -92,7 +178,7 @@ automatic certificate renewal.
 
 ## Part 5: Final Checks
 
-1. Open `https://focus-list.abhijeetanand.com`.
+1. Open `https://focus-list.abhijeet-anand.com`.
 2. Confirm HTTP redirects to HTTPS.
 3. Confirm the dashboard opens without a login page.
 4. Create a project, task, note, and reminder.
