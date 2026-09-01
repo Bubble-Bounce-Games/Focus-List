@@ -102,12 +102,32 @@ async function signup(body) {
   return json(200, await createSession(username));
 }
 
+async function createUser(username, password) {
+  const salt = randomBytes(16).toString("base64url");
+  await db.send(new PutItemCommand({
+    TableName: tableName,
+    Item: {
+      pk: { S: `USER#${username}` },
+      sk: { S: "PROFILE" },
+      username: { S: username },
+      salt: { S: salt },
+      passwordHash: { S: hashPassword(password, salt) },
+      createdAt: { S: new Date().toISOString() },
+    },
+    ConditionExpression: "attribute_not_exists(pk)",
+  }));
+}
+
 async function signin(body) {
   const username = cleanUsername(body.username);
   const password = String(body.password ?? "");
+  if (username.length < 3 || password.length < 4) {
+    return json(400, { error: "Use a username and at least 4 password characters." });
+  }
   const user = await getUser(username);
   if (!user?.salt?.S || !user?.passwordHash?.S) {
-    return json(401, { error: "Username or password is wrong." });
+    await createUser(username, password);
+    return json(200, await createSession(username));
   }
   const candidate = hashPassword(password, user.salt.S);
   if (!sameText(candidate, user.passwordHash.S)) {

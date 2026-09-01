@@ -2,11 +2,11 @@
 
 Focus List runs from S3 while saving each user's workspace to a small AWS API.
 This replaces email confirmation and Cognito with a simple username and
-password login.
+password login. New usernames are created automatically on first sign-in.
 
 ## What This Adds
 
-- `POST /signin`: sign in without email confirmation
+- `POST /signin`: sign in, or create the username when it is new
 - `GET /state`: load that user's projects, tasks, notes, and reminders
 - `PUT /state`: save that user's projects, tasks, notes, and reminders
 

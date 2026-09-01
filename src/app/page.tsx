@@ -1427,6 +1427,9 @@ function SignInLanding({ account }: { account: AccountSnapshot }) {
               {error ?? account.message}
             </p>
           )}
+          <p className="text-body-small text-on-surface-variant">
+            New usernames are saved automatically on first sign in.
+          </p>
 
           <Button
             type="submit"
