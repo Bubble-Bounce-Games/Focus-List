@@ -13,6 +13,7 @@ import {
   type TaskFormData,
 } from "@/components/focuslist/add-task-panel";
 import { DeleteConfirm } from "@/components/focuslist/delete-confirm";
+import { AccountDialog } from "@/components/focuslist/account-dialog";
 
 import {
   createTask,
@@ -43,7 +44,10 @@ import {
   type Task,
 } from "@/lib/focuslist/types";
 import { usePersistentState } from "@/lib/focuslist/use-persistent-state";
-import { useBrowserCollection } from "@/lib/focuslist/browser-state";
+import {
+  useAccountSnapshot,
+  useBrowserCollection,
+} from "@/lib/focuslist/browser-state";
 import {
   asCalendarReminders,
   type CalendarReminder,
@@ -899,6 +903,7 @@ function DashboardPage() {
   const projects = useProjects();
   const tags = useTags();
   const allTasks = useAllTasks();
+  const account = useAccountSnapshot();
 
   const [ready] = useState(true);
   const [searchValue, setSearch] = usePersistentState<unknown>("fl.search", "");
@@ -928,6 +933,8 @@ function DashboardPage() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [projectCreateFrameOpen, setProjectCreateFrameOpen] = useState(false);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [accountReason, setAccountReason] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const search = asString(searchValue);
@@ -998,6 +1005,13 @@ function DashboardPage() {
       : t
   );
 
+  const requireAccount = useCallback((reason: string): boolean => {
+    if (account.status === "signed-in") return true;
+    setAccountReason(reason);
+    setAccountDialogOpen(true);
+    return false;
+  }, [account.status]);
+
   /* --------------------------- Task operations --------------------------- */
 
   const handleProgressChange = useCallback((id: string, value: number) => {
@@ -1065,11 +1079,14 @@ function DashboardPage() {
   /* ----------------------------- Panel flow ------------------------------ */
 
   const openCreate = useCallback(() => {
+    if (!requireAccount("Sign in or create an account to save tasks across devices.")) {
+      return;
+    }
     setEditingTask(null);
     setInitialProjectName(selectedProject?.name ?? "");
     setPanelMode("create");
     setPanelOpen(true);
-  }, [selectedProject?.name]);
+  }, [requireAccount, selectedProject?.name]);
 
   const openEdit = useCallback((task: Task) => {
     setEditingTask(task);
@@ -1082,6 +1099,9 @@ function DashboardPage() {
 
   const handleSubmit = useCallback(
     async (data: TaskFormData) => {
+      if (!requireAccount("Sign in or create an account before saving a task.")) {
+        return;
+      }
       const project = await findOrCreateProject(data.projectName);
       const tag = await findOrCreateTag(data.tagName);
       if (panelMode === "edit" && editingTask) {
@@ -1120,21 +1140,27 @@ function DashboardPage() {
         setSelectedProjectId(project.id);
       }
     },
-    [panelMode, editingTask, selectedProjectId, setSelectedProjectId]
+    [panelMode, editingTask, selectedProjectId, setSelectedProjectId, requireAccount]
   );
 
   const handleCreateProject = useCallback(async (name: string) => {
+    if (!requireAccount("Sign in or create an account to save project folders.")) {
+      return;
+    }
     const project = await findOrCreateProject(name);
     setSelectedProjectId(project.id);
     setInitialProjectName(project.name);
     setEditingTask(null);
     toast.success("Project created", { description: project.name });
-  }, [setSelectedProjectId]);
+  }, [requireAccount, setSelectedProjectId]);
 
   const openProjectCreateFrame = useCallback(() => {
+    if (!requireAccount("Sign in or create an account to save project folders.")) {
+      return;
+    }
     setProjectMenuOpen(true);
     setProjectCreateFrameOpen(true);
-  }, []);
+  }, [requireAccount]);
 
   const handleRenameProject = useCallback(async (id: string, name: string) => {
     const project = await renameProject(id, name);
@@ -1186,8 +1212,13 @@ function DashboardPage() {
         sort={sort}
         onSortChange={setSort}
         onAddTask={openCreate}
+        onOpenAccount={() => {
+          setAccountReason(null);
+          setAccountDialogOpen(true);
+        }}
         onOpenTool={setToolView}
         searchInputRef={searchRef}
+        account={account}
       />
 
       <FilterToolbar
@@ -1280,6 +1311,12 @@ function DashboardPage() {
         taskTitle={deleteTarget?.title ?? ""}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
+      />
+      <AccountDialog
+        open={accountDialogOpen}
+        reason={accountReason}
+        account={account}
+        onOpenChange={setAccountDialogOpen}
       />
       {toolView && (
         <DashboardTools

@@ -1,0 +1,56 @@
+name: Deploy Account API
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: account-api
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: aws-s3
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
+      AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+      ACCOUNT_API_STACK: focus-list-simple-account-api
+      ACCOUNT_API_CODE_KEY: account-api/account-api.zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Package Lambda
+        run: |
+          cd infrastructure/aws/account-api
+          zip -r ../../../account-api.zip .
+
+      - name: Upload Lambda artifact
+        run: aws s3 cp account-api.zip "s3://$AWS_S3_BUCKET/$ACCOUNT_API_CODE_KEY"
+
+      - name: Deploy stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name "$ACCOUNT_API_STACK" \
+            --template-file infrastructure/aws/simple-account-api.yml \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides CodeBucket="$AWS_S3_BUCKET" CodeKey="$ACCOUNT_API_CODE_KEY"
+
+      - name: Show API URL
+        run: |
+          aws cloudformation describe-stacks \
+            --stack-name "$ACCOUNT_API_STACK" \
+            --query "Stacks[0].Outputs[?OutputKey=='AccountApiUrl'].OutputValue" \
+            --output text
