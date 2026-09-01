@@ -20,8 +20,11 @@ localStorage key.
 
 Projects, tags, tasks, notes, and reminders persist after reloads and browser
 restarts on the same browser and device. Clearing site data, using a private
-window, or changing devices starts a separate workspace. S3 hosts the static
-website files; it does not receive visitors' dashboard data.
+window, or changing devices starts a separate guest workspace.
+
+When `NEXT_PUBLIC_FOCUS_LIST_ACCOUNT_API_URL` is configured, users can create a
+simple username/password account and save their workspace through AWS so it
+loads after login on another device.
 
 ## Development
 
@@ -46,5 +49,8 @@ The app exports as a static Next.js site. The current S3 custom-domain target is
 
 For HTTPS, use GitHub Pages or the CloudFront path in
 [docs/aws-cloudfront.md](./docs/aws-cloudfront.md).
+
+For simple account storage, deploy the API in
+[docs/aws-account-api.md](./docs/aws-account-api.md).
 
 See [AGENTS.md](./AGENTS.md) for repository conventions.

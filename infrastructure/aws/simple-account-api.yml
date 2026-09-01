@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Simple username/password account API for Focus List.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Description: S3 bucket containing the Lambda zip artifact.
+  CodeKey:
+    Type: String
+    Description: S3 key for the Lambda zip artifact.
+
+Resources:
+  AccountTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  AccountFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FocusListAccountApiAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt AccountTable.Arn
+
+  AccountFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt AccountFunctionRole.Arn
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref AccountTable
+      Code:
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Ref CodeKey
+
+  AccountApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: focus-list-simple-account-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowHeaders:
+          - content-type
+          - authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - OPTIONS
+        AllowOrigins:
+          - "*"
+
+  AccountIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref AccountApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        - arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionArn}/invocations
+        - FunctionArn: !GetAtt AccountFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  SignUpRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AccountApi
+      RouteKey: POST /signup
+      Target: !Sub integrations/${AccountIntegration}
+
+  SignInRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AccountApi
+      RouteKey: POST /signin
+      Target: !Sub integrations/${AccountIntegration}
+
+  GetStateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AccountApi
+      RouteKey: GET /state
+      Target: !Sub integrations/${AccountIntegration}
+
+  PutStateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AccountApi
+      RouteKey: PUT /state
+      Target: !Sub integrations/${AccountIntegration}
+
+  AccountStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref AccountApi
+      StageName: $default
+      AutoDeploy: true
+
+  AccountInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AccountFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${AccountApi}/*/*/*
+
+Outputs:
+  AccountApiUrl:
+    Description: Add this value as NEXT_PUBLIC_FOCUS_LIST_ACCOUNT_API_URL.
+    Value: !GetAtt AccountApi.ApiEndpoint

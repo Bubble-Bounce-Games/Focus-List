@@ -12,7 +12,7 @@ http://focus-list.abhijeet-anand.com
 ```
 
 This is the simplest S3-only custom-domain setup. It does not use CloudFront,
-ACM, Cognito, Supabase, or API Gateway.
+ACM, Cognito, or Supabase.
 
 Important: direct S3 static website hosting is **HTTP only**. For HTTPS, use
 GitHub Pages or CloudFront.
@@ -103,6 +103,10 @@ gh workflow run "Deploy AWS S3"
 The workflow builds the static export, configures `index.html` and `404.html`,
 then uploads `out/` to the website bucket. It no longer checks Cognito or API
 Gateway settings.
+
+For account-based cloud storage, deploy the simple account API in
+[docs/aws-account-api.md](./aws-account-api.md), add its public API URL to the
+`aws-s3` GitHub environment, and run this S3 deployment again.
 
 The direct website endpoint for the custom-domain bucket is:
 
