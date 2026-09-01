@@ -26,15 +26,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-e1 hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12] aria-invalid:bg-error aria-invalid:text-on-error",
+          "bg-primary text-primary-foreground shadow-e1 hover:bg-primary/90 focus-visible:bg-primary/90 active:bg-primary/85 aria-invalid:bg-error aria-invalid:text-on-error",
         destructive:
-          "bg-error text-on-error shadow-e1 hover:bg-on-error/[0.08] focus-visible:bg-on-error/[0.10] active:bg-on-error/[0.12]",
+          "bg-error text-on-error shadow-e1 hover:bg-error/90 focus-visible:bg-error/90 active:bg-error/85",
         outline:
           "border-2 border-outline-variant text-primary bg-transparent hover:bg-primary/[0.08] focus-visible:bg-primary/[0.10] active:bg-primary/[0.12] dark:border-outline-variant",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-e1 hover:bg-on-secondary-container/[0.08] focus-visible:bg-on-secondary-container/[0.10] active:bg-on-secondary-container/[0.12]",
+          "bg-secondary text-secondary-foreground shadow-e1 hover:bg-secondary/90 focus-visible:bg-secondary/90 active:bg-secondary/85",
         tonal:
-          "bg-secondary text-secondary-foreground shadow-e1 hover:bg-on-secondary-container/[0.08] focus-visible:bg-on-secondary-container/[0.10] active:bg-on-secondary-container/[0.12]",
+          "bg-secondary text-secondary-foreground shadow-e1 hover:bg-secondary/90 focus-visible:bg-secondary/90 active:bg-secondary/85",
         ghost:
           "bg-transparent text-primary hover:bg-primary/[0.08] focus-visible:bg-primary/[0.10] active:bg-primary/[0.12]",
         link:

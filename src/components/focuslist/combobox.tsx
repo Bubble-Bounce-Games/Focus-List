@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 type ComboboxProps = {
@@ -65,9 +65,8 @@ export function Combobox({
         placeholder={placeholder}
         autoComplete="off"
         aria-invalid={invalid}
-        className="h-11 pr-9"
+        className="h-11"
       />
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
 
       {open && filtered.length > 0 && (
         <div className="fl-scroll absolute z-50 mt-1.5 max-h-52 w-full overflow-y-auto rounded-md border border-outline-variant bg-surface-container-high p-1 shadow-e2">

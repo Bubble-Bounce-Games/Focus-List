@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, ChevronDown, Folder, Pencil, Plus, Tag as TagIcon, X } from "lucide-react";
+import { Archive, Check, ChevronDown, Folder, Pencil, Plus, Tag as TagIcon, X } from "lucide-react";
 import type { Project, Tag } from "@/lib/focuslist/types";
 import { pillStyle } from "@/lib/focuslist/palette";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ type FilterToolbarProps = {
   onCreateFrameOpenChange: (open: boolean) => void;
   onCreateProject: (name: string) => void;
   onRenameProject: (id: string, name: string) => void;
+  onArchiveProject: (id: string) => void;
   onClear: () => void;
   isFiltering: boolean;
   projectSort: "name" | "color";
@@ -56,6 +57,7 @@ export function FilterToolbar({
   onCreateFrameOpenChange,
   onCreateProject,
   onRenameProject,
+  onArchiveProject,
   onClear,
   isFiltering,
   projectSort,
@@ -157,7 +159,7 @@ export function FilterToolbar({
                 />
                 <button
                   type="submit"
-                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12]"
+                  className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-primary/90 focus-visible:bg-primary/90 active:bg-primary/85"
                 >
                   Save
                 </button>
@@ -180,7 +182,7 @@ export function FilterToolbar({
                   />
                   <button
                     type="submit"
-                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12]"
+                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-primary/90 focus-visible:bg-primary/90 active:bg-primary/85"
                   >
                     Save
                   </button>
@@ -217,6 +219,14 @@ export function FilterToolbar({
                     aria-label={`Rename ${p.name}`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onArchiveProject(p.id)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-on-surface-variant transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-warning-container hover:text-on-warning-container focus-visible:bg-warning-container active:bg-warning-container"
+                    aria-label={`Archive ${p.name}`}
+                  >
+                    <Archive className="h-3.5 w-3.5" />
                   </button>
                 </div>
               )}
