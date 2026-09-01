@@ -8,7 +8,7 @@ website files only; dashboard data stays in each visitor's browser.
 Serve the website at:
 
 ```text
-http://focus-list.abhijeetanand.com
+http://focus-list.abhijeet-anand.com
 ```
 
 This is the simplest S3-only custom-domain setup. It does not use CloudFront,
@@ -22,7 +22,7 @@ GitHub Pages or CloudFront.
 Create a new S3 bucket named exactly:
 
 ```text
-focus-list.abhijeetanand.com
+focus-list.abhijeet-anand.com
 ```
 
 The bucket name must match the domain. The old bucket with the long name can
@@ -48,7 +48,7 @@ Bucket policy:
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com/*"
+      "Resource": "arn:aws:s3:::focus-list.abhijeet-anand.com/*"
     }
   ]
 }
@@ -61,7 +61,7 @@ Do not use this policy on any private data bucket.
 In the GitHub environment named `aws-s3`, keep these variables:
 
 - `AWS_REGION`: `ap-southeast-1`
-- `AWS_S3_BUCKET`: `focus-list.abhijeetanand.com`
+- `AWS_S3_BUCKET`: `focus-list.abhijeet-anand.com`
 - `AWS_ROLE_TO_ASSUME`: `arn:aws:iam::990723918097:role/GitHubActionsFocusListS3Deploy`
 
 Cognito and private data API variables are not required.
@@ -78,12 +78,12 @@ configure and upload to the website bucket:
     {
       "Effect": "Allow",
       "Action": ["s3:ListBucket", "s3:GetBucketWebsite", "s3:PutBucketWebsite"],
-      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com"
+      "Resource": "arn:aws:s3:::focus-list.abhijeet-anand.com"
     },
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::focus-list.abhijeetanand.com/*"
+      "Resource": "arn:aws:s3:::focus-list.abhijeet-anand.com/*"
     }
   ]
 }
@@ -107,17 +107,17 @@ Gateway settings.
 The direct website endpoint for the custom-domain bucket is:
 
 ```text
-http://focus-list.abhijeetanand.com.s3-website-ap-southeast-1.amazonaws.com/
+http://focus-list.abhijeet-anand.com.s3-website-ap-southeast-1.amazonaws.com/
 ```
 
 ## Porkbun DNS
 
-In Porkbun DNS for `abhijeetanand.com`, add or update this record:
+In Porkbun DNS for `abhijeet-anand.com`, add or update this record:
 
 ```text
 Type: CNAME
 Host: focus-list
-Answer: focus-list.abhijeetanand.com.s3-website-ap-southeast-1.amazonaws.com
+Answer: focus-list.abhijeet-anand.com.s3-website-ap-southeast-1.amazonaws.com
 TTL: default
 ```
 
@@ -125,5 +125,5 @@ Delete any old `focus-list` record that points to GitHub Pages or CloudFront.
 After DNS propagates, open:
 
 ```text
-http://focus-list.abhijeetanand.com
+http://focus-list.abhijeet-anand.com
 ```
