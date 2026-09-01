@@ -17,12 +17,15 @@ import { AccountDialog } from "@/components/focuslist/account-dialog";
 
 import {
   createTask,
+  archiveProject,
   deleteTask,
   duplicateTask,
+  restoreProject,
   setProgress,
   setTaskDetail,
   updateTask,
   useAllTasks,
+  useArchivedProjects,
   useProjects,
   useTags,
   findOrCreateProject,
@@ -40,6 +43,7 @@ import {
   DEFAULT_SORT,
   isComplete,
   type DetailField,
+  type Project,
   type SortKey,
   type Task,
 } from "@/lib/focuslist/types";
@@ -875,7 +879,7 @@ function FocusSidePanel() {
                       <button
                         type="button"
                         onClick={() => handleFinishReminder(reminder)}
-                        className="h-8 rounded-full bg-success px-3 text-label-large text-on-success shadow-e1 transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-success/[0.08] focus-visible:bg-on-success/[0.10] active:bg-on-success/[0.12]"
+                        className="h-8 rounded-full bg-success px-3 text-label-large text-on-success shadow-e1 transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-success/90 focus-visible:bg-success/90 active:bg-success/85"
                       >
                         Done
                       </button>
@@ -901,6 +905,7 @@ function FocusSidePanel() {
 
 function DashboardPage() {
   const projects = useProjects();
+  const archivedProjects = useArchivedProjects();
   const tags = useTags();
   const allTasks = useAllTasks();
   const account = useAccountSnapshot();
@@ -1171,6 +1176,22 @@ function DashboardPage() {
     toast.success("Project renamed", { description: project.name });
   }, [selectedProjectId]);
 
+  const handleArchiveProject = useCallback(async (id: string) => {
+    const project = await archiveProject(id);
+    if (!project) return;
+    if (selectedProjectId === id) {
+      setSelectedProjectId(null);
+      setInitialProjectName("");
+    }
+    toast.success("Project archived", { description: project.name });
+  }, [selectedProjectId, setSelectedProjectId]);
+
+  const handleRestoreProject = useCallback(async (project: Project) => {
+    const restored = await restoreProject(project.id);
+    if (!restored) return;
+    toast.success("Project restored", { description: restored.name });
+  }, []);
+
   const handleClearFilters = useCallback(() => {
     setSearch("");
     setSelectedProjectId(null);
@@ -1237,6 +1258,7 @@ function DashboardPage() {
         onCreateFrameOpenChange={setProjectCreateFrameOpen}
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
+        onArchiveProject={handleArchiveProject}
         onClear={handleClearFilters}
         isFiltering={isFiltering}
         projectSort={projectSort}
@@ -1322,7 +1344,9 @@ function DashboardPage() {
         <DashboardTools
           view={toolView}
           tasks={allTasks}
+          projects={archivedProjects}
           onClose={() => setToolView(null)}
+          onRestoreProject={handleRestoreProject}
           onSetReminder={handleSetReminder}
         />
       )}

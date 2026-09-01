@@ -5,6 +5,7 @@ export type Project = {
   id: string;
   name: string;
   color: string;
+  archivedAt?: string | null;
 };
 
 export type Tag = {

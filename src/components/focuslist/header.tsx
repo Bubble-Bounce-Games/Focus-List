@@ -15,12 +15,15 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  FolderArchive,
+  LogIn,
+  LogOut,
   Plus,
   Search,
   UserCircle,
 } from "lucide-react";
 import { SORT_OPTIONS, type SortKey } from "@/lib/focuslist/types";
-import type { AccountSnapshot } from "@/lib/focuslist/browser-state";
+import { signOutAccount, type AccountSnapshot } from "@/lib/focuslist/browser-state";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const logoPath = `${basePath}/brand/focus-list-mark.png`;
@@ -142,18 +145,52 @@ export function Header({
           <CalendarDays className="h-5 w-5" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12] ${
-            account.status === "signed-in" ? "text-primary" : ""
-          }`}
-          aria-label={account.status === "signed-in" ? "Account signed in" : "Sign in or sign up"}
-          onClick={onOpenAccount}
-          title={account.status === "signed-in" ? account.username ?? "Account" : "Account"}
-        >
-          <UserCircle className="h-5 w-5" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12] ${
+                account.status === "signed-in" ? "text-primary" : ""
+              }`}
+              aria-label={account.status === "signed-in" ? "Account signed in" : "Account menu"}
+              title={account.status === "signed-in" ? account.username ?? "Account" : "Account"}
+            >
+              <UserCircle className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel>
+              {account.status === "signed-in" ? account.username : "Account"}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onOpenAccount}>
+              <LogIn className="mr-2 h-4 w-4" />
+              Sign in / Sign up
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (account.status === "signed-in") {
+                  onOpenTool?.("archive");
+                } else {
+                  onOpenAccount();
+                }
+              }}
+            >
+              <FolderArchive className="mr-2 h-4 w-4" />
+              Archived
+            </DropdownMenuItem>
+            {account.status === "signed-in" && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={signOutAccount}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
       </div>
     </header>

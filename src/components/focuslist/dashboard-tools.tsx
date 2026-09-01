@@ -6,10 +6,11 @@ import {
   CheckCircle2,
   Clock3,
   FolderArchive,
+  FolderOpen,
   Trash2,
   X,
 } from "lucide-react";
-import type { Task } from "@/lib/focuslist/types";
+import type { Project, Task } from "@/lib/focuslist/types";
 import { asCalendarReminders } from "@/lib/focuslist/calendar-reminders";
 import { useBrowserCollection } from "@/lib/focuslist/browser-state";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,10 @@ type ToolView = "calendar" | "archive" | "trash";
 type DashboardToolsProps = {
   view: ToolView;
   tasks: Task[];
+  projects?: Project[];
   onClose: () => void;
   onRestore?: (task: Task) => void;
+  onRestoreProject?: (project: Project) => void;
   onSetReminder?: (taskId: string, date: string | null) => void;
 };
 
@@ -183,9 +186,9 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
                           onClick={() => setSelectedDate(key)}
                           className={`relative flex size-9 items-center justify-center rounded-full text-label-medium transition-[background-color,color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12] focus-visible:outline-none ${
                             isToday
-                              ? "bg-primary text-on-primary-foreground hover:bg-on-primary/[0.08] focus-visible:bg-on-primary/[0.10] active:bg-on-primary/[0.12]"
+                              ? "bg-primary text-on-primary-foreground hover:bg-primary/90 focus-visible:bg-primary/90 active:bg-primary/85"
                               : isSelected
-                              ? "bg-secondary-container text-on-secondary-container hover:bg-on-secondary-container/[0.08] focus-visible:bg-on-secondary-container/[0.10] active:bg-on-secondary-container/[0.12]"
+                              ? "bg-secondary-container text-on-secondary-container hover:bg-secondary-container/90 focus-visible:bg-secondary-container/90 active:bg-secondary-container/85"
                               : "text-on-surface"
                           }`}
                           aria-label={`Open ${dateTitle(key)}`}
@@ -229,11 +232,20 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
   );
 }
 
-export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToolsProps) {
+export function DashboardTools({
+  view,
+  tasks,
+  projects = [],
+  onClose,
+  onRestore,
+  onRestoreProject,
+}: DashboardToolsProps) {
   const dueTasks = tasks.filter((task) => !task.completedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const title = view === "calendar" ? "Reminder calendar" : view === "archive" ? "Archive" : "Deleted items";
   const Icon = view === "calendar" ? CalendarDays : view === "archive" ? FolderArchive : Trash2;
   const rows = view === "archive" ? tasks.filter((task) => task.archivedAt) : view === "trash" ? tasks.filter((task) => task.deletedAt) : dueTasks;
+  const archivedProjects = view === "archive" ? projects.filter((project) => project.archivedAt) : [];
+  const hasArchiveRows = rows.length > 0 || archivedProjects.length > 0;
 
   return (
     <aside
@@ -256,7 +268,7 @@ export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToo
       <div className="fl-scroll flex-1 overflow-y-auto p-4 sm:p-6">
         {view === "calendar" ? (
           <CalendarTool tasks={tasks} />
-        ) : rows.length === 0 ? (
+        ) : !hasArchiveRows ? (
           <EmptyState
             icon={<CheckCircle2 className="size-6 text-success" />}
             title="Nothing here yet"
@@ -264,6 +276,32 @@ export function DashboardTools({ view, tasks, onClose, onRestore }: DashboardToo
           />
         ) : (
           <div className="space-y-2">
+            {archivedProjects.map((project) => (
+              <div
+                key={project.id}
+                className="rounded-md border border-outline-variant bg-surface-container-high p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <FolderOpen className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-body-medium font-medium text-on-surface">{project.name}</p>
+                    <p className="mt-1 text-body-small text-on-surface-variant">
+                      Project folder archived
+                    </p>
+                  </div>
+                  {onRestoreProject && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRestoreProject(project)}
+                      className="text-primary hover:bg-primary/[0.08] focus-visible:bg-primary/[0.10] active:bg-primary/[0.12]"
+                    >
+                      Restore
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
             {rows.map((task) => (
               <div
                 key={task.id}

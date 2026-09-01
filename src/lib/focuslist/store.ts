@@ -41,7 +41,17 @@ export function useAllTasks(): Task[] {
 }
 
 export function useProjects(): Project[] {
-  return useBrowserState().projects.slice().sort((a, b) => a.name.localeCompare(b.name));
+  return useBrowserState().projects
+    .filter((project) => !project.archivedAt)
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function useArchivedProjects(): Project[] {
+  return useBrowserState().projects
+    .filter((project) => project.archivedAt)
+    .slice()
+    .sort((a, b) => (b.archivedAt ?? "").localeCompare(a.archivedAt ?? ""));
 }
 
 export function useTags(): Tag[] {
@@ -174,6 +184,40 @@ export async function renameProject(id: string, name: string): Promise<Project |
       project = { ...item, name: trimmed, color: colorForName(trimmed) };
       return project;
     }),
+  }));
+  return project;
+}
+
+export async function archiveProject(id: string): Promise<Project | undefined> {
+  const timestamp = now();
+  let project: Project | undefined;
+  await updateBrowserState((state) => ({
+    ...state,
+    projects: state.projects.map((item) => {
+      if (item.id !== id) return item;
+      project = { ...item, archivedAt: timestamp };
+      return project;
+    }),
+    tasks: state.tasks.map((task) =>
+      task.projectId === id ? { ...task, archivedAt: timestamp, updatedAt: timestamp } : task
+    ),
+  }));
+  return project;
+}
+
+export async function restoreProject(id: string): Promise<Project | undefined> {
+  const timestamp = now();
+  let project: Project | undefined;
+  await updateBrowserState((state) => ({
+    ...state,
+    projects: state.projects.map((item) => {
+      if (item.id !== id) return item;
+      project = { ...item, archivedAt: null };
+      return project;
+    }),
+    tasks: state.tasks.map((task) =>
+      task.projectId === id ? { ...task, archivedAt: null, updatedAt: timestamp } : task
+    ),
   }));
   return project;
 }
