@@ -1,19 +1,17 @@
 # AWS Simple Account API
 
-Focus List can run from S3 while saving each user's workspace to a small AWS
-API. This replaces email confirmation and Cognito with a simple username and
-password account.
+Focus List runs from S3 while saving each user's workspace to a small AWS API.
+This replaces email confirmation and Cognito with a simple username and
+password login.
 
 ## What This Adds
 
-- `POST /signup`: create username/password account
 - `POST /signin`: sign in without email confirmation
 - `GET /state`: load that user's projects, tasks, notes, and reminders
 - `PUT /state`: save that user's projects, tasks, notes, and reminders
 
 Passwords are hashed before storage. Sessions expire after 30 days. The website
-still opens directly on the dashboard; creating a task or project asks for sign
-in when needed.
+opens on the sign-in screen first, then loads the dashboard after login.
 
 ## Deploy Account API
 

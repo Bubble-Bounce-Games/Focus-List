@@ -16,7 +16,6 @@ import {
   Check,
   ChevronDown,
   FolderArchive,
-  LogIn,
   LogOut,
   Plus,
   Search,
@@ -34,7 +33,6 @@ type HeaderProps = {
   sort: SortKey;
   onSortChange: (sort: SortKey) => void;
   onAddTask: () => void;
-  onOpenAccount: () => void;
   onOpenTool?: (view: "calendar" | "archive" | "trash") => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
   account: AccountSnapshot;
@@ -46,7 +44,6 @@ export function Header({
   sort,
   onSortChange,
   onAddTask,
-  onOpenAccount,
   onOpenTool,
   searchInputRef,
   account,
@@ -164,31 +161,19 @@ export function Header({
               {account.status === "signed-in" ? account.username : "Account"}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onOpenAccount}>
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign in / Sign up
-            </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {
-                if (account.status === "signed-in") {
-                  onOpenTool?.("archive");
-                } else {
-                  onOpenAccount();
-                }
+                onOpenTool?.("archive");
               }}
             >
               <FolderArchive className="mr-2 h-4 w-4" />
               Archived
             </DropdownMenuItem>
-            {account.status === "signed-in" && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={signOutAccount}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </>
-            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={signOutAccount}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
