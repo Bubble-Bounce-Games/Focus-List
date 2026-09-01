@@ -66,7 +66,11 @@ The existing GitHub deploy role also needs these extra permissions:
         "cloudformation:DescribeStacks",
         "cloudformation:DescribeStackEvents",
         "cloudformation:GetTemplate",
-        "cloudformation:GetTemplateSummary"
+        "cloudformation:GetTemplateSummary",
+        "cloudformation:CreateChangeSet",
+        "cloudformation:DescribeChangeSet",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:DeleteChangeSet"
       ],
       "Resource": "arn:aws:cloudformation:us-east-1:990723918097:stack/focus-list-cloudfront-https/*"
     },
