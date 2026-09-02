@@ -75,6 +75,7 @@ import {
   CalendarDays,
   Clock3,
   Eye,
+  EyeOff,
   Italic,
   List,
   Palette,
@@ -1351,6 +1352,7 @@ function DashboardPage() {
 function SignInLanding({ account }: { account: AccountSnapshot }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1406,15 +1408,31 @@ function SignInLanding({ account }: { account: AccountSnapshot }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="signin-password">Password</Label>
-            <Input
-              id="signin-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-              placeholder="Password"
-              disabled={busy || loading}
-            />
+            <div className="relative">
+              <Input
+                id="signin-password"
+                type={passwordVisible ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+                placeholder="Password"
+                disabled={busy || loading}
+                className="pr-11"
+              />
+              <button
+                type="button"
+                onClick={() => setPasswordVisible((visible) => !visible)}
+                className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-on-surface-variant transition-[background-color,color] hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] focus-visible:outline-none active:bg-on-surface/[0.12]"
+                aria-label={passwordVisible ? "Hide password" : "Show password"}
+                disabled={busy || loading}
+              >
+                {passwordVisible ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           {!account.apiConfigured && (
@@ -1427,10 +1445,6 @@ function SignInLanding({ account }: { account: AccountSnapshot }) {
               {error ?? account.message}
             </p>
           )}
-          <p className="text-body-small text-on-surface-variant">
-            New usernames are saved automatically on first sign in.
-          </p>
-
           <Button
             type="submit"
             className="w-full"
