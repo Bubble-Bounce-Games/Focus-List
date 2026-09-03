@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { Sparkles, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
@@ -113,7 +120,7 @@ type NoteListKind =
   | "checklist"
   | "checked"
   | "checkedLine"
-  | "checkedDone";
+  | "checkedDisabled";
 
 type ReminderRow =
   | {
@@ -228,8 +235,63 @@ function blankListStarter(kind: NoteListKind): string {
   if (kind === "checklist") return "☐ ";
   if (kind === "checked") return "☑ ";
   if (kind === "checkedLine") return "☑ ";
-  if (kind === "checkedDone") return "☑  [done]";
+  if (kind === "checkedDisabled") return "☒ ";
   return "1. ";
+}
+
+function nextRomanNumeral(value: string): string {
+  const known = [
+    "i",
+    "ii",
+    "iii",
+    "iv",
+    "v",
+    "vi",
+    "vii",
+    "viii",
+    "ix",
+    "x",
+  ];
+  const index = known.indexOf(value.toLowerCase());
+  return index >= 0 ? romanNumeral(index + 2) : "i";
+}
+
+function nextLetter(value: string): string {
+  const code = value.toLowerCase().charCodeAt(0);
+  if (code < 97 || code > 122) return "a";
+  return String.fromCharCode(code === 122 ? 97 : code + 1);
+}
+
+function nextListMarker(line: string): string | null {
+  const symbol = line.match(/^(\s*)([•\-✓→☐☑☒])\s+/);
+  if (symbol) return `${symbol[1]}${symbol[2]} `;
+
+  const number = line.match(/^(\s*)(\d+)([.)])\s+/);
+  if (number) return `${number[1]}${Number(number[2]) + 1}${number[3]} `;
+
+  const roman = line.match(/^(\s*)([ivx]+)\.\s+/i);
+  if (roman) return `${roman[1]}${nextRomanNumeral(roman[2])}. `;
+
+  const letter = line.match(/^(\s*)([a-z])\.\s+/i);
+  if (letter) return `${letter[1]}${nextLetter(letter[2])}. `;
+
+  return null;
+}
+
+function listMarkerOnlyLength(line: string): number | null {
+  const symbol = line.match(/^(\s*[•\-✓→☐☑☒]\s*)$/);
+  if (symbol) return symbol[1].length;
+
+  const number = line.match(/^(\s*\d+[.)]\s*)$/);
+  if (number) return number[1].length;
+
+  const roman = line.match(/^(\s*[ivx]+\.\s*)$/i);
+  if (roman) return roman[1].length;
+
+  const letter = line.match(/^(\s*[a-z]\.\s*)$/i);
+  if (letter) return letter[1].length;
+
+  return null;
 }
 
 function asPinnedNotes(value: unknown): PinnedNote[] {
@@ -345,6 +407,7 @@ function FocusSidePanel() {
   const [formatMenuOpen, setFormatMenuOpen] = useState(false);
   const [listMenuOpen, setListMenuOpen] = useState(false);
   const [alignMenuOpen, setAlignMenuOpen] = useState(false);
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
   const calendarReminders = asCalendarReminders(calendarReminderValue);
@@ -517,7 +580,7 @@ function FocusSidePanel() {
         if (kind === "checklist") return `☐ ${text}`;
         if (kind === "checked") return `☑ ${text}`;
         if (kind === "checkedLine") return `☑ ${strikeText(text)}`;
-        if (kind === "checkedDone") return `☑ ${text} [done]`;
+        if (kind === "checkedDisabled") return `☒ ${text}`;
         if (kind === "roman") return `${romanNumeral(index + 1)}. ${text}`;
         if (kind === "letter") return `${letterMarker(index + 1)}. ${text}`;
         if (kind === "numerical") return `${index + 1}) ${text}`;
@@ -529,13 +592,50 @@ function FocusSidePanel() {
               const trimmed = line.trim();
               if (!trimmed) return line;
               const bare = trimmed
-                .replace(/^(•\s+|-+\s+|✓\s+|→\s+|\d+[\).]\s+|[a-z]\.\s+|[ivx]+\.\s+|[☐☑]\s+)/i, "")
+                .replace(/^(•\s+|-+\s+|✓\s+|→\s+|\d+[\).]\s+|[a-z]\.\s+|[ivx]+\.\s+|[☐☑☒]\s+)/i, "")
                 .replace(/\s+\[done\]$/, "");
               return formatLine(bare, index);
             })
             .join("\n")
         : blankListStarter(kind);
       setNote(next);
+    },
+    [note, setNote]
+  );
+
+  const handleNoteKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key !== "Enter" || event.shiftKey) return;
+      const target = event.currentTarget;
+      const cursorStart = target.selectionStart;
+      const cursorEnd = target.selectionEnd;
+      if (cursorStart !== cursorEnd) return;
+
+      const lineStart = note.lastIndexOf("\n", cursorStart - 1) + 1;
+      const lineEndIndex = note.indexOf("\n", cursorStart);
+      const lineEnd = lineEndIndex === -1 ? note.length : lineEndIndex;
+      const currentLine = note.slice(lineStart, lineEnd);
+      const marker = nextListMarker(currentLine);
+      if (!marker) return;
+
+      event.preventDefault();
+      const markerOnlyLength = listMarkerOnlyLength(currentLine);
+      if (markerOnlyLength !== null) {
+        const nextNote = `${note.slice(0, lineStart)}${note.slice(cursorStart)}`;
+        setNote(nextNote);
+        requestAnimationFrame(() => {
+          noteTextareaRef.current?.setSelectionRange(lineStart, lineStart);
+        });
+        return;
+      }
+
+      const insertion = `\n${marker}`;
+      const nextCursor = cursorStart + insertion.length;
+      const nextNote = `${note.slice(0, cursorStart)}${insertion}${note.slice(cursorStart)}`;
+      setNote(nextNote);
+      requestAnimationFrame(() => {
+        noteTextareaRef.current?.setSelectionRange(nextCursor, nextCursor);
+      });
     },
     [note, setNote]
   );
@@ -723,7 +823,7 @@ function FocusSidePanel() {
                       { kind: "checklist" as const, label: "Checklist", mark: "☐" },
                       { kind: "checked" as const, label: "Checked", mark: "☑" },
                       { kind: "checkedLine" as const, label: "Checked line", mark: "☑̶" },
-                      { kind: "checkedDone" as const, label: "Done faded", mark: "✓" },
+                      { kind: "checkedDisabled" as const, label: "Disabled", mark: "☒" },
                     ].map((item) => (
                       <button
                         key={item.kind}
@@ -816,8 +916,10 @@ function FocusSidePanel() {
               </div>
             </div>
             <textarea
+              ref={noteTextareaRef}
               value={note}
               onChange={(event) => setNote(event.target.value)}
+              onKeyDown={handleNoteKeyDown}
               className="min-h-[220px] flex-1 w-full resize-none border-0 bg-transparent py-3 leading-6 text-body-large outline-none placeholder:text-on-warning-container/60"
               style={noteTextStyle}
               placeholder="Write a quick note..."
