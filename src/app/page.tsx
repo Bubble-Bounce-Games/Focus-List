@@ -327,11 +327,7 @@ function FocusSidePanel() {
   const allReminderRows = [...taskReminderRows, ...calendarReminderRows].sort(
     (a, b) => a.dueDate.localeCompare(b.dueDate) || b.id.localeCompare(a.id)
   );
-  const reminderRows = allReminderRows.slice(0, 5);
-  const overdueCount = allReminderRows.filter(
-    (reminder) => reminder.dueDate < toDateKey(new Date())
-  ).length;
-  const nextReminderDate = allReminderRows[0]?.dueDate ?? null;
+  const reminderRows = allReminderRows;
 
   const handleFinishReminder = useCallback(
     (reminder: ReminderRow) => {
@@ -810,42 +806,17 @@ function FocusSidePanel() {
         </section>
 
         <section className="shrink-0 rounded-lg border border-outline-variant bg-surface-container p-4">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <CalendarDays className="size-4 text-primary" />
             <h3 className="text-title-medium text-on-surface">Reminder Board</h3>
-            <span className="ml-auto rounded-full bg-surface-container-high px-2.5 py-1 text-label-medium text-on-surface-variant">
-              {overdueCount} overdue
+            <span className="text-body-small leading-5 text-on-surface-variant">
+              Mark dates in the calendar tool and your reminders will appear here.
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-lg border border-outline-variant bg-surface-container-low p-3 shadow-e0">
-              <p className="text-label-small uppercase tracking-[0.08em] text-on-surface-variant">
-                Reminders
-              </p>
-              <p className="mt-1 text-headline-small text-primary">{allReminderRows.length}</p>
-            </div>
-            <div className="rounded-lg border border-outline-variant bg-surface-container-low p-3 shadow-e0">
-              <p className="text-label-small uppercase tracking-[0.08em] text-on-surface-variant">
-                Overdue
-              </p>
-              <p className="mt-1 text-headline-small text-error">{overdueCount}</p>
-            </div>
-            <div className="rounded-lg border border-outline-variant bg-surface-container-low p-3 shadow-e0">
-              <p className="text-label-small uppercase tracking-[0.08em] text-on-surface-variant">
-                Date
-              </p>
-              <p className="mt-1.5 truncate text-body-small font-semibold text-on-surface">
-                {nextReminderDate ? dateLabel(nextReminderDate) : "None"}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-3 space-y-2">
+          <div className="fl-scroll max-h-64 min-h-24 space-y-2 overflow-y-auto pr-1">
             {reminderRows.length === 0 ? (
-              <div className="rounded-md border border-dashed border-outline-variant bg-surface-container-lowest p-4 text-body-small leading-5 text-on-surface-variant">
-                Mark dates in the calendar tool and your reminders will appear here.
-              </div>
+              <div className="min-h-24 rounded-md border border-dashed border-outline-variant bg-surface-container-lowest" />
             ) : (
               reminderRows.map((reminder) => {
                 const tone = reminderTone(reminder.dueDate);
