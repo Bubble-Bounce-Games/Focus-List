@@ -1078,7 +1078,7 @@ function FocusSidePanel() {
             </span>
           </div>
 
-          <div className="fl-scroll max-h-64 min-h-24 space-y-2 overflow-y-auto pr-1">
+          <div className="fl-scroll h-[132px] min-h-24 space-y-2 overflow-y-auto pr-1">
             {reminderRows.length === 0 ? (
               <div className="min-h-24" aria-hidden="true" />
             ) : (
