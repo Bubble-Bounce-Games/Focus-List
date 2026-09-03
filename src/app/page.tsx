@@ -142,12 +142,12 @@ type ReminderRow =
 // they can be persisted verbatim in localStorage AND render theme-aware. Six
 // distinct, accessible options aligned to MD3 brand/role roles.
 const markerColors = [
-  "var(--md-on-surface)",
-  "var(--md-warning)",
-  "var(--md-tertiary)",
-  "var(--md-success)",
-  "var(--md-info)",
-  "var(--md-primary)",
+  "#1b1b21",
+  "#7c5800",
+  "#7a4f3d",
+  "#1f6b34",
+  "#0061a4",
+  "#4f46e5",
 ];
 const noteFontFamilies = [
   { label: "Sans", value: "Inter, Arial, sans-serif" },
@@ -160,6 +160,24 @@ const noteFormatItems = [
   { command: "bold" as const, icon: <Bold className="size-3.5" />, label: "Bold" },
   { command: "italic" as const, icon: <Italic className="size-3.5" />, label: "Italic" },
   { command: "underline" as const, icon: <Underline className="size-3.5" />, label: "Underline" },
+];
+const noteListItems = [
+  { kind: "bullet" as const, label: "Bullet point", mark: "•" },
+  { kind: "number" as const, label: "Number", mark: "1." },
+  { kind: "numerical" as const, label: "Numerical", mark: "1)" },
+  { kind: "roman" as const, label: "Roman", mark: "i." },
+  { kind: "letter" as const, label: "Letter", mark: "a." },
+  { kind: "dash" as const, label: "Dash", mark: "-" },
+  { kind: "check" as const, label: "Check", mark: "✓" },
+  { kind: "arrow" as const, label: "Arrow point", mark: "→" },
+  { kind: "checklist" as const, label: "Checklist", mark: "☐" },
+  { kind: "checked" as const, label: "Checked", mark: "☑" },
+];
+const noteAlignItems = [
+  { align: "left" as const, icon: <AlignLeft className="size-3.5" />, label: "Left" },
+  { align: "center" as const, icon: <AlignCenter className="size-3.5" />, label: "Center" },
+  { align: "right" as const, icon: <AlignRight className="size-3.5" />, label: "Right" },
+  { align: "justify" as const, icon: <AlignJustify className="size-3.5" />, label: "Justify" },
 ];
 
 function asString(value: unknown, fallback = ""): string {
@@ -216,19 +234,6 @@ function romanNumeral(value: number): string {
 function letterMarker(value: number): string {
   const alphabetIndex = (value - 1) % 26;
   return String.fromCharCode(97 + alphabetIndex);
-}
-
-function blankListStarter(kind: NoteListKind): string {
-  if (kind === "bullet") return "• ";
-  if (kind === "dash") return "- ";
-  if (kind === "check") return "✓ ";
-  if (kind === "arrow") return "→ ";
-  if (kind === "roman") return "i. ";
-  if (kind === "letter") return "a. ";
-  if (kind === "numerical") return "1) ";
-  if (kind === "checklist") return "☐ ";
-  if (kind === "checked") return "☑ ";
-  return "1. ";
 }
 
 function nextRomanNumeral(value: string): string {
@@ -303,7 +308,21 @@ function sanitizeNoteHtml(value: string): string {
   if (typeof document === "undefined") return plainTextToNoteHtml(value);
   const template = document.createElement("template");
   template.innerHTML = value;
-  const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "BR", "DIV", "P"]);
+  const allowedTags = new Set([
+    "B",
+    "STRONG",
+    "I",
+    "EM",
+    "U",
+    "BR",
+    "DIV",
+    "P",
+    "SPAN",
+    "FONT",
+    "UL",
+    "OL",
+    "LI",
+  ]);
 
   const cleanNode = (node: Node): Node => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -323,8 +342,29 @@ function sanitizeNoteHtml(value: string): string {
     if (element.tagName === "BR") return document.createElement("br");
 
     const tagName =
-      element.tagName === "STRONG" ? "b" : element.tagName === "EM" ? "i" : element.tagName.toLowerCase();
+      element.tagName === "STRONG"
+        ? "b"
+        : element.tagName === "EM"
+          ? "i"
+          : element.tagName === "FONT"
+            ? "span"
+            : element.tagName.toLowerCase();
     const cleanElement = document.createElement(tagName);
+    const color = element.getAttribute("color") ?? element.style.color;
+    if ((tagName === "span" || tagName === "li") && color && CSS.supports("color", color)) {
+      cleanElement.style.color = color;
+    }
+    const textAlign = element.style.textAlign;
+    if (
+      (tagName === "div" || tagName === "p" || tagName === "li") &&
+      ["left", "center", "right", "justify"].includes(textAlign)
+    ) {
+      cleanElement.style.textAlign = textAlign;
+    }
+    const listStyleType = element.style.listStyleType;
+    if ((tagName === "ol" || tagName === "ul") && listStyleType) {
+      cleanElement.style.listStyleType = listStyleType;
+    }
     element.childNodes.forEach((child) => cleanElement.appendChild(cleanNode(child)));
     return cleanElement;
   };
@@ -491,6 +531,7 @@ function FocusSidePanel() {
   const [listMenuOpen, setListMenuOpen] = useState(false);
   const [alignMenuOpen, setAlignMenuOpen] = useState(false);
   const noteTextareaRef = useRef<HTMLDivElement>(null);
+  const noteSelectionRef = useRef<Range | null>(null);
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
   const calendarReminders = asCalendarReminders(calendarReminderValue);
@@ -504,10 +545,8 @@ function FocusSidePanel() {
   const noteUnderline = asBoolean(noteUnderlineValue);
   const noteAlign = asNoteAlign(noteAlignValue);
   const noteTextStyle = {
-    color: marker,
     fontFamily: noteFont,
     fontSize: `${noteFontSize}px`,
-    textAlign: noteAlign,
   } as const;
   const customMarkerColor = /^#[\da-f]{6}$/i.test(marker) ? marker : "#202124";
   const taskReminderRows: ReminderRow[] = tasks
@@ -629,13 +668,114 @@ function FocusSidePanel() {
     setNoteUnderline(document.queryCommandState("underline"));
   }, [setNote, setNoteBold, setNoteItalic, setNoteUnderline]);
 
+  const rememberNoteSelection = useCallback(() => {
+    const editor = noteTextareaRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) return;
+    noteSelectionRef.current = range.cloneRange();
+  }, []);
+
+  const restoreNoteSelection = useCallback(() => {
+    const editor = noteTextareaRef.current;
+    const range = noteSelectionRef.current;
+    const selection = window.getSelection();
+    if (!editor || !range || !selection || !editor.contains(range.commonAncestorContainer)) {
+      editor?.focus();
+      return;
+    }
+    editor.focus();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, []);
+
   const runNoteCommand = useCallback(
-    (command: "bold" | "italic" | "underline") => {
-      noteTextareaRef.current?.focus();
+    (command: "bold" | "italic" | "underline" | "insertOrderedList" | "insertUnorderedList") => {
+      restoreNoteSelection();
       document.execCommand(command);
       syncNoteFromEditor();
     },
+    [restoreNoteSelection, syncNoteFromEditor]
+  );
+
+  const runNoteColor = useCallback(
+    (color: string) => {
+      restoreNoteSelection();
+      document.execCommand("foreColor", false, color);
+      setMarker(color);
+      syncNoteFromEditor();
+    },
+    [restoreNoteSelection, setMarker, syncNoteFromEditor]
+  );
+
+  const runNoteAlign = useCallback(
+    (align: NoteAlign) => {
+      const commands = {
+        left: "justifyLeft",
+        center: "justifyCenter",
+        right: "justifyRight",
+        justify: "justifyFull",
+      } as const;
+      restoreNoteSelection();
+      document.execCommand(commands[align]);
+      setNoteAlign(align);
+      syncNoteFromEditor();
+    },
+    [restoreNoteSelection, setNoteAlign, syncNoteFromEditor]
+  );
+
+  const insertCustomList = useCallback(
+    (kind: NoteListKind) => {
+      const selection = window.getSelection();
+      const selectedText = selection?.toString() ?? "";
+      const sourceLines = selectedText.trim()
+        ? selectedText.split(/\n+/).map((line) => line.trim()).filter(Boolean)
+        : [""];
+      const formatLine = (text: string, index: number) => {
+        const bare = text
+          .replace(/^(•\s+|-+\s+|✓\s+|→\s+|\d+[\).]\s+|[a-z]\.\s+|[ivx]+\.\s+|[☐☑☒]\s+)/i, "")
+          .trim();
+        if (kind === "dash") return `- ${bare}`;
+        if (kind === "check") return `✓ ${bare}`;
+        if (kind === "arrow") return `→ ${bare}`;
+        if (kind === "checklist") return `☐ ${bare}`;
+        if (kind === "checked") return `☑ ${bare}`;
+        if (kind === "roman") return `${romanNumeral(index + 1)}. ${bare}`;
+        if (kind === "letter") return `${letterMarker(index + 1)}. ${bare}`;
+        if (kind === "numerical") return `${index + 1}) ${bare}`;
+        return bare;
+      };
+      const html = sourceLines
+        .map((line, index) => `<div>${escapeNoteHtml(formatLine(line, index))}</div>`)
+        .join("");
+      document.execCommand("insertHTML", false, html);
+      syncNoteFromEditor();
+    },
     [syncNoteFromEditor]
+  );
+
+  const runNoteList = useCallback(
+    (kind: NoteListKind) => {
+      restoreNoteSelection();
+      if (kind === "bullet") {
+        runNoteCommand("insertUnorderedList");
+        return;
+      }
+      if (kind === "number" || kind === "roman" || kind === "letter") {
+        runNoteCommand("insertOrderedList");
+        const selection = window.getSelection();
+        const list = selection?.anchorNode?.parentElement?.closest("ol");
+        if (list) {
+          list.style.listStyleType =
+            kind === "roman" ? "lower-roman" : kind === "letter" ? "lower-alpha" : "decimal";
+          syncNoteFromEditor();
+        }
+        return;
+      }
+      insertCustomList(kind);
+    },
+    [insertCustomList, restoreNoteSelection, runNoteCommand, syncNoteFromEditor]
   );
 
   useEffect(() => {
@@ -648,39 +788,6 @@ function FocusSidePanel() {
       if (wasActive) placeCaretAtEnd(editor);
     }
   }, [note]);
-
-  const insertListLines = useCallback(
-    (kind: NoteListKind) => {
-      const lines = notePlainText(note).split("\n");
-      const hasContent = lines.some((line) => line.trim());
-      const formatLine = (text: string, index: number) => {
-        if (kind === "bullet") return `• ${text}`;
-        if (kind === "dash") return `- ${text}`;
-        if (kind === "check") return `✓ ${text}`;
-        if (kind === "arrow") return `→ ${text}`;
-        if (kind === "checklist") return `☐ ${text}`;
-        if (kind === "checked") return `☑ ${text}`;
-        if (kind === "roman") return `${romanNumeral(index + 1)}. ${text}`;
-        if (kind === "letter") return `${letterMarker(index + 1)}. ${text}`;
-        if (kind === "numerical") return `${index + 1}) ${text}`;
-        return `${index + 1}. ${text}`;
-      };
-      const next = hasContent
-        ? lines
-            .map((line, index) => {
-              const trimmed = line.trim();
-              if (!trimmed) return line;
-              const bare = trimmed
-                .replace(/^(•\s+|-+\s+|✓\s+|→\s+|\d+[\).]\s+|[a-z]\.\s+|[ivx]+\.\s+|[☐☑☒]\s+)/i, "")
-                .replace(/\s+\[done\]$/, "");
-              return formatLine(bare, index);
-            })
-            .join("\n")
-        : blankListStarter(kind);
-      setNote(next);
-    },
-    [note, setNote]
-  );
 
   const handleNoteKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -818,8 +925,9 @@ function FocusSidePanel() {
                       <button
                         key={color}
                         type="button"
-                        onClick={() => {
-                          setMarker(color);
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          runNoteColor(color);
                           setPaletteOpen(false);
                         }}
                         className={`size-7 rounded-full border-2 transition-transform duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:scale-110 focus-visible:scale-110 ${
@@ -837,7 +945,7 @@ function FocusSidePanel() {
                       <input
                         type="color"
                         value={customMarkerColor}
-                        onChange={(event) => setMarker(event.target.value)}
+                        onChange={(event) => runNoteColor(event.target.value)}
                         className="absolute inset-0 cursor-pointer opacity-0"
                         aria-label="Choose custom note color"
                       />
@@ -872,23 +980,13 @@ function FocusSidePanel() {
                     sideOffset={6}
                     className="fl-scroll max-h-80 w-auto min-w-36 overflow-y-auto rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
                   >
-                    {[
-                      { kind: "bullet" as const, label: "Bullet point", mark: "•" },
-                      { kind: "number" as const, label: "Number", mark: "1." },
-                      { kind: "numerical" as const, label: "Numerical", mark: "1)" },
-                      { kind: "roman" as const, label: "Roman", mark: "i." },
-                      { kind: "letter" as const, label: "Letter", mark: "a." },
-                      { kind: "dash" as const, label: "Dash", mark: "-" },
-                      { kind: "check" as const, label: "Check", mark: "✓" },
-                      { kind: "arrow" as const, label: "Arrow point", mark: "→" },
-                      { kind: "checklist" as const, label: "Checklist", mark: "☐" },
-                      { kind: "checked" as const, label: "Checked", mark: "☑" },
-                    ].map((item) => (
+                    {noteListItems.map((item) => (
                       <button
                         key={item.kind}
                         type="button"
-                        onClick={() => {
-                          insertListLines(item.kind);
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          runNoteList(item.kind);
                           setListMenuOpen(false);
                         }}
                         className="flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
@@ -935,17 +1033,13 @@ function FocusSidePanel() {
                     sideOffset={6}
                     className="w-auto min-w-28 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
                   >
-                    {[
-                      { align: "left" as const, icon: <AlignLeft className="size-3.5" />, label: "Left" },
-                      { align: "center" as const, icon: <AlignCenter className="size-3.5" />, label: "Center" },
-                      { align: "right" as const, icon: <AlignRight className="size-3.5" />, label: "Right" },
-                      { align: "justify" as const, icon: <AlignJustify className="size-3.5" />, label: "Justify" },
-                    ].map((item) => (
+                    {noteAlignItems.map((item) => (
                       <button
                         key={item.align}
                         type="button"
-                        onClick={() => {
-                          setNoteAlign(item.align);
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          runNoteAlign(item.align);
                           setAlignMenuOpen(false);
                         }}
                         className={`flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] ${
@@ -984,11 +1078,21 @@ function FocusSidePanel() {
               ref={noteTextareaRef}
               contentEditable
               suppressContentEditableWarning
-              onInput={syncNoteFromEditor}
+              onInput={() => {
+                rememberNoteSelection();
+                syncNoteFromEditor();
+              }}
               onKeyDown={handleNoteKeyDown}
-              onMouseUp={syncNoteFromEditor}
-              onKeyUp={syncNoteFromEditor}
-              className="min-h-[220px] w-full whitespace-pre-wrap break-words border-0 bg-transparent py-3 leading-6 text-body-large font-medium outline-none"
+              onMouseUp={() => {
+                rememberNoteSelection();
+                syncNoteFromEditor();
+              }}
+              onKeyUp={() => {
+                rememberNoteSelection();
+                syncNoteFromEditor();
+              }}
+              onFocus={rememberNoteSelection}
+              className="min-h-[220px] w-full whitespace-pre-wrap break-words border-0 bg-transparent py-3 leading-6 text-body-large font-medium text-on-warning-container outline-none [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
               style={noteTextStyle}
               role="textbox"
               aria-label="Pinned note"
