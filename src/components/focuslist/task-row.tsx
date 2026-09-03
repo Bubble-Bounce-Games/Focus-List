@@ -2,11 +2,10 @@
 
 import { memo, useCallback, useId, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Check, ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 import type { DetailField, Project, Tag, Task } from "@/lib/focuslist/types";
 import { hasDetails, isBlocked } from "@/lib/focuslist/types";
-import { iconTileStyle, pillStyle } from "@/lib/focuslist/palette";
-import { TaskIcon } from "./icons";
+import { pillStyle } from "@/lib/focuslist/palette";
 import { ProgressSlider } from "./progress-slider";
 import { MoreActions } from "./more-actions";
 import { TaskDetailsPanel } from "./task-details-panel";
@@ -41,7 +40,6 @@ function TaskRowBase({
   const panelId = useId();
 
   const accent = project?.color ?? "var(--md-primary)";
-  const iconName = project?.name ?? tag?.name ?? task.title;
   const blocked = isBlocked(task);
   const annotated = hasDetails(task);
 
@@ -68,7 +66,7 @@ function TaskRowBase({
       transition={{ type: "spring", stiffness: 380, damping: 32 }}
       className={`group relative flex flex-col overflow-hidden rounded-lg border bg-card transition-[background-color,border-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:border-outline-variant hover:bg-on-surface/[0.04] ${justCompleted ? "border-success bg-success-container/[0.14]" : "border-outline-variant"}`}
     >
-      <div className="grid grid-cols-[28px_44px_minmax(0,1fr)] items-center gap-2 px-3 py-3 sm:flex sm:gap-3 sm:px-4 sm:py-2.5">
+      <div className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 px-3 py-2.5 sm:grid-cols-[28px_minmax(0,1fr)_minmax(132px,180px)_32px] sm:gap-x-3 sm:px-4">
         {/* 0. Expand toggle — points right when closed, down when open */}
         <button
           type="button"
@@ -91,62 +89,51 @@ function TaskRowBase({
           </motion.span>
         </button>
 
-        {/* 1. Task icon */}
-        <div
-          className="col-start-2 row-start-1 flex size-11 shrink-0 items-center justify-center rounded-full sm:col-auto sm:row-auto"
-          style={iconTileStyle(accent)}
-          aria-hidden
-        >
-          <TaskIcon name={iconName} className="h-5 w-5" strokeWidth={2} />
+        {/* 1. Task title and labels */}
+        <div className="col-start-2 row-start-1 min-w-0">
+          <div className="flex min-w-0 items-start gap-2">
+            <p
+              className="line-clamp-2 text-body-large font-medium leading-6 text-on-surface"
+              title={task.title}
+            >
+              {task.title}
+            </p>
+            {blocked ? (
+              <AlertTriangle
+                className="mt-1 h-3.5 w-3.5 shrink-0 text-error"
+                aria-label="Has a blocker"
+              />
+            ) : annotated ? (
+              <span
+                className="mt-2 size-1.5 shrink-0 rounded-full bg-on-surface-variant"
+                aria-label="Has details"
+              />
+            ) : null}
+          </div>
+          {(project || tag) && (
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+              {project && (
+                <span
+                  className="inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-label-small"
+                  style={pillStyle(project.color)}
+                >
+                  {project.name}
+                </span>
+              )}
+              {tag && (
+                <span
+                  className="inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-label-small"
+                  style={pillStyle(tag.color)}
+                >
+                  {tag.name}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* 2. Task title — occupies the first 60% of the row, ellipsised.
-            Basis rather than a fixed width: the card clips its overflow, so
-            when the viewport is too narrow for 60% plus the controls, the
-            title must be the thing that yields rather than the actions
-            button being cut off. */}
-        <div className="col-start-3 row-start-1 flex min-w-0 items-center gap-2 sm:flex-1">
-          <p
-            className="truncate text-body-large font-medium text-on-surface"
-            title={task.title}
-          >
-            {task.title}
-          </p>
-          {blocked ? (
-            <AlertTriangle
-              className="h-3.5 w-3.5 shrink-0 text-error"
-              aria-label="Has a blocker"
-            />
-          ) : annotated ? (
-            <span
-              className="size-1.5 shrink-0 rounded-full bg-on-surface-variant"
-              aria-label="Has details"
-            />
-          ) : null}
-        </div>
-
-        {/* 3. Project pill */}
-        {project && (
-          <span
-            className="hidden shrink-0 items-center rounded-full px-2 py-0.5 text-label-medium sm:inline-flex"
-            style={pillStyle(project.color)}
-          >
-            {project.name}
-          </span>
-        )}
-
-        {/* 4. Tag pill */}
-        {tag && (
-          <span
-            className="hidden shrink-0 items-center rounded-full px-2 py-0.5 text-label-medium lg:inline-flex"
-            style={pillStyle(tag.color)}
-          >
-            {tag.name}
-          </span>
-        )}
-
-        {/* 5. Progress slider */}
-        <div className="col-span-2 col-start-2 row-start-3 flex w-full shrink-0 items-center sm:col-auto sm:row-auto sm:flex-1">
+        {/* 2. Progress slider */}
+        <div className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-col gap-1 sm:col-span-1 sm:col-start-3 sm:row-start-1">
           <ProgressSlider
             value={task.progress}
             accent={accent}
@@ -154,37 +141,35 @@ function TaskRowBase({
             onCommit={handleCommit}
             ariaLabel={`Progress for ${task.title}`}
           />
+          <div className="flex h-4 items-center justify-end">
+            <AnimatePresence mode="wait" initial={false}>
+              {justCompleted ? (
+                <motion.span
+                  key="done"
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-label-small font-bold text-success"
+                >
+                  100%
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="pct"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-label-small font-bold tabular-nums text-on-surface-variant"
+                  style={{ color: accent }}
+                >
+                  {task.progress}%
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
-        {/* 6. Percentage value */}
-        <div className="col-start-3 row-start-2 flex w-full shrink-0 items-center justify-end sm:w-[64px] sm:col-auto sm:row-auto">
-          <AnimatePresence mode="wait" initial={false}>
-            {justCompleted ? (
-              <motion.span
-                key="done"
-                initial={{ scale: 0.6, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-1 text-label-large font-bold text-success"
-              >
-                <Check className="h-4 w-4" /> 100%
-              </motion.span>
-            ) : (
-              <motion.span
-                key="pct"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-label-large font-bold tabular-nums text-on-surface-variant"
-                style={{ color: accent }}
-              >
-                {task.progress}%
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* 7. More actions */}
-        <div className="col-start-2 row-start-2 sm:col-auto sm:row-auto">
+        {/* 3. More actions */}
+        <div className="col-start-3 row-start-1 flex justify-end sm:col-start-4">
           <MoreActions
             onEdit={() => onEdit(task)}
             onDuplicate={() => onDuplicate(task.id)}
@@ -192,6 +177,15 @@ function TaskRowBase({
             onDelete={() => onDelete(task)}
             label={`Actions for ${task.title}`}
           />
+        </div>
+
+        {/* 4. Screen-reader detail state */}
+        <div className="sr-only">
+          <p
+            aria-live="polite"
+          >
+            {blocked ? "This task has a blocker." : annotated ? "This task has details." : ""}
+          </p>
         </div>
       </div>
 
