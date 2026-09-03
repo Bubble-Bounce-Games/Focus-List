@@ -118,9 +118,7 @@ type NoteListKind =
   | "check"
   | "arrow"
   | "checklist"
-  | "checked"
-  | "checkedLine"
-  | "checkedDisabled";
+  | "checked";
 
 type ReminderRow =
   | {
@@ -193,13 +191,6 @@ function isNoteColor(value: string): boolean {
   return markerColors.includes(value) || /^#[\da-f]{6}$/i.test(value);
 }
 
-function strikeText(value: string): string {
-  return value
-    .split("")
-    .map((character) => character === " " ? character : `${character}\u0336`)
-    .join("");
-}
-
 function romanNumeral(value: number): string {
   const numerals: Array<[number, string]> = [
     [10, "x"],
@@ -234,8 +225,6 @@ function blankListStarter(kind: NoteListKind): string {
   if (kind === "numerical") return "1) ";
   if (kind === "checklist") return "☐ ";
   if (kind === "checked") return "☑ ";
-  if (kind === "checkedLine") return "☑ ";
-  if (kind === "checkedDisabled") return "☒ ";
   return "1. ";
 }
 
@@ -579,8 +568,6 @@ function FocusSidePanel() {
         if (kind === "arrow") return `→ ${text}`;
         if (kind === "checklist") return `☐ ${text}`;
         if (kind === "checked") return `☑ ${text}`;
-        if (kind === "checkedLine") return `☑ ${strikeText(text)}`;
-        if (kind === "checkedDisabled") return `☒ ${text}`;
         if (kind === "roman") return `${romanNumeral(index + 1)}. ${text}`;
         if (kind === "letter") return `${letterMarker(index + 1)}. ${text}`;
         if (kind === "numerical") return `${index + 1}) ${text}`;
@@ -822,8 +809,6 @@ function FocusSidePanel() {
                       { kind: "arrow" as const, label: "Arrow point", mark: "→" },
                       { kind: "checklist" as const, label: "Checklist", mark: "☐" },
                       { kind: "checked" as const, label: "Checked", mark: "☑" },
-                      { kind: "checkedLine" as const, label: "Checked line", mark: "☑̶" },
-                      { kind: "checkedDisabled" as const, label: "Disabled", mark: "☒" },
                     ].map((item) => (
                       <button
                         key={item.kind}
@@ -935,9 +920,7 @@ function FocusSidePanel() {
               </p>
             </div>
             {pinnedNotes.length === 0 ? (
-              <div className="flex h-[140px] items-center rounded-md border border-dashed border-outline-variant bg-surface-container-lowest px-3 text-body-small leading-5 text-on-surface-variant">
-                Saved pins will appear here next to your note.
-              </div>
+              <div className="min-h-[140px]" aria-hidden="true" />
             ) : (
               <div className="fl-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {pinnedNotes.map((item) => {
@@ -1013,7 +996,7 @@ function FocusSidePanel() {
 
           <div className="fl-scroll max-h-64 min-h-24 space-y-2 overflow-y-auto pr-1">
             {reminderRows.length === 0 ? (
-              <div className="min-h-24 rounded-md border border-dashed border-outline-variant bg-surface-container-lowest" />
+              <div className="min-h-24" aria-hidden="true" />
             ) : (
               reminderRows.map((reminder) => {
                 const tone = reminderTone(reminder.dueDate);
