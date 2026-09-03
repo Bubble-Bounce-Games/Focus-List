@@ -81,14 +81,12 @@ import {
   AlignRight,
   Bold,
   CalendarDays,
-  Clock3,
   Eye,
   EyeOff,
   Italic,
   List,
   Palette,
   Pin,
-  RotateCcw,
   StickyNote,
   Underline,
 } from "lucide-react";
@@ -158,6 +156,11 @@ const noteFontFamilies = [
   { label: "Hand", value: '"Comic Sans MS", "Bradley Hand", cursive' },
 ];
 const noteFontSizes = [13, 15, 17, 19, 22];
+const noteFormatItems = [
+  { command: "bold" as const, icon: <Bold className="size-3.5" />, label: "Bold" },
+  { command: "italic" as const, icon: <Italic className="size-3.5" />, label: "Italic" },
+  { command: "underline" as const, icon: <Underline className="size-3.5" />, label: "Underline" },
+];
 
 function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -283,6 +286,97 @@ function listMarkerOnlyLength(line: string): number | null {
   return null;
 }
 
+function escapeNoteHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function plainTextToNoteHtml(value: string): string {
+  return escapeNoteHtml(value).replace(/\n/g, "<br>");
+}
+
+function sanitizeNoteHtml(value: string): string {
+  if (typeof document === "undefined") return plainTextToNoteHtml(value);
+  const template = document.createElement("template");
+  template.innerHTML = value;
+  const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "BR", "DIV", "P"]);
+
+  const cleanNode = (node: Node): Node => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent ?? "");
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return document.createDocumentFragment();
+    }
+
+    const element = node as HTMLElement;
+    if (!allowedTags.has(element.tagName)) {
+      const fragment = document.createDocumentFragment();
+      element.childNodes.forEach((child) => fragment.appendChild(cleanNode(child)));
+      return fragment;
+    }
+
+    if (element.tagName === "BR") return document.createElement("br");
+
+    const tagName =
+      element.tagName === "STRONG" ? "b" : element.tagName === "EM" ? "i" : element.tagName.toLowerCase();
+    const cleanElement = document.createElement(tagName);
+    element.childNodes.forEach((child) => cleanElement.appendChild(cleanNode(child)));
+    return cleanElement;
+  };
+
+  const fragment = document.createDocumentFragment();
+  template.content.childNodes.forEach((child) => fragment.appendChild(cleanNode(child)));
+  const output = document.createElement("div");
+  output.appendChild(fragment);
+  return output.innerHTML;
+}
+
+function noteEditorHtml(value: string): string {
+  return /<\/?[a-z][\s\S]*>/i.test(value) ? sanitizeNoteHtml(value) : plainTextToNoteHtml(value);
+}
+
+function notePlainText(value: string): string {
+  if (!/<\/?[a-z][\s\S]*>/i.test(value)) return value;
+  if (typeof document === "undefined") {
+    return value
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(div|p)>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, "\"")
+      .replace(/&#39;/g, "'");
+  }
+  const template = document.createElement("template");
+  template.innerHTML = sanitizeNoteHtml(value);
+  const readNode = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const element = node as HTMLElement;
+    if (element.tagName === "BR") return "\n";
+    const text = Array.from(element.childNodes, readNode).join("");
+    return element.tagName === "DIV" || element.tagName === "P" ? `${text}\n` : text;
+  };
+  return Array.from(template.content.childNodes, readNode).join("").replace(/\u00a0/g, " ");
+}
+
+function placeCaretAtEnd(element: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection) return;
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 function asPinnedNotes(value: unknown): PinnedNote[] {
   if (!Array.isArray(value)) return [];
   return value.filter(
@@ -318,7 +412,7 @@ function timestampLabel(value: string): string {
 }
 
 function notePreview(text: string): { title: string; description: string } {
-  const lines = text
+  const lines = notePlainText(text)
     .trim()
     .split(/\n+/)
     .map((line) => line.trim())
@@ -371,7 +465,7 @@ function FocusSidePanel() {
     "notes",
     []
   );
-  const [calendarReminderValue, setCalendarReminders] = useBrowserCollection<unknown>(
+  const [calendarReminderValue] = useBrowserCollection<unknown>(
     "reminders",
     []
   );
@@ -396,7 +490,7 @@ function FocusSidePanel() {
   const [formatMenuOpen, setFormatMenuOpen] = useState(false);
   const [listMenuOpen, setListMenuOpen] = useState(false);
   const [alignMenuOpen, setAlignMenuOpen] = useState(false);
-  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const noteTextareaRef = useRef<HTMLDivElement>(null);
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
   const calendarReminders = asCalendarReminders(calendarReminderValue);
@@ -413,9 +507,6 @@ function FocusSidePanel() {
     color: marker,
     fontFamily: noteFont,
     fontSize: `${noteFontSize}px`,
-    fontWeight: noteBold ? 700 : 500,
-    fontStyle: noteItalic ? "italic" : "normal",
-    textDecoration: noteUnderline ? "underline" : "none",
     textAlign: noteAlign,
   } as const;
   const customMarkerColor = /^#[\da-f]{6}$/i.test(marker) ? marker : "#202124";
@@ -448,37 +539,9 @@ function FocusSidePanel() {
   );
   const reminderRows = allReminderRows;
 
-  const handleFinishReminder = useCallback(
-    (reminder: ReminderRow) => {
-      if (reminder.kind === "task") {
-        void setProgress(reminder.task.id, 100);
-      } else {
-        setCalendarReminders((current) =>
-          asCalendarReminders(current).filter((item) => item.id !== reminder.id)
-        );
-      }
-      toast.success("Reminder completed", { description: reminder.title });
-    },
-    [setCalendarReminders]
-  );
-
-  const handleClearReminder = useCallback(
-    (reminder: ReminderRow) => {
-      if (reminder.kind === "task") {
-        void updateTask(reminder.task.id, { dueDate: null });
-      } else {
-        setCalendarReminders((current) =>
-          asCalendarReminders(current).filter((item) => item.id !== reminder.id)
-        );
-      }
-      toast.success("Reminder cleared", { description: reminder.title });
-    },
-    [setCalendarReminders]
-  );
-
   const handleSaveNote = useCallback(() => {
-    const text = note.trim();
-    if (!text) return;
+    const text = sanitizeNoteHtml(note).trim();
+    if (!notePlainText(text).trim()) return;
     setPinnedNotes((current) => {
       const currentNotes = asPinnedNotes(current);
       const savedAt = new Date().toISOString();
@@ -557,9 +620,38 @@ function FocusSidePanel() {
     [setPinnedNotes]
   );
 
+  const syncNoteFromEditor = useCallback(() => {
+    const editor = noteTextareaRef.current;
+    if (!editor) return;
+    setNote(sanitizeNoteHtml(editor.innerHTML));
+    setNoteBold(document.queryCommandState("bold"));
+    setNoteItalic(document.queryCommandState("italic"));
+    setNoteUnderline(document.queryCommandState("underline"));
+  }, [setNote, setNoteBold, setNoteItalic, setNoteUnderline]);
+
+  const runNoteCommand = useCallback(
+    (command: "bold" | "italic" | "underline") => {
+      noteTextareaRef.current?.focus();
+      document.execCommand(command);
+      syncNoteFromEditor();
+    },
+    [syncNoteFromEditor]
+  );
+
+  useEffect(() => {
+    const editor = noteTextareaRef.current;
+    if (!editor) return;
+    const nextHtml = noteEditorHtml(note);
+    if (editor.innerHTML !== nextHtml) {
+      const wasActive = document.activeElement === editor;
+      editor.innerHTML = nextHtml;
+      if (wasActive) placeCaretAtEnd(editor);
+    }
+  }, [note]);
+
   const insertListLines = useCallback(
     (kind: NoteListKind) => {
-      const lines = note.split("\n");
+      const lines = notePlainText(note).split("\n");
       const hasContent = lines.some((line) => line.trim());
       const formatLine = (text: string, index: number) => {
         if (kind === "bullet") return `• ${text}`;
@@ -591,38 +683,28 @@ function FocusSidePanel() {
   );
 
   const handleNoteKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
       if (event.key !== "Enter" || event.shiftKey) return;
-      const target = event.currentTarget;
-      const cursorStart = target.selectionStart;
-      const cursorEnd = target.selectionEnd;
-      if (cursorStart !== cursorEnd) return;
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) return;
+      const plainNote = notePlainText(note);
+      const cursorStart = plainNote.length;
 
-      const lineStart = note.lastIndexOf("\n", cursorStart - 1) + 1;
-      const lineEndIndex = note.indexOf("\n", cursorStart);
-      const lineEnd = lineEndIndex === -1 ? note.length : lineEndIndex;
-      const currentLine = note.slice(lineStart, lineEnd);
+      const lineStart = plainNote.lastIndexOf("\n", cursorStart - 1) + 1;
+      const currentLine = plainNote.slice(lineStart);
       const marker = nextListMarker(currentLine);
       if (!marker) return;
 
       event.preventDefault();
       const markerOnlyLength = listMarkerOnlyLength(currentLine);
       if (markerOnlyLength !== null) {
-        const nextNote = `${note.slice(0, lineStart)}${note.slice(cursorStart)}`;
+        const nextNote = plainNote.slice(0, lineStart);
         setNote(nextNote);
-        requestAnimationFrame(() => {
-          noteTextareaRef.current?.setSelectionRange(lineStart, lineStart);
-        });
         return;
       }
 
-      const insertion = `\n${marker}`;
-      const nextCursor = cursorStart + insertion.length;
-      const nextNote = `${note.slice(0, cursorStart)}${insertion}${note.slice(cursorStart)}`;
+      const nextNote = `${plainNote}\n${marker}`;
       setNote(nextNote);
-      requestAnimationFrame(() => {
-        noteTextareaRef.current?.setSelectionRange(nextCursor, nextCursor);
-      });
     },
     [note, setNote]
   );
@@ -676,32 +758,23 @@ function FocusSidePanel() {
                     sideOffset={6}
                     className="w-auto min-w-32 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
                   >
-                    {[
-                      {
-                        icon: <Bold className="size-3.5" />,
-                        label: "Bold",
-                        active: noteBold,
-                        action: () => setNoteBold(!noteBold),
-                      },
-                      {
-                        icon: <Italic className="size-3.5" />,
-                        label: "Italic",
-                        active: noteItalic,
-                        action: () => setNoteItalic(!noteItalic),
-                      },
-                      {
-                        icon: <Underline className="size-3.5" />,
-                        label: "Underline",
-                        active: noteUnderline,
-                        action: () => setNoteUnderline(!noteUnderline),
-                      },
-                    ].map((item) => (
+                    {noteFormatItems.map((item) => {
+                      const active =
+                        item.command === "bold"
+                          ? noteBold
+                          : item.command === "italic"
+                            ? noteItalic
+                            : noteUnderline;
+                      return (
                       <button
                         key={item.label}
                         type="button"
-                        onClick={item.action}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          runNoteCommand(item.command);
+                        }}
                         className={`flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] ${
-                          item.active
+                          active
                             ? "bg-secondary-container text-on-secondary-container"
                             : "text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
                         }`}
@@ -709,7 +782,8 @@ function FocusSidePanel() {
                         {item.icon}
                         {item.label}
                       </button>
-                    ))}
+                      );
+                    })}
                   </PopoverContent>
                 </Popover>
 
@@ -900,16 +974,26 @@ function FocusSidePanel() {
                 </Button>
               </div>
             </div>
-            <textarea
+            <div className="relative min-h-[220px] flex-1">
+              {!notePlainText(note).trim() && (
+                <span className="pointer-events-none absolute left-0 top-3 text-body-large leading-6 text-on-warning-container/60">
+                  Write a quick note...
+                </span>
+              )}
+              <div
               ref={noteTextareaRef}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={syncNoteFromEditor}
               onKeyDown={handleNoteKeyDown}
-              className="min-h-[220px] flex-1 w-full resize-none border-0 bg-transparent py-3 leading-6 text-body-large outline-none placeholder:text-on-warning-container/60"
+              onMouseUp={syncNoteFromEditor}
+              onKeyUp={syncNoteFromEditor}
+              className="min-h-[220px] w-full whitespace-pre-wrap break-words border-0 bg-transparent py-3 leading-6 text-body-large font-medium outline-none"
               style={noteTextStyle}
-              placeholder="Write a quick note..."
+              role="textbox"
               aria-label="Pinned note"
-            />
+              />
+            </div>
           </div>
 
           <div className="flex min-h-[260px] flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface-container p-3">
@@ -1003,10 +1087,10 @@ function FocusSidePanel() {
                 return (
                   <div
                     key={`${reminder.kind}-${reminder.id}`}
-                    className="grid gap-3 rounded-md border border-outline-variant bg-surface-container-low p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+                    className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-2 flex items-center gap-2">
+                    <div className="min-w-0">
+                      <div className="mb-1 flex items-center gap-2">
                         <span
                           className="size-2.5 shrink-0 rounded-full"
                           style={{ backgroundColor: reminder.color }}
@@ -1018,34 +1102,17 @@ function FocusSidePanel() {
                           {dateLabel(reminder.dueDate)}
                         </span>
                       </div>
-                      <p className="line-clamp-2 text-body-medium font-semibold leading-5 text-on-surface">
+                      <p className="line-clamp-1 text-body-medium font-semibold leading-5 text-on-surface">
                         {reminder.title}
                       </p>
                       {reminder.kind === "task" && (
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-variant">
+                        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-variant">
                           <div
                             className="h-full rounded-full bg-primary transition-[width] duration-[var(--duration-medium)] [transition-timing-function:var(--ease-standard)]"
                             style={{ width: `${reminder.progress}%` }}
                           />
                         </div>
                       )}
-                    </div>
-                    <div className="flex items-center gap-2 sm:flex-col sm:items-stretch">
-                      <button
-                        type="button"
-                        onClick={() => handleFinishReminder(reminder)}
-                        className="h-8 rounded-full bg-success px-3 text-label-large text-on-success shadow-e1 transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-success/90 focus-visible:bg-success/90 active:bg-success/85"
-                      >
-                        Done
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleClearReminder(reminder)}
-                        className="flex size-8 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
-                        aria-label={`Clear reminder for ${reminder.title}`}
-                      >
-                        <RotateCcw className="size-3.5" />
-                      </button>
                     </div>
                   </div>
                 );
