@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/popover";
 import {
   AlignCenter,
+  AlignJustify,
   AlignLeft,
   AlignRight,
   Bold,
@@ -99,7 +100,20 @@ type PinnedNote = {
   align?: NoteAlign;
 };
 
-type NoteAlign = "left" | "center" | "right";
+type NoteAlign = "left" | "center" | "right" | "justify";
+type NoteListKind =
+  | "bullet"
+  | "number"
+  | "numerical"
+  | "roman"
+  | "letter"
+  | "dash"
+  | "check"
+  | "arrow"
+  | "checklist"
+  | "checked"
+  | "checkedLine"
+  | "checkedDone";
 
 type ReminderRow =
   | {
@@ -163,7 +177,59 @@ function asNoteFontFamily(value: unknown): string {
 }
 
 function asNoteAlign(value: unknown): NoteAlign {
-  return value === "center" || value === "right" ? value : "left";
+  return value === "center" || value === "right" || value === "justify"
+    ? value
+    : "left";
+}
+
+function isNoteColor(value: string): boolean {
+  return markerColors.includes(value) || /^#[\da-f]{6}$/i.test(value);
+}
+
+function strikeText(value: string): string {
+  return value
+    .split("")
+    .map((character) => character === " " ? character : `${character}\u0336`)
+    .join("");
+}
+
+function romanNumeral(value: number): string {
+  const numerals: Array<[number, string]> = [
+    [10, "x"],
+    [9, "ix"],
+    [5, "v"],
+    [4, "iv"],
+    [1, "i"],
+  ];
+  let remaining = value;
+  let result = "";
+  for (const [amount, symbol] of numerals) {
+    while (remaining >= amount) {
+      result += symbol;
+      remaining -= amount;
+    }
+  }
+  return result;
+}
+
+function letterMarker(value: number): string {
+  const alphabetIndex = (value - 1) % 26;
+  return String.fromCharCode(97 + alphabetIndex);
+}
+
+function blankListStarter(kind: NoteListKind): string {
+  if (kind === "bullet") return "• ";
+  if (kind === "dash") return "- ";
+  if (kind === "check") return "✓ ";
+  if (kind === "arrow") return "→ ";
+  if (kind === "roman") return "i. ";
+  if (kind === "letter") return "a. ";
+  if (kind === "numerical") return "1) ";
+  if (kind === "checklist") return "☐ ";
+  if (kind === "checked") return "☑ ";
+  if (kind === "checkedLine") return "☑ ";
+  if (kind === "checkedDone") return "☑  [done]";
+  return "1. ";
 }
 
 function asPinnedNotes(value: unknown): PinnedNote[] {
@@ -282,7 +348,7 @@ function FocusSidePanel() {
   const note = asString(noteValue);
   const pinnedNotes = asPinnedNotes(pinnedNotesValue);
   const calendarReminders = asCalendarReminders(calendarReminderValue);
-  const marker = markerColors.includes(asString(markerValue))
+  const marker = isNoteColor(asString(markerValue))
     ? asString(markerValue)
     : markerColors[0];
   const noteFont = asNoteFontFamily(noteFontValue);
@@ -300,6 +366,7 @@ function FocusSidePanel() {
     textDecoration: noteUnderline ? "underline" : "none",
     textAlign: noteAlign,
   } as const;
+  const customMarkerColor = /^#[\da-f]{6}$/i.test(marker) ? marker : "#202124";
   const taskReminderRows: ReminderRow[] = tasks
     .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
     .filter((task) => task.dueDate)
@@ -416,7 +483,7 @@ function FocusSidePanel() {
   const handleViewNote = useCallback(
     (item: PinnedNote) => {
       setNote(item.text);
-      if (markerColors.includes(item.color)) {
+      if (isNoteColor(item.color)) {
         setMarker(item.color);
       }
       setNoteFont(asNoteFontFamily(item.fontFamily));
@@ -439,12 +506,20 @@ function FocusSidePanel() {
   );
 
   const insertListLines = useCallback(
-    (kind: "bullet" | "number" | "numerical" | "dash") => {
+    (kind: NoteListKind) => {
       const lines = note.split("\n");
       const hasContent = lines.some((line) => line.trim());
       const formatLine = (text: string, index: number) => {
         if (kind === "bullet") return `• ${text}`;
         if (kind === "dash") return `- ${text}`;
+        if (kind === "check") return `✓ ${text}`;
+        if (kind === "arrow") return `→ ${text}`;
+        if (kind === "checklist") return `☐ ${text}`;
+        if (kind === "checked") return `☑ ${text}`;
+        if (kind === "checkedLine") return `☑ ${strikeText(text)}`;
+        if (kind === "checkedDone") return `☑ ${text} [done]`;
+        if (kind === "roman") return `${romanNumeral(index + 1)}. ${text}`;
+        if (kind === "letter") return `${letterMarker(index + 1)}. ${text}`;
         if (kind === "numerical") return `${index + 1}) ${text}`;
         return `${index + 1}. ${text}`;
       };
@@ -453,17 +528,13 @@ function FocusSidePanel() {
             .map((line, index) => {
               const trimmed = line.trim();
               if (!trimmed) return line;
-              const bare = trimmed.replace(/^(•\s+|-+\s+|\d+[\).]\s+)/, "");
+              const bare = trimmed
+                .replace(/^(•\s+|-+\s+|✓\s+|→\s+|\d+[\).]\s+|[a-z]\.\s+|[ivx]+\.\s+|[☐☑]\s+)/i, "")
+                .replace(/\s+\[done\]$/, "");
               return formatLine(bare, index);
             })
             .join("\n")
-        : kind === "bullet"
-          ? "• "
-          : kind === "dash"
-            ? "- "
-            : kind === "numerical"
-              ? "1) "
-              : "1. ";
+        : blankListStarter(kind);
       setNote(next);
     },
     [note, setNote]
@@ -580,7 +651,7 @@ function FocusSidePanel() {
                   <PopoverContent
                     align="end"
                     sideOffset={6}
-                    className="flex w-auto gap-1.5 rounded-md border border-outline-variant bg-surface-container-high p-2 text-on-surface shadow-e2"
+                    className="flex w-auto max-w-52 flex-wrap items-center gap-1.5 rounded-md border border-outline-variant bg-surface-container-high p-2 text-on-surface shadow-e2"
                   >
                     {markerColors.map((color) => (
                       <button
@@ -597,6 +668,19 @@ function FocusSidePanel() {
                         aria-label={`Use note color ${color}`}
                       />
                     ))}
+                    <label
+                      className="relative flex size-7 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-outline-variant bg-surface-container-low text-on-surface-variant transition-transform duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:scale-110 focus-within:scale-110"
+                      title="Custom color"
+                    >
+                      <Palette className="pointer-events-none size-3.5" />
+                      <input
+                        type="color"
+                        value={customMarkerColor}
+                        onChange={(event) => setMarker(event.target.value)}
+                        className="absolute inset-0 cursor-pointer opacity-0"
+                        aria-label="Choose custom note color"
+                      />
+                    </label>
                   </PopoverContent>
                 </Popover>
 
@@ -625,13 +709,21 @@ function FocusSidePanel() {
                   <PopoverContent
                     align="end"
                     sideOffset={6}
-                    className="w-auto min-w-36 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
+                    className="fl-scroll max-h-80 w-auto min-w-36 overflow-y-auto rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
                   >
                     {[
                       { kind: "bullet" as const, label: "Bullet point", mark: "•" },
                       { kind: "number" as const, label: "Number", mark: "1." },
                       { kind: "numerical" as const, label: "Numerical", mark: "1)" },
+                      { kind: "roman" as const, label: "Roman", mark: "i." },
+                      { kind: "letter" as const, label: "Letter", mark: "a." },
                       { kind: "dash" as const, label: "Dash", mark: "-" },
+                      { kind: "check" as const, label: "Check", mark: "✓" },
+                      { kind: "arrow" as const, label: "Arrow point", mark: "→" },
+                      { kind: "checklist" as const, label: "Checklist", mark: "☐" },
+                      { kind: "checked" as const, label: "Checked", mark: "☑" },
+                      { kind: "checkedLine" as const, label: "Checked line", mark: "☑̶" },
+                      { kind: "checkedDone" as const, label: "Done faded", mark: "✓" },
                     ].map((item) => (
                       <button
                         key={item.kind}
@@ -672,6 +764,8 @@ function FocusSidePanel() {
                         <AlignCenter className="size-3.5" />
                       ) : noteAlign === "right" ? (
                         <AlignRight className="size-3.5" />
+                      ) : noteAlign === "justify" ? (
+                        <AlignJustify className="size-3.5" />
                       ) : (
                         <AlignLeft className="size-3.5" />
                       )}
@@ -686,6 +780,7 @@ function FocusSidePanel() {
                       { align: "left" as const, icon: <AlignLeft className="size-3.5" />, label: "Left" },
                       { align: "center" as const, icon: <AlignCenter className="size-3.5" />, label: "Center" },
                       { align: "right" as const, icon: <AlignRight className="size-3.5" />, label: "Right" },
+                      { align: "justify" as const, icon: <AlignJustify className="size-3.5" />, label: "Justify" },
                     ].map((item) => (
                       <button
                         key={item.align}
