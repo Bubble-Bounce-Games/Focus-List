@@ -23,7 +23,6 @@ import { DeleteConfirm } from "@/components/focuslist/delete-confirm";
 
 import {
   createTask,
-  archiveProject,
   deleteTask,
   duplicateTask,
   restoreProject,
@@ -36,7 +35,6 @@ import {
   useTags,
   findOrCreateProject,
   findOrCreateTag,
-  renameProject,
   projectMap,
   tagMap,
 } from "@/lib/focuslist/store";
@@ -1239,10 +1237,6 @@ function DashboardPage() {
   const [ready] = useState(true);
   const [searchValue, setSearch] = usePersistentState<unknown>("fl.search", "");
   const [sortValue, setSort] = usePersistentState<SortKey>("fl.sort", DEFAULT_SORT);
-  const [selectedProjectValue, setSelectedProjectId] = usePersistentState<unknown>(
-    "fl.project",
-    null
-  );
   const [selectedTagValue, setSelectedTagId] = usePersistentState<unknown>(
     "fl.tag",
     null
@@ -1258,15 +1252,12 @@ function DashboardPage() {
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [toolView, setToolView] = useState<"calendar" | "archive" | "trash" | null>(null);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("active");
-  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
-  const [projectCreateFrameOpen, setProjectCreateFrameOpen] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const search = asString(searchValue);
   const sort = ["progress-desc", "progress-asc", "title-asc", "project-asc", "recent", "oldest"].includes(sortValue)
     ? sortValue
     : DEFAULT_SORT;
-  const selectedProjectId = asNullableString(selectedProjectValue);
   const selectedTagId = asNullableString(selectedTagValue);
 
   // ⌘K / Ctrl+K focuses search.
@@ -1284,11 +1275,8 @@ function DashboardPage() {
 
   const pMap = projectMap(projects);
   const tMap = tagMap(tags);
-  const sortedProjects = projects.slice().sort((a, b) => a.name.localeCompare(b.name));
-  const selectedProject = selectedProjectId ? pMap[selectedProjectId] : null;
 
-  const isFiltering =
-    search.trim() !== "" || selectedProjectId !== null || selectedTagId !== null;
+  const isFiltering = search.trim() !== "" || selectedTagId !== null;
   const activeListHasSearchFilters = search.trim() !== "" || selectedTagId !== null;
 
   // Derived active list (compiler auto-memoizes).
@@ -1298,7 +1286,7 @@ function DashboardPage() {
     .filter((t) =>
       matchTask(
         t,
-        { search, projectId: selectedProjectId, tagId: selectedTagId },
+        { search, projectId: null, tagId: selectedTagId },
         pMap,
         tMap
       )
@@ -1311,7 +1299,7 @@ function DashboardPage() {
     .filter((t) =>
       matchTask(
         t,
-        { search, projectId: selectedProjectId, tagId: selectedTagId },
+        { search, projectId: null, tagId: selectedTagId },
         pMap,
         tMap
       )
@@ -1402,10 +1390,10 @@ function DashboardPage() {
       return;
     }
     setEditingTask(null);
-    setInitialProjectName(selectedProject?.name ?? "");
+    setInitialProjectName("");
     setPanelMode("create");
     setPanelOpen(true);
-  }, [requireAccount, selectedProject?.name]);
+  }, [requireAccount]);
 
   const openEdit = useCallback((task: Task) => {
     setEditingTask(task);
@@ -1455,62 +1443,15 @@ function DashboardPage() {
         }
       }
       setPanelOpen(false);
-      if (selectedProjectId === null || selectedProjectId !== project.id) {
-        setSelectedProjectId(project.id);
-      }
     },
-    [panelMode, editingTask, selectedProjectId, setSelectedProjectId, requireAccount]
+    [panelMode, editingTask, requireAccount]
   );
-
-  const handleCreateProject = useCallback(async (name: string) => {
-    if (!requireAccount("Sign in to save project folders.")) {
-      return;
-    }
-    const project = await findOrCreateProject(name);
-    setSelectedProjectId(project.id);
-    setInitialProjectName(project.name);
-    setEditingTask(null);
-    toast.success("Project created", { description: project.name });
-  }, [requireAccount, setSelectedProjectId]);
-
-  const openProjectCreateFrame = useCallback(() => {
-    if (!requireAccount("Sign in to save project folders.")) {
-      return;
-    }
-    setProjectMenuOpen(true);
-    setProjectCreateFrameOpen(true);
-  }, [requireAccount]);
-
-  const handleRenameProject = useCallback(async (id: string, name: string) => {
-    const project = await renameProject(id, name);
-    if (!project) return;
-    if (selectedProjectId === id) {
-      setInitialProjectName(project.name);
-    }
-    toast.success("Project renamed", { description: project.name });
-  }, [selectedProjectId]);
-
-  const handleArchiveProject = useCallback(async (id: string) => {
-    const project = await archiveProject(id);
-    if (!project) return;
-    if (selectedProjectId === id) {
-      setSelectedProjectId(null);
-      setInitialProjectName("");
-    }
-    toast.success("Project archived", { description: project.name });
-  }, [selectedProjectId, setSelectedProjectId]);
 
   const handleRestoreProject = useCallback(async (project: Project) => {
     const restored = await restoreProject(project.id);
     if (!restored) return;
     toast.success("Project restored", { description: restored.name });
   }, []);
-
-  const handleClearFilters = useCallback(() => {
-    setSearch("");
-    setSelectedProjectId(null);
-    setSelectedTagId(null);
-  }, [setSearch, setSelectedProjectId, setSelectedTagId]);
 
   const handleSetReminder = useCallback((taskId: string, date: string | null) => {
     void updateTask(taskId, { dueDate: date });
@@ -1555,26 +1496,14 @@ function DashboardPage() {
       />
 
       <FilterToolbar
-        projects={sortedProjects}
         tags={tags}
         activeTab={activeTab}
         completedCount={doneTasks.length}
         sort={sort}
-        selectedProjectId={selectedProjectId}
         selectedTagId={selectedTagId}
-        projectMenuOpen={projectMenuOpen}
-        createFrameOpen={projectCreateFrameOpen}
         onTabChange={setActiveTab}
         onSortChange={setSort}
-        onSelectProject={setSelectedProjectId}
         onSelectTag={setSelectedTagId}
-        onProjectMenuOpenChange={setProjectMenuOpen}
-        onCreateFrameOpenChange={setProjectCreateFrameOpen}
-        onCreateProject={handleCreateProject}
-        onRenameProject={handleRenameProject}
-        onArchiveProject={handleArchiveProject}
-        onClear={handleClearFilters}
-        isFiltering={isFiltering}
       />
 
       <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto bg-background lg:grid-cols-[minmax(0,6fr)_minmax(360px,4fr)] lg:overflow-hidden">
@@ -1584,7 +1513,7 @@ function DashboardPage() {
               <div className="flex items-center gap-2.5 py-3">
                 <ClipboardList className="size-5 text-on-surface-variant" />
                 <h1 className="text-title-large text-on-surface">
-                  {selectedProject ? selectedProject.name : "Active Tasks"}
+                  Active Tasks
                 </h1>
                 <Badge variant="default">{activeTasksRendered.length}</Badge>
               </div>
@@ -1595,7 +1524,6 @@ function DashboardPage() {
                   tags={tMap}
                   isFiltered={activeListHasSearchFilters}
                   hasProjects={projects.length > 0}
-                  selectedProjectName={selectedProject?.name ?? null}
                   onProgressChange={handleProgressChange}
                   onProgressCommit={handleProgressCommit}
                   onEdit={openEdit}
@@ -1603,9 +1531,7 @@ function DashboardPage() {
                   onComplete={handleComplete}
                   onDelete={handleRequestDelete}
                   onDetailSave={handleDetailSave}
-                  onClearFilters={handleClearFilters}
                   onAddTask={openCreate}
-                  onCreateProject={openProjectCreateFrame}
                 />
               </div>
             </>

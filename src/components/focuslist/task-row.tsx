@@ -133,7 +133,7 @@ function TaskRowBase({
         </div>
 
         {/* 2. Progress slider */}
-        <div className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-col gap-1 sm:col-span-1 sm:col-start-3 sm:row-start-1">
+        <div className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center gap-2 sm:col-span-1 sm:col-start-3 sm:row-start-1">
           <ProgressSlider
             value={task.progress}
             accent={accent}
@@ -141,7 +141,7 @@ function TaskRowBase({
             onCommit={handleCommit}
             ariaLabel={`Progress for ${task.title}`}
           />
-          <div className="flex h-4 items-center justify-end">
+          <div className="flex h-5 w-11 shrink-0 items-center justify-end">
             <AnimatePresence mode="wait" initial={false}>
               {justCompleted ? (
                 <motion.span
@@ -149,7 +149,7 @@ function TaskRowBase({
                   initial={{ scale: 0.6, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-label-small font-bold text-success"
+                  className="text-label-small font-bold tabular-nums text-success"
                 >
                   100%
                 </motion.span>
