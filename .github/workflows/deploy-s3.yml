@@ -1,6 +1,9 @@
 name: Deploy AWS S3
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -52,3 +55,13 @@ jobs:
 
       - name: Sync static export to S3
         run: aws s3 sync out "s3://$AWS_S3_BUCKET" --cache-control "public,max-age=300"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          DISTRIBUTION_ID="$(aws cloudformation describe-stacks \
+            --region us-east-1 \
+            --stack-name focus-list-cloudfront-https \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" \
+            --output text)"
+          test -n "$DISTRIBUTION_ID"
+          aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"
