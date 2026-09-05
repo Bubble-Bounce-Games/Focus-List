@@ -13,6 +13,7 @@ type ActiveTaskListProps = {
   tags: Record<string, Tag>;
   isFiltered: boolean;
   hasProjects: boolean;
+  selectedProjectName: string | null;
   onProgressChange: (id: string, value: number) => void;
   onProgressCommit: (id: string, value: number) => void;
   onEdit: (task: Task) => void;
@@ -21,6 +22,7 @@ type ActiveTaskListProps = {
   onDelete: (task: Task) => void;
   onDetailSave: (id: string, field: DetailField, value: string) => void;
   onAddTask: () => void;
+  onCreateProject: () => void;
 };
 
 export function ActiveTaskList({
@@ -29,6 +31,7 @@ export function ActiveTaskList({
   tags,
   isFiltered,
   hasProjects,
+  selectedProjectName,
   onProgressChange,
   onProgressCommit,
   onEdit,
@@ -37,6 +40,7 @@ export function ActiveTaskList({
   onDelete,
   onDetailSave,
   onAddTask,
+  onCreateProject,
 }: ActiveTaskListProps) {
   if (tasks.length === 0) {
     if (isFiltered) {
@@ -51,15 +55,15 @@ export function ActiveTaskList({
     return (
       <EmptyState
         icon={<ClipboardList className="h-5 w-5" />}
-        title={hasProjects ? "Add your task." : "Add your first task."}
+        title={hasProjects ? "Add your task." : "Create a project and add your task."}
         description={
-          hasProjects
-            ? "New tasks will appear here."
-            : "Choose or create a project while adding it."
+          selectedProjectName
+            ? `Tasks for ${selectedProjectName} will appear here.`
+            : "Create a folder project first, then add tasks inside it."
         }
         action={
-          <Button size="sm" onClick={onAddTask}>
-            Add Task
+          <Button size="sm" onClick={hasProjects ? onAddTask : onCreateProject}>
+            {hasProjects ? "Add Task" : "Create Project"}
           </Button>
         }
       />
