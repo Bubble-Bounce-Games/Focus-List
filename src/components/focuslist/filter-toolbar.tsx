@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Archive, Check, ChevronDown, Folder, Pencil, Plus, Tag as TagIcon, X } from "lucide-react";
-import type { Project, Tag } from "@/lib/focuslist/types";
+import { Archive, ArrowDownWideNarrow, ArrowUpWideNarrow, Check, ChevronDown, Folder, Pencil, Plus, Tag as TagIcon, X } from "lucide-react";
+import { SORT_OPTIONS, type Project, type SortKey, type Tag } from "@/lib/focuslist/types";
 import { pillStyle } from "@/lib/focuslist/palette";
 import { cn } from "@/lib/utils";
 
@@ -23,11 +23,13 @@ type FilterToolbarProps = {
   tags: Tag[];
   activeTab: WorkspaceTab;
   completedCount: number;
+  sort: SortKey;
   selectedProjectId: string | null;
   selectedTagId: string | null;
   projectMenuOpen: boolean;
   createFrameOpen: boolean;
   onTabChange: (tab: WorkspaceTab) => void;
+  onSortChange: (sort: SortKey) => void;
   onSelectProject: (id: string | null) => void;
   onSelectTag: (id: string | null) => void;
   onProjectMenuOpenChange: (open: boolean) => void;
@@ -37,8 +39,6 @@ type FilterToolbarProps = {
   onArchiveProject: (id: string) => void;
   onClear: () => void;
   isFiltering: boolean;
-  projectSort: "name" | "color";
-  onProjectSortChange: (sort: "name" | "color") => void;
 };
 
 export function FilterToolbar({
@@ -46,11 +46,13 @@ export function FilterToolbar({
   tags,
   activeTab,
   completedCount,
+  sort,
   selectedProjectId,
   selectedTagId,
   projectMenuOpen,
   createFrameOpen,
   onTabChange,
+  onSortChange,
   onSelectProject,
   onSelectTag,
   onProjectMenuOpenChange,
@@ -60,8 +62,6 @@ export function FilterToolbar({
   onArchiveProject,
   onClear,
   isFiltering,
-  projectSort,
-  onProjectSortChange,
 }: FilterToolbarProps) {
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const selectedTag = tags.find((t) => t.id === selectedTagId);
@@ -334,20 +334,32 @@ export function FilterToolbar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Folders sort — MD3 outlined button trigger */}
+      {/* Task sort — MD3 outlined button trigger */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="h-10 shrink-0 gap-2 px-3 text-label-large sm:px-3.5">
-            <Folder className="h-4 w-4 text-on-surface-variant" />
-            Folders: {projectSort === "name" ? "A to Z" : "Color"}
+            {sort === "progress-asc" ? (
+              <ArrowUpWideNarrow className="h-4 w-4 text-on-surface-variant" />
+            ) : (
+              <ArrowDownWideNarrow className="h-4 w-4 text-on-surface-variant" />
+            )}
+            Sort by Progress %
             <ChevronDown className="h-4 w-4 text-on-surface-variant" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuLabel>Sort folders</DropdownMenuLabel>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel>Sort tasks</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => onProjectSortChange("name")}>Name: A to Z</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onProjectSortChange("color")}>Color code</DropdownMenuItem>
+          {SORT_OPTIONS.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              onSelect={() => onSortChange(option.value)}
+              className="justify-between"
+            >
+              {option.label}
+              {sort === option.value && <Check className="h-4 w-4 text-primary" />}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 

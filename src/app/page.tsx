@@ -8,7 +8,7 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { Sparkles, ClipboardList } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/focuslist/header";
@@ -1247,10 +1247,6 @@ function DashboardPage() {
     "fl.tag",
     null
   );
-  const [projectSortValue, setProjectSort] = usePersistentState<"name" | "color">(
-    "fl.projectSort",
-    "name"
-  );
 
   const [progressOverride, setProgressOverride] = useState<
     Record<string, number>
@@ -1272,7 +1268,6 @@ function DashboardPage() {
     : DEFAULT_SORT;
   const selectedProjectId = asNullableString(selectedProjectValue);
   const selectedTagId = asNullableString(selectedTagValue);
-  const projectSort = projectSortValue === "color" ? "color" : "name";
 
   // ⌘K / Ctrl+K focuses search.
   useEffect(() => {
@@ -1289,11 +1284,7 @@ function DashboardPage() {
 
   const pMap = projectMap(projects);
   const tMap = tagMap(tags);
-  const sortedProjects = projects.slice().sort((a, b) =>
-    projectSort === "color"
-      ? a.color.localeCompare(b.color) || a.name.localeCompare(b.name)
-      : a.name.localeCompare(b.name)
-  );
+  const sortedProjects = projects.slice().sort((a, b) => a.name.localeCompare(b.name));
   const selectedProject = selectedProjectId ? pMap[selectedProjectId] : null;
 
   const isFiltering =
@@ -1557,8 +1548,6 @@ function DashboardPage() {
       <Header
         search={search}
         onSearchChange={setSearch}
-        sort={sort}
-        onSortChange={setSort}
         onAddTask={openCreate}
         onOpenTool={setToolView}
         searchInputRef={searchRef}
@@ -1570,11 +1559,13 @@ function DashboardPage() {
         tags={tags}
         activeTab={activeTab}
         completedCount={doneTasks.length}
+        sort={sort}
         selectedProjectId={selectedProjectId}
         selectedTagId={selectedTagId}
         projectMenuOpen={projectMenuOpen}
         createFrameOpen={projectCreateFrameOpen}
         onTabChange={setActiveTab}
+        onSortChange={setSort}
         onSelectProject={setSelectedProjectId}
         onSelectTag={setSelectedTagId}
         onProjectMenuOpenChange={setProjectMenuOpen}
@@ -1584,8 +1575,6 @@ function DashboardPage() {
         onArchiveProject={handleArchiveProject}
         onClear={handleClearFilters}
         isFiltering={isFiltering}
-        projectSort={projectSort}
-        onProjectSortChange={setProjectSort}
       />
 
       <main className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto bg-background lg:grid-cols-[minmax(0,6fr)_minmax(360px,4fr)] lg:overflow-hidden">
@@ -1598,10 +1587,6 @@ function DashboardPage() {
                   {selectedProject ? selectedProject.name : "Active Tasks"}
                 </h1>
                 <Badge variant="default">{activeTasksRendered.length}</Badge>
-                <span className="ml-auto hidden items-center gap-1.5 text-label-medium text-on-surface-variant sm:inline-flex">
-                  <Sparkles className="size-3.5" />
-                  Tasks at 100% move to Done automatically.
-                </span>
               </div>
               <div className="min-h-0 flex-1 pb-3">
                 <ActiveTaskList

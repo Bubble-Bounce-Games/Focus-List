@@ -10,18 +10,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowDownWideNarrow,
-  ArrowUpWideNarrow,
   CalendarDays,
-  Check,
-  ChevronDown,
   FolderArchive,
   LogOut,
   Plus,
   Search,
   UserCircle,
 } from "lucide-react";
-import { SORT_OPTIONS, type SortKey } from "@/lib/focuslist/types";
 import { signOutAccount, type AccountSnapshot } from "@/lib/focuslist/browser-state";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -30,8 +25,6 @@ const logoPath = `${basePath}/brand/focus-list-mark.png`;
 type HeaderProps = {
   search: string;
   onSearchChange: (value: string) => void;
-  sort: SortKey;
-  onSortChange: (sort: SortKey) => void;
   onAddTask: () => void;
   onOpenTool?: (view: "calendar" | "archive" | "trash") => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
@@ -41,17 +34,11 @@ type HeaderProps = {
 export function Header({
   search,
   onSearchChange,
-  sort,
-  onSortChange,
   onAddTask,
   onOpenTool,
   searchInputRef,
   account,
 }: HeaderProps) {
-  const currentLabel =
-    SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "Sort by Progress %";
-  const isAsc = sort === "progress-asc";
-
   return (
     <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-2 border-b border-outline-variant bg-background px-4 py-2 sm:h-16 sm:flex-nowrap sm:gap-4 sm:px-6 xl:px-10 sm:py-0">
       {/* Logo + title */}
@@ -85,42 +72,6 @@ export function Header({
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {/* Sort dropdown — MD3 outlined button (hidden on mobile) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              aria-label="Sort tasks"
-              className="hidden h-10 gap-2 px-3.5 text-sm font-medium sm:inline-flex"
-            >
-              {isAsc ? (
-                <ArrowUpWideNarrow className="h-4 w-4 text-on-surface-variant" />
-              ) : (
-                <ArrowDownWideNarrow className="h-4 w-4 text-on-surface-variant" />
-              )}
-              <span className="hidden xl:inline">Sort by Progress %</span>
-              <span className="inline xl:hidden">{currentLabel.split(":")[0]}</span>
-              <ChevronDown className="h-4 w-4 text-on-surface-variant" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Sort tasks</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {SORT_OPTIONS.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onSelect={() => onSortChange(option.value)}
-                className="justify-between"
-              >
-                {option.label}
-                {sort === option.value && (
-                  <Check className="h-4 w-4 text-primary" />
-                )}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         {/* Add Task — MD3 filled primary button (icon-only on mobile, label on sm+) */}
         <Button
           onClick={onAddTask}
