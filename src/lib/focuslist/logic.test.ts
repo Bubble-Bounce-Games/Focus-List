@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
+import { isUpcomingReminderDate } from "./calendar-reminders";
 import { groupDoneByProject, matchTask, sortTasks } from "./selectors";
 import {
   DEFAULT_SORT,
@@ -59,6 +60,12 @@ test("every sort label carries the 'Group: detail' shape the header splits on", 
       `"${option.label}" has no colon; the narrow-viewport header label would show it in full`
     );
   }
+});
+
+test("reminder dates include today and the future, but not past dates", () => {
+  assert.equal(isUpcomingReminderDate("2026-09-07", "2026-09-08"), false);
+  assert.equal(isUpcomingReminderDate("2026-09-08", "2026-09-08"), true);
+  assert.equal(isUpcomingReminderDate("2026-09-09", "2026-09-08"), true);
 });
 
 /* ----------------------------- task details ------------------------------ */

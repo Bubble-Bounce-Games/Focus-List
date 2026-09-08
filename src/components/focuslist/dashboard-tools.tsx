@@ -11,7 +11,11 @@ import {
   X,
 } from "lucide-react";
 import type { Project, Task } from "@/lib/focuslist/types";
-import { asCalendarReminders } from "@/lib/focuslist/calendar-reminders";
+import {
+  asCalendarReminders,
+  isUpcomingReminderDate,
+  toDateKey,
+} from "@/lib/focuslist/calendar-reminders";
 import { useBrowserCollection } from "@/lib/focuslist/browser-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,10 +34,6 @@ type DashboardToolsProps = {
 
 function createdLabel(value: string) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
-}
-
-function toDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function dateTitle(value: string) {
@@ -69,18 +69,27 @@ function CalendarTool({ tasks }: Pick<DashboardToolsProps, "tasks">) {
     []
   );
   const calendarReminders = asCalendarReminders(calendarReminderValue);
-  const activeTasks = tasks.filter((task) => !task.completedAt && !task.archivedAt && !task.deletedAt);
+  const upcomingCalendarReminders = calendarReminders.filter((reminder) =>
+    isUpcomingReminderDate(reminder.dueDate, todayKey)
+  );
+  const activeTasks = tasks.filter(
+    (task) =>
+      !task.completedAt &&
+      !task.archivedAt &&
+      !task.deletedAt &&
+      (!task.dueDate || isUpcomingReminderDate(task.dueDate, todayKey))
+  );
   const reminders = useMemo(() => {
     const rows = new Map<string, number>();
     for (const task of activeTasks) {
       if (!task.dueDate) continue;
       rows.set(task.dueDate, (rows.get(task.dueDate) ?? 0) + 1);
     }
-    for (const reminder of calendarReminders) {
+    for (const reminder of upcomingCalendarReminders) {
       rows.set(reminder.dueDate, (rows.get(reminder.dueDate) ?? 0) + 1);
     }
     return rows;
-  }, [activeTasks, calendarReminders]);
+  }, [activeTasks, upcomingCalendarReminders]);
   const selectedReminderCount = reminders.get(selectedDate) ?? 0;
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,8 +69,19 @@ export function FilterToolbar({
   const [newProjectName, setNewProjectName] = useState("");
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const newProjectInputRef = useRef<HTMLInputElement>(null);
   const progressSort =
     sort === "progress-asc" || sort === "progress-desc" ? sort : "progress-desc";
+
+  useEffect(() => {
+    if (!projectMenuOpen || !createFrameOpen) return;
+    const frame = window.requestAnimationFrame(() => newProjectInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [createFrameOpen, projectMenuOpen]);
+
+  function stopMenuTypeahead(event: KeyboardEvent<HTMLInputElement>) {
+    event.stopPropagation();
+  }
 
   function submitProjectCreate(event: FormEvent) {
     event.preventDefault();
@@ -78,8 +89,7 @@ export function FilterToolbar({
     if (!trimmed) return;
     onCreateProject(trimmed);
     setNewProjectName("");
-    onCreateFrameOpenChange(false);
-    onProjectMenuOpenChange(false);
+    requestAnimationFrame(() => newProjectInputRef.current?.focus());
   }
 
   function startRename(project: Project) {
@@ -154,9 +164,11 @@ export function FilterToolbar({
               </label>
               <div className="flex gap-1.5">
                 <Input
+                  ref={newProjectInputRef}
                   id="fl-new-project"
                   value={newProjectName}
                   onChange={(event) => setNewProjectName(event.target.value)}
+                  onKeyDown={stopMenuTypeahead}
                   className="h-8 min-w-0 flex-1 px-2 text-xs"
                   placeholder="Folder name"
                 />
@@ -180,6 +192,7 @@ export function FilterToolbar({
                   <Input
                     value={renameValue}
                     onChange={(event) => setRenameValue(event.target.value)}
+                    onKeyDown={stopMenuTypeahead}
                     className="h-8 min-w-0 flex-1 px-2 text-xs"
                     aria-label={`Rename ${p.name}`}
                   />

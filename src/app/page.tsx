@@ -62,6 +62,8 @@ import {
 } from "@/lib/focuslist/browser-state";
 import {
   asCalendarReminders,
+  isUpcomingReminderDate,
+  toDateKey,
   type CalendarReminder,
 } from "@/lib/focuslist/calendar-reminders";
 import { DashboardTools } from "@/components/focuslist/dashboard-tools";
@@ -430,10 +432,6 @@ function asPinnedNotes(value: unknown): PinnedNote[] {
   );
 }
 
-function toDateKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 function dateLabel(value: string): string {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -549,9 +547,10 @@ function FocusSidePanel() {
     fontSize: `${noteFontSize}px`,
   } as const;
   const customMarkerColor = /^#[\da-f]{6}$/i.test(marker) ? marker : "#202124";
+  const todayKey = toDateKey(new Date());
   const taskReminderRows: ReminderRow[] = tasks
     .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
-    .filter((task) => task.dueDate)
+    .filter((task) => task.dueDate && isUpcomingReminderDate(task.dueDate, todayKey))
     .map((task) => {
       const project = projectsById[task.projectId];
       return {
@@ -564,15 +563,17 @@ function FocusSidePanel() {
         task,
       };
     });
-  const calendarReminderRows: ReminderRow[] = calendarReminders.map((reminder) => ({
-    kind: "calendar",
-    id: reminder.id,
-    title: reminder.title,
-    dueDate: reminder.dueDate,
-    color: "var(--md-error)",
-    progress: 0,
-    reminder,
-  }));
+  const calendarReminderRows: ReminderRow[] = calendarReminders
+    .filter((reminder) => isUpcomingReminderDate(reminder.dueDate, todayKey))
+    .map((reminder) => ({
+      kind: "calendar",
+      id: reminder.id,
+      title: reminder.title,
+      dueDate: reminder.dueDate,
+      color: "var(--md-error)",
+      progress: 0,
+      reminder,
+    }));
   const allReminderRows = [...taskReminderRows, ...calendarReminderRows].sort(
     (a, b) => a.dueDate.localeCompare(b.dueDate) || b.id.localeCompare(a.id)
   );
@@ -1455,7 +1456,7 @@ function DashboardPage() {
         }
       }
       setPanelOpen(false);
-      if (selectedProjectId === null || selectedProjectId !== project.id) {
+      if (selectedProjectId !== null && selectedProjectId !== project.id) {
         setSelectedProjectId(project.id);
       }
     },
@@ -1467,11 +1468,12 @@ function DashboardPage() {
       return;
     }
     const project = await findOrCreateProject(name);
-    setSelectedProjectId(project.id);
-    setInitialProjectName(project.name);
+    if (selectedProjectId === project.id) {
+      setInitialProjectName(project.name);
+    }
     setEditingTask(null);
     toast.success("Project created", { description: project.name });
-  }, [requireAccount, setSelectedProjectId]);
+  }, [requireAccount, selectedProjectId]);
 
   const openProjectCreateFrame = useCallback(() => {
     if (!requireAccount("Sign in to save project folders.")) {
