@@ -1585,11 +1585,13 @@ function DashboardPage() {
               <div className="min-h-0 flex-1 pb-3">
                 <ActiveTaskList
                   tasks={activeTasksRendered}
+                  projectFolders={sortedProjects}
                   projects={pMap}
                   tags={tMap}
                   isFiltered={activeListHasSearchFilters}
                   hasProjects={projects.length > 0}
                   selectedProjectName={selectedProject?.name ?? null}
+                  onSelectProject={setSelectedProjectId}
                   onProgressChange={handleProgressChange}
                   onProgressCommit={handleProgressCommit}
                   onEdit={openEdit}
