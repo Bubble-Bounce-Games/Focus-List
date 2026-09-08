@@ -1304,6 +1304,7 @@ function DashboardPage() {
         tMap
       )
     );
+  const projectFolderTasks = visibleTasks.filter((t) => !isComplete(t));
   const activeTasksSorted = sortTasks(activeTasks, sort, pMap);
 
   // Derived done list (compiler auto-memoizes).
@@ -1578,13 +1579,16 @@ function DashboardPage() {
               <div className="flex items-center gap-2.5 py-3">
                 <ClipboardList className="size-5 text-on-surface-variant" />
                 <h1 className="text-title-large text-on-surface">
-                  {selectedProject ? selectedProject.name : "Active Tasks"}
+                  {selectedProject ? selectedProject.name : "Project Folders"}
                 </h1>
-                <Badge variant="default">{activeTasksRendered.length}</Badge>
+                <Badge variant="default">
+                  {selectedProject ? activeTasksRendered.length : sortedProjects.length}
+                </Badge>
               </div>
               <div className="min-h-0 flex-1 pb-3">
                 <ActiveTaskList
                   tasks={activeTasksRendered}
+                  projectTasks={projectFolderTasks}
                   projectFolders={sortedProjects}
                   projects={pMap}
                   tags={tMap}

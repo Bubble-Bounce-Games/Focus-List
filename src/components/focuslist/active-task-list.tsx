@@ -11,6 +11,7 @@ import { pillStyle } from "@/lib/focuslist/palette";
 
 type ActiveTaskListProps = {
   tasks: Task[];
+  projectTasks: Task[];
   projectFolders: Project[];
   projects: Record<string, Project>;
   tags: Record<string, Tag>;
@@ -31,6 +32,7 @@ type ActiveTaskListProps = {
 
 export function ActiveTaskList({
   tasks,
+  projectTasks,
   projectFolders,
   projects,
   tags,
@@ -48,7 +50,7 @@ export function ActiveTaskList({
   onAddTask,
   onCreateProject,
 }: ActiveTaskListProps) {
-  const showProjectFolders = selectedProjectName === null && !isFiltered;
+  const showProjectFolders = selectedProjectName === null;
 
   if (showProjectFolders) {
     if (projectFolders.length === 0) {
@@ -66,7 +68,7 @@ export function ActiveTaskList({
       );
     }
 
-    const taskCounts = tasks.reduce<Record<string, number>>((counts, task) => {
+    const taskCounts = projectTasks.reduce<Record<string, number>>((counts, task) => {
       counts[task.projectId] = (counts[task.projectId] ?? 0) + 1;
       return counts;
     }, {});
