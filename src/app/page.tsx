@@ -1286,11 +1286,14 @@ function DashboardPage() {
   const pMap = projectMap(projects);
   const tMap = tagMap(tags);
   const sortedProjects = projects.slice().sort((a, b) => a.name.localeCompare(b.name));
-  const selectedProject = selectedProjectId ? pMap[selectedProjectId] : null;
+  const effectiveSelectedProjectId =
+    selectedProjectId && pMap[selectedProjectId] ? selectedProjectId : null;
+  const effectiveSelectedTagId = selectedTagId && tMap[selectedTagId] ? selectedTagId : null;
+  const selectedProject = effectiveSelectedProjectId ? pMap[effectiveSelectedProjectId] : null;
 
   const isFiltering =
-    search.trim() !== "" || selectedProjectId !== null || selectedTagId !== null;
-  const activeListHasSearchFilters = search.trim() !== "" || selectedTagId !== null;
+    search.trim() !== "" || effectiveSelectedProjectId !== null || effectiveSelectedTagId !== null;
+  const activeListHasSearchFilters = search.trim() !== "" || effectiveSelectedTagId !== null;
 
   // Derived active list (compiler auto-memoizes).
   const visibleTasks = allTasks.filter((task) => !task.archivedAt && !task.deletedAt);
@@ -1299,7 +1302,7 @@ function DashboardPage() {
     .filter((t) =>
       matchTask(
         t,
-        { search, projectId: selectedProjectId, tagId: selectedTagId },
+        { search, projectId: effectiveSelectedProjectId, tagId: effectiveSelectedTagId },
         pMap,
         tMap
       )
@@ -1312,7 +1315,7 @@ function DashboardPage() {
     .filter((t) =>
       matchTask(
         t,
-        { search, projectId: selectedProjectId, tagId: selectedTagId },
+        { search, projectId: effectiveSelectedProjectId, tagId: effectiveSelectedTagId },
         pMap,
         tMap
       )
@@ -1456,11 +1459,11 @@ function DashboardPage() {
         }
       }
       setPanelOpen(false);
-      if (selectedProjectId !== null && selectedProjectId !== project.id) {
+      if (effectiveSelectedProjectId !== null && effectiveSelectedProjectId !== project.id) {
         setSelectedProjectId(project.id);
       }
     },
-    [panelMode, editingTask, selectedProjectId, setSelectedProjectId, requireAccount]
+    [panelMode, editingTask, effectiveSelectedProjectId, setSelectedProjectId, requireAccount]
   );
 
   const handleCreateProject = useCallback(async (name: string) => {
@@ -1468,12 +1471,12 @@ function DashboardPage() {
       return;
     }
     const project = await findOrCreateProject(name);
-    if (selectedProjectId === project.id) {
+    if (effectiveSelectedProjectId === project.id) {
       setInitialProjectName(project.name);
     }
     setEditingTask(null);
     toast.success("Project created", { description: project.name });
-  }, [requireAccount, selectedProjectId]);
+  }, [requireAccount, effectiveSelectedProjectId]);
 
   const openProjectCreateFrame = useCallback(() => {
     if (!requireAccount("Sign in to save project folders.")) {
@@ -1486,21 +1489,21 @@ function DashboardPage() {
   const handleRenameProject = useCallback(async (id: string, name: string) => {
     const project = await renameProject(id, name);
     if (!project) return;
-    if (selectedProjectId === id) {
+    if (effectiveSelectedProjectId === id) {
       setInitialProjectName(project.name);
     }
     toast.success("Project renamed", { description: project.name });
-  }, [selectedProjectId]);
+  }, [effectiveSelectedProjectId]);
 
   const handleArchiveProject = useCallback(async (id: string) => {
     const project = await archiveProject(id);
     if (!project) return;
-    if (selectedProjectId === id) {
+    if (effectiveSelectedProjectId === id) {
       setSelectedProjectId(null);
       setInitialProjectName("");
     }
     toast.success("Project archived", { description: project.name });
-  }, [selectedProjectId, setSelectedProjectId]);
+  }, [effectiveSelectedProjectId, setSelectedProjectId]);
 
   const handleRestoreProject = useCallback(async (project: Project) => {
     const restored = await restoreProject(project.id);
@@ -1556,8 +1559,8 @@ function DashboardPage() {
         activeTab={activeTab}
         completedCount={doneTasks.length}
         sort={sort}
-        selectedProjectId={selectedProjectId}
-        selectedTagId={selectedTagId}
+        selectedProjectId={effectiveSelectedProjectId}
+        selectedTagId={effectiveSelectedTagId}
         projectMenuOpen={projectMenuOpen}
         createFrameOpen={projectCreateFrameOpen}
         onTabChange={setActiveTab}
