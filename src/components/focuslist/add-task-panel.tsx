@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, X } from "lucide-react";
+import { Check, LoaderCircle, Plus, X } from "lucide-react";
 import type { Project, Tag, Task } from "@/lib/focuslist/types";
 import { clampProgress } from "@/lib/focuslist/store";
 import { Combobox } from "./combobox";
@@ -36,7 +36,7 @@ type AddTaskPanelProps = {
   projects: Project[];
   tags: Tag[];
   onClose: () => void;
-  onSubmit: (data: TaskFormData) => void;
+  onSubmit: (data: TaskFormData) => void | Promise<void>;
 };
 
 export function AddTaskPanel(props: AddTaskPanelProps) {
@@ -72,6 +72,7 @@ function PanelBody({
     return { title: "", projectName: initialProjectName, tagName: "", progress: 0 };
   });
   const [touched, setTouched] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -123,16 +124,22 @@ function PanelBody({
     return () => document.removeEventListener("keydown", onKey);
   }, [requestClose]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setTouched(true);
     if (!formValid) return;
-    onSubmit({
-      title: form.title.trim(),
-      projectName: form.projectName.trim(),
-      tagName: form.tagName.trim(),
-      progress: clampProgress(form.progress),
-    });
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        title: form.title.trim(),
+        projectName: form.projectName.trim(),
+        tagName: form.tagName.trim(),
+        progress: clampProgress(form.progress),
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const projectOptions = projects.map((p) => p.name);
@@ -301,16 +308,28 @@ function PanelBody({
               type="button"
               variant="ghost"
               onClick={requestClose}
+              disabled={submitting}
               className="text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={!formValid}
-              className="h-11 px-6 text-label-large"
+              disabled={!formValid || submitting}
+              aria-busy={submitting}
+              className="h-11 min-w-32 px-6 text-label-large font-bold text-on-primary disabled:bg-surface-container-highest disabled:text-on-surface-variant disabled:shadow-none disabled:opacity-100"
             >
-              {mode === "edit" ? "Save Changes" : "Add Task"}
+              {submitting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Saving
+                </>
+              ) : (
+                <>
+                  <Check className="size-4" />
+                  {mode === "edit" ? "Save Changes" : "Add Task"}
+                </>
+              )}
             </Button>
           </div>
         </form>
