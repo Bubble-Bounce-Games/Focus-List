@@ -43,8 +43,7 @@ export function useAllTasks(): Task[] {
 export function useProjects(): Project[] {
   return useBrowserState().projects
     .filter((project) => !project.archivedAt)
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .slice();
 }
 
 export function useArchivedProjects(): Project[] {
@@ -165,12 +164,45 @@ export async function findOrCreateProject(name: string): Promise<Project> {
   let project: Project | undefined;
   await updateBrowserState((state) => {
     project = state.projects.find((item) => item.name === trimmed);
-    if (project) return state;
+    if (project) {
+      const projectId = project.id;
+      return {
+        ...state,
+        projects: [
+          project,
+          ...state.projects.filter((item) => item.id !== projectId),
+        ],
+      };
+    }
     const created = { id: uuid(), name: trimmed, color: colorForName(trimmed) };
     project = created;
-    return { ...state, projects: [...state.projects, created] };
+    return { ...state, projects: [created, ...state.projects] };
   });
   return project as Project;
+}
+
+export async function reorderProject(
+  sourceId: string,
+  targetId: string,
+  placement: "before" | "after"
+): Promise<void> {
+  if (sourceId === targetId) return;
+  await updateBrowserState((state) => {
+    const source = state.projects.find((project) => project.id === sourceId);
+    const targetIndex = state.projects.findIndex((project) => project.id === targetId);
+    if (!source || targetIndex < 0) return state;
+
+    const withoutSource = state.projects.filter((project) => project.id !== sourceId);
+    const adjustedTargetIndex = withoutSource.findIndex((project) => project.id === targetId);
+    if (adjustedTargetIndex < 0) return state;
+
+    const insertIndex = placement === "after"
+      ? adjustedTargetIndex + 1
+      : adjustedTargetIndex;
+    const projects = withoutSource.slice();
+    projects.splice(insertIndex, 0, source);
+    return { ...state, projects };
+  });
 }
 
 export async function renameProject(id: string, name: string): Promise<Project | undefined> {

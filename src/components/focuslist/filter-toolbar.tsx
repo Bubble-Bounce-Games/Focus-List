@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Archive, ArrowDownWideNarrow, ArrowUpWideNarrow, Check, ChevronDown, Folder, Pencil, Plus, SlidersHorizontal, Tag as TagIcon, X } from "lucide-react";
+import { Archive, ArrowDownWideNarrow, ArrowUpWideNarrow, Check, ChevronDown, Folder, GripVertical, Pencil, Plus, SlidersHorizontal, Tag as TagIcon, X } from "lucide-react";
 import type { Project, SortKey, Tag } from "@/lib/focuslist/types";
 import { pillStyle } from "@/lib/focuslist/palette";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ type FilterToolbarProps = {
   onCreateFrameOpenChange: (open: boolean) => void;
   onCreateProject: (name: string) => void;
   onRenameProject: (id: string, name: string) => void;
+  onReorderProject: (sourceId: string, targetId: string, placement: "before" | "after") => void;
   onArchiveProject: (id: string) => void;
 };
 
@@ -62,6 +63,7 @@ export function FilterToolbar({
   onCreateFrameOpenChange,
   onCreateProject,
   onRenameProject,
+  onReorderProject,
   onArchiveProject,
 }: FilterToolbarProps) {
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -69,6 +71,11 @@ export function FilterToolbar({
   const [newProjectName, setNewProjectName] = useState("");
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [draggingProjectId, setDraggingProjectId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    id: string;
+    placement: "before" | "after";
+  } | null>(null);
   const newProjectInputRef = useRef<HTMLInputElement>(null);
   const progressSort =
     sort === "progress-asc" || sort === "progress-desc" ? sort : "progress-desc";
@@ -107,6 +114,23 @@ export function FilterToolbar({
     }
     onRenameProject(project.id, trimmed);
     setRenamingProjectId(null);
+  }
+
+  function handleProjectDragOver(event: DragEvent<HTMLDivElement>, targetId: string) {
+    if (!draggingProjectId || draggingProjectId === targetId) return;
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const placement = event.clientY > bounds.top + bounds.height / 2 ? "after" : "before";
+    setDropTarget({ id: targetId, placement });
+  }
+
+  function handleProjectDrop(event: DragEvent<HTMLDivElement>, targetId: string) {
+    event.preventDefault();
+    if (!draggingProjectId || draggingProjectId === targetId) return;
+    const placement = dropTarget?.id === targetId ? dropTarget.placement : "before";
+    onReorderProject(draggingProjectId, targetId, placement);
+    setDraggingProjectId(null);
+    setDropTarget(null);
   }
 
   return (
@@ -183,7 +207,35 @@ export function FilterToolbar({
           )}
           <DropdownMenuSeparator />
           {projects.map((p) => (
-            <div key={p.id} className="px-1 py-0.5">
+            <div
+              key={p.id}
+              draggable={renamingProjectId !== p.id}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", p.id);
+                setDraggingProjectId(p.id);
+                onCreateFrameOpenChange(false);
+              }}
+              onDragOver={(event) => handleProjectDragOver(event, p.id)}
+              onDragLeave={() => {
+                setDropTarget((target) => (target?.id === p.id ? null : target));
+              }}
+              onDrop={(event) => handleProjectDrop(event, p.id)}
+              onDragEnd={() => {
+                setDraggingProjectId(null);
+                setDropTarget(null);
+              }}
+              className={cn(
+                "px-1 py-0.5",
+                draggingProjectId === p.id && "opacity-60",
+                dropTarget?.id === p.id &&
+                  dropTarget.placement === "before" &&
+                  "border-t-2 border-primary",
+                dropTarget?.id === p.id &&
+                  dropTarget.placement === "after" &&
+                  "border-b-2 border-primary"
+              )}
+            >
               {renamingProjectId === p.id ? (
                 <form
                   onSubmit={(event) => submitProjectRename(event, p)}
@@ -213,6 +265,13 @@ export function FilterToolbar({
                 </form>
               ) : (
                 <div className="flex items-center gap-1.5">
+                  <span
+                    className="flex h-8 w-6 shrink-0 cursor-grab items-center justify-center rounded-md text-on-surface-variant active:cursor-grabbing"
+                    aria-label={`Drag ${p.name}`}
+                    title="Drag to reorder"
+                  >
+                    <GripVertical className="h-3.5 w-3.5" />
+                  </span>
                   <button
                     type="button"
                     onClick={() => onSelectProject(p.id)}

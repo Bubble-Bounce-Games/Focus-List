@@ -27,6 +27,7 @@ import {
   deleteTask,
   duplicateTask,
   restoreProject,
+  reorderProject,
   setProgress,
   setTaskDetail,
   updateTask,
@@ -1285,7 +1286,6 @@ function DashboardPage() {
 
   const pMap = projectMap(projects);
   const tMap = tagMap(tags);
-  const sortedProjects = projects.slice().sort((a, b) => a.name.localeCompare(b.name));
   const effectiveSelectedProjectId =
     selectedProjectId && pMap[selectedProjectId] ? selectedProjectId : null;
   const effectiveSelectedTagId = selectedTagId && tMap[selectedTagId] ? selectedTagId : null;
@@ -1511,6 +1511,13 @@ function DashboardPage() {
     toast.success("Project restored", { description: restored.name });
   }, []);
 
+  const handleReorderProject = useCallback(
+    async (sourceId: string, targetId: string, placement: "before" | "after") => {
+      await reorderProject(sourceId, targetId, placement);
+    },
+    []
+  );
+
   const handleSetReminder = useCallback((taskId: string, date: string | null) => {
     void updateTask(taskId, { dueDate: date });
     const task = allTasks.find((item) => item.id === taskId);
@@ -1554,7 +1561,7 @@ function DashboardPage() {
       />
 
       <FilterToolbar
-        projects={sortedProjects}
+        projects={projects}
         tags={tags}
         activeTab={activeTab}
         completedCount={doneTasks.length}
@@ -1571,6 +1578,7 @@ function DashboardPage() {
         onCreateFrameOpenChange={setProjectCreateFrameOpen}
         onCreateProject={handleCreateProject}
         onRenameProject={handleRenameProject}
+        onReorderProject={handleReorderProject}
         onArchiveProject={handleArchiveProject}
       />
 
