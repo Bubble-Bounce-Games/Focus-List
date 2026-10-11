@@ -14,6 +14,7 @@ import {
   hasDetails,
   isBlocked,
   isComplete,
+  pickLatestWorkspaceState,
   SORT_OPTIONS,
 } from "./types";
 import type { Project, Tag, Task } from "./types";
@@ -60,6 +61,50 @@ test("every sort label carries the 'Group: detail' shape the header splits on", 
       `"${option.label}" has no colon; the narrow-viewport header label would show it in full`
     );
   }
+});
+
+test("if the cloud workspace is blank, the local workspace is kept", () => {
+  const local = {
+    schemaVersion: 1 as const,
+    projects: [{ id: "p1", name: "Website", color: "#111111" }],
+    tags: [],
+    tasks: [],
+    notes: [],
+    reminders: [],
+    updatedAt: "2026-09-09T00:00:00.000Z",
+  };
+  const cloud = {
+    schemaVersion: 1 as const,
+    projects: [],
+    tags: [],
+    tasks: [],
+    notes: [],
+    reminders: [],
+    updatedAt: "2026-09-08T00:00:00.000Z",
+  };
+  assert.equal(pickLatestWorkspaceState(local, cloud), local);
+});
+
+test("when both sources have data, the newer snapshot wins", () => {
+  const olderCloud = {
+    schemaVersion: 1 as const,
+    projects: [{ id: "p2", name: "Archive", color: "#222222" }],
+    tags: [],
+    tasks: [],
+    notes: [],
+    reminders: [],
+    updatedAt: "2026-09-08T00:00:00.000Z",
+  };
+  const newerLocal = {
+    schemaVersion: 1 as const,
+    projects: [{ id: "p1", name: "Website", color: "#111111" }],
+    tags: [],
+    tasks: [],
+    notes: [],
+    reminders: [],
+    updatedAt: "2026-09-09T00:00:00.000Z",
+  };
+  assert.equal(pickLatestWorkspaceState(newerLocal, olderCloud), newerLocal);
 });
 
 test("reminder dates include today and the future, but not past dates", () => {

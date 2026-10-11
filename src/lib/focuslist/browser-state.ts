@@ -7,17 +7,13 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import type { Project, Tag, Task } from "./types";
+import {
+  pickLatestWorkspaceState,
+  workspaceHasData,
+  type WorkspaceState,
+} from "./types";
 
-export type BrowserState = {
-  schemaVersion: 1;
-  projects: Project[];
-  tags: Tag[];
-  tasks: Task[];
-  notes: unknown[];
-  reminders: unknown[];
-  updatedAt: string | null;
-};
+export type BrowserState = WorkspaceState;
 
 export type AccountSnapshot = {
   apiConfigured: boolean;
@@ -58,6 +54,8 @@ let accountSnapshot: AccountSnapshot = {
 let loaded = false;
 let accountLoadStarted = false;
 let storageListenerAttached = false;
+let cloudSyncQueue: Promise<void> = Promise.resolve();
+let latestCloudState: BrowserState | null = null;
 const listeners = new Set<() => void>();
 const accountListeners = new Set<() => void>();
 
@@ -79,16 +77,6 @@ function normalizeState(value: unknown): BrowserState {
     reminders: value.reminders,
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : null,
   };
-}
-
-function hasWorkspaceData(state: BrowserState): boolean {
-  return [
-    state.projects,
-    state.tags,
-    state.tasks,
-    state.notes,
-    state.reminders,
-  ].some((collection) => collection.length > 0);
 }
 
 function readStoredState(): BrowserState {
@@ -197,20 +185,35 @@ async function fetchCloudState(token: string): Promise<BrowserState> {
 async function saveCloudState(state: BrowserState): Promise<void> {
   const session = readSession();
   if (!session || !ACCOUNT_API_URL) return;
-  setAccountSnapshot({ syncStatus: "syncing" });
-  try {
-    await accountFetch("/state", {
-      method: "PUT",
-      headers: { authorization: `Bearer ${session.token}` },
-      body: JSON.stringify({ state }),
-    });
-    setAccountSnapshot({ syncStatus: "saved", message: null });
-  } catch (error) {
-    setAccountSnapshot({
-      syncStatus: "error",
-      message: error instanceof Error ? error.message : "Cloud save failed",
-    });
-  }
+  latestCloudState = state;
+  const queuedState = state;
+  const persist = async (): Promise<void> => {
+    const activeSession = readSession();
+    if (!activeSession || !ACCOUNT_API_URL) return;
+    const newestState = latestCloudState ?? queuedState;
+    if (
+      queuedState.updatedAt && newestState.updatedAt &&
+      newestState.updatedAt !== queuedState.updatedAt
+    ) {
+      return;
+    }
+    setAccountSnapshot({ syncStatus: "syncing" });
+    try {
+      await accountFetch("/state", {
+        method: "PUT",
+        headers: { authorization: `Bearer ${activeSession.token}` },
+        body: JSON.stringify({ state: newestState }),
+      });
+      setAccountSnapshot({ syncStatus: "saved", message: null });
+    } catch (error) {
+      setAccountSnapshot({
+        syncStatus: "error",
+        message: error instanceof Error ? error.message : "Cloud save failed",
+      });
+    }
+  };
+  cloudSyncQueue = cloudSyncQueue.then(persist, persist);
+  await cloudSyncQueue;
 }
 
 async function loadAccountState(session: AccountSession): Promise<void> {
@@ -224,10 +227,8 @@ async function loadAccountState(session: AccountSession): Promise<void> {
   try {
     const guestState = readStoredState();
     const cloudState = await fetchCloudState(session.token);
-    const nextState = !hasWorkspaceData(cloudState) && hasWorkspaceData(guestState)
-      ? guestState
-      : cloudState;
-    currentState = nextState;
+    const nextState = pickLatestWorkspaceState(guestState, cloudState) ?? EMPTY_STATE;
+    currentState = nextState as BrowserState;
     loaded = true;
     setAccountSnapshot({
       status: "signed-in",
@@ -236,8 +237,8 @@ async function loadAccountState(session: AccountSession): Promise<void> {
       syncStatus: "idle",
     });
     notify();
-    if (nextState === guestState && hasWorkspaceData(guestState)) {
-      void saveCloudState(nextState);
+    if (nextState === guestState && workspaceHasData(guestState)) {
+      void saveCloudState(nextState as BrowserState);
     }
   } catch (error) {
     saveSession(null);

@@ -89,3 +89,42 @@ export const DEFAULT_SORT: SortKey = "progress-desc";
 export function isComplete(task: Task): boolean {
   return task.progress >= MAX_PROGRESS;
 }
+
+export type WorkspaceState = {
+  schemaVersion: 1;
+  projects: Project[];
+  tags: Tag[];
+  tasks: Task[];
+  notes: unknown[];
+  reminders: unknown[];
+  updatedAt: string | null;
+};
+
+export function workspaceHasData(state: Partial<WorkspaceState> | null | undefined): boolean {
+  if (!state) return false;
+  return [
+    state.projects,
+    state.tags,
+    state.tasks,
+    state.notes,
+    state.reminders,
+  ].some((collection) => Array.isArray(collection) && collection.length > 0);
+}
+
+export function pickLatestWorkspaceState(
+  localState: Partial<WorkspaceState> | null | undefined,
+  cloudState: Partial<WorkspaceState> | null | undefined,
+): Partial<WorkspaceState> | null {
+  const localHasData = workspaceHasData(localState);
+  const cloudHasData = workspaceHasData(cloudState);
+  if (!localHasData && !cloudHasData) return null;
+  if (!localHasData) return cloudState ?? null;
+  if (!cloudHasData) return localState ?? null;
+
+  const localStamp = localState?.updatedAt ? Date.parse(localState.updatedAt) : Number.NEGATIVE_INFINITY;
+  const cloudStamp = cloudState?.updatedAt ? Date.parse(cloudState.updatedAt) : Number.NEGATIVE_INFINITY;
+  if (Number.isNaN(localStamp) && Number.isNaN(cloudStamp)) return localState ?? cloudState ?? null;
+  if (Number.isNaN(localStamp)) return cloudState ?? null;
+  if (Number.isNaN(cloudStamp)) return localState ?? null;
+  return localStamp >= cloudStamp ? localState ?? null : cloudState ?? null;
+}
