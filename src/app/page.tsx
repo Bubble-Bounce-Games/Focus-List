@@ -901,7 +901,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             ))}
           </div>
 
-          <div className="relative z-10 max-h-[340px] space-y-2 overflow-y-auto overflow-x-visible px-2 pb-3 pt-2">            {dailyRows.length === 0 ? (
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-visible px-2 pb-3 pt-2">
+            {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
                 <div className="text-center">
                   <p className="text-[15px] font-medium text-[#1f2430]">No daily tasks yet</p>
@@ -914,9 +915,12 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 const canEdit = canEditSelectedDate(selectedDate);
                 const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
                 const isMenuOpen = openTaskMenuId === row.id;
-
+ 
                 return (
-                  <div key={row.id} className="relative z-10 grid grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] rounded-xl px-2 py-2">
+                  <div
+                    key={row.id}
+                    className="relative z-10 grid min-h-[64px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border border-[#d9d5e6] bg-white/80 px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
+                  >
                     <div
                       className="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition hover:bg-[#f0f3fa]"
                       onClick={() => openDailyTaskEditor(row)}
@@ -932,8 +936,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center justify-between gap-2">
-                          <span className="whitespace-nowrap text-[15px] font-medium text-[#1f2430]">{row.title}</span>
-                          <div className="relative z-[60] shrink-0">
+                          <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
+                          <div className="relative z-[80] shrink-0">
                             <button
                               ref={openTaskMenuId === row.id ? optionButtonRef : null}
                               type="button"
@@ -949,7 +953,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             {isMenuOpen ? (
                               <div
                                 ref={optionMenuRef}
-                                className="absolute right-0 top-8 z-[70] w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.14)]"
+                                className="absolute right-0 top-8 z-[120] w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                               >
                                 <button
                                   type="button"
@@ -982,7 +986,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                         </div>
                       </div>
                     </div>
-
+ 
                     <div className="flex items-center justify-center gap-1">
                       {Array.from({ length: 3 }, (_, index) => {
                         const level = index + 1;
@@ -998,13 +1002,13 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               void handleAdjustIntensity(row.id, intensityValue);
                             }}
                             className={`block h-2.5 w-2.5 rounded-full transition ${
-                              index < activeCount ? "bg-[#22c55e]" : "bg-[#f7d4d4]"
+                              index < activeCount ? "bg-[#22c55e]" : "bg-[#f6a7a3]"
                             } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
                           />
                         );
                       })}
                     </div>
-
+ 
                     {Array.from({ length: 7 }, (_, index) => {
                       const value = row.progress;
                       const tone = value > 0 && index < 3 ? dailyIntensityTone(value) : "#ffffff";
