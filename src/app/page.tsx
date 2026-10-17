@@ -831,7 +831,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
 
   return (
     <aside className="flex h-full min-h-0 flex-col gap-5 bg-transparent px-0 py-0 lg:pl-5">
-      <section className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+      <section className="relative z-0 flex max-h-[540px] min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
         <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
@@ -901,7 +901,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             ))}
           </div>
 
-          <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-visible px-2 pb-3 pt-2">
+          <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 pt-2">
+            <div className="flex flex-col gap-2">
             {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
                 <div className="text-center">
@@ -953,7 +954,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             {isMenuOpen ? (
                               <div
                                 ref={optionMenuRef}
-                                className="absolute right-0 top-8 z-[120] w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+                                className="absolute right-0 top-8 z-[200] w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                               >
                                 <button
                                   type="button"
@@ -1028,6 +1029,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 );
               })
             )}
+            </div>
           </div>
         </div>
       </section>
@@ -1037,7 +1039,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       </section>
 
       {dailyTaskOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 px-4 backdrop-blur-[1px]">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/10 px-4 backdrop-blur-[1px]">
           <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-e2">
             <div className="mb-4 flex items-center justify-between">
               <h4 className="text-title-large text-on-surface">{editingDailyTaskId ? "Edit daily task" : "Add daily task"}</h4>
