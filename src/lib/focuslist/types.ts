@@ -36,6 +36,19 @@ export type Task = {
   deletedAt?: string | null;
 };
 
+export type DailyTask = {
+  id: string;
+  title: string;
+  dateKey: string;
+  timeSetup: string;
+  tag: string;
+  intensity: number;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string | null;
+  deletedAt?: string | null;
+};
+
 /** The three free-text fields shown in a task's expandable detail panel. */
 export const DETAIL_FIELDS = ["progressNote", "blocker", "notes"] as const;
 
@@ -95,6 +108,7 @@ export type WorkspaceState = {
   projects: Project[];
   tags: Tag[];
   tasks: Task[];
+  dailyTasks: DailyTask[];
   notes: unknown[];
   reminders: unknown[];
   updatedAt: string | null;
@@ -106,6 +120,7 @@ export function workspaceHasData(state: Partial<WorkspaceState> | null | undefin
     state.projects,
     state.tags,
     state.tasks,
+    state.dailyTasks,
     state.notes,
     state.reminders,
   ].some((collection) => Array.isArray(collection) && collection.length > 0);

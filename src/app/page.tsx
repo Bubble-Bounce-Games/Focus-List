@@ -22,18 +22,23 @@ import {
 import { DeleteConfirm } from "@/components/focuslist/delete-confirm";
 
 import {
+  createDailyTask,
   createTask,
   archiveProject,
   archiveTask,
+  archiveDailyTask,
+  deleteDailyTask,
   deleteTask,
   duplicateTask,
   restoreProject,
   reorderProject,
   setProgress,
   setTaskDetail,
+  updateDailyTask,
   updateTask,
   useAllTasks,
   useArchivedProjects,
+  useDailyTasks,
   useProjects,
   useTags,
   findOrCreateProject,
@@ -691,44 +696,26 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
 
 function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const tasks = useAllTasks();
-  const projects = useProjects();
-  const tags = useTags();
-  const projectsById = projectMap(projects);
-  const tagsById = tagMap(tags);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
   const [dailyTitle, setDailyTitle] = useState("");
-  const [dailyDate, setDailyDate] = useState("");
+  const [dailyTimeSetup, setDailyTimeSetup] = useState("");
   const [dailyTag, setDailyTag] = useState("");
   const [dailyIntensity, setDailyIntensity] = useState(60);
   const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null);
+  const dailyTasks = useDailyTasks();
 
-  const activeTasks = tasks.filter(
-    (task) => !task.archivedAt && !task.deletedAt && !isComplete(task)
-  );
-
-  const dailyRows = activeTasks.slice(0, 5).map((task) => {
-    const project = projectsById[task.projectId];
-    const tag = tagsById[task.tagId];
-    const color = project?.color ?? "#4f46e5";
-    const progress = Math.min(100, Math.max(0, task.progress));
-    const label = tag?.name ?? project?.name ?? "General";
-    const detailText = task.dueDate
-      ? new Intl.DateTimeFormat("en-US", {
-          month: "short",
-          day: "numeric",
-        }).format(new Date(`${task.dueDate}T00:00:00`))
-      : "No time set";
-
-    return {
+  const dailyRows = dailyTasks
+    .filter((task) => !task.archivedAt && !task.deletedAt && task.dateKey === toDateKey(selectedDate))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((task) => ({
       id: task.id,
       title: task.title,
-      tagLabel: label,
-      detailText,
-      color,
-      progress,
-    };
-  });
+      tagLabel: task.tag || "General",
+      detailText: task.timeSetup || "Any time",
+      color: "#1f2d5f",
+      progress: task.intensity,
+    }));
 
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -764,13 +751,13 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   }, [canEditSelectedDate, selectedDate]);
 
   const handleArchiveDailyTask = useCallback(async (taskId: string) => {
-    await archiveTask(taskId);
+    await archiveDailyTask(taskId);
     setOpenTaskMenuId(null);
     toast.success("Daily task archived");
   }, []);
 
   const handleDeleteDailyTask = useCallback(async (taskId: string) => {
-    await deleteTask(taskId);
+    await deleteDailyTask(taskId);
     setOpenTaskMenuId(null);
     toast.success("Daily task deleted");
   }, []);
@@ -783,26 +770,21 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       return;
     }
 
-    const project = await findOrCreateProject("Daily Tasks");
-    const tag = await findOrCreateTag(dailyTag.trim() || "General");
-    const task = await createTask({
+    await createDailyTask({
       title,
-      projectId: project.id,
-      tagId: tag.id,
-      progress: dailyIntensity,
+      dateKey: toDateKey(selectedDate),
+      timeSetup: dailyTimeSetup.trim() || "Any time",
+      tag: dailyTag.trim() || "General",
+      intensity: dailyIntensity,
     });
-
-    if (dailyDate) {
-      await updateTask(task.id, { dueDate: dailyDate });
-    }
 
     setDailyTaskOpen(false);
     setDailyTitle("");
-    setDailyDate("");
+    setDailyTimeSetup("");
     setDailyTag("");
     setDailyIntensity(60);
     toast.success("Daily task added", { description: title });
-  }, [dailyDate, dailyIntensity, dailyTag, dailyTitle]);
+  }, [dailyIntensity, dailyTag, dailyTimeSetup, dailyTitle, selectedDate]);
 
   return (
     <aside className="flex h-full min-h-0 flex-col gap-5 bg-transparent px-0 py-0 lg:pl-5">
@@ -841,7 +823,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             <button
              type="button"
              onClick={() => {
-               setDailyDate(toDateKey(selectedDate));
+               setDailyTimeSetup("");
                setDailyTaskOpen(true);
              }}
              aria-label="Add daily task"
@@ -1013,10 +995,11 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               <div className="space-y-2">
                 <label className="text-label-large text-on-surface">Time Set-Up</label>
                 <input
-                  type="date"
-                  value={dailyDate}
-                  onChange={(event) => setDailyDate(event.target.value)}
+                  type="text"
+                  value={dailyTimeSetup}
+                  onChange={(event) => setDailyTimeSetup(event.target.value)}
                   className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none focus:border-primary"
+                  placeholder="7:00-9:00 PM"
                 />
               </div>
 

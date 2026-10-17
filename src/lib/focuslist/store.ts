@@ -9,6 +9,7 @@ import {
 import {
   MAX_PROGRESS,
   MIN_PROGRESS,
+  type DailyTask,
   type DetailField,
   type Project,
   type Tag,
@@ -38,6 +39,10 @@ export function tagMap(tags: Tag[]): Record<string, Tag> {
 
 export function useAllTasks(): Task[] {
   return useBrowserState().tasks;
+}
+
+export function useDailyTasks(): DailyTask[] {
+  return useBrowserState().dailyTasks;
 }
 
 export function useProjects(): Project[] {
@@ -109,6 +114,57 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
   }));
 }
 
+export type NewDailyTaskInput = {
+  title: string;
+  dateKey: string;
+  timeSetup: string;
+  tag: string;
+  intensity: number;
+};
+
+export async function createDailyTask(input: NewDailyTaskInput): Promise<DailyTask> {
+  const timestamp = now();
+  const task: DailyTask = {
+    id: uuid(),
+    title: input.title.trim(),
+    dateKey: input.dateKey,
+    timeSetup: input.timeSetup.trim() || "Any time",
+    tag: input.tag.trim() || "General",
+    intensity: clampProgress(input.intensity),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    archivedAt: null,
+    deletedAt: null,
+  };
+  await updateBrowserState((state) => ({
+    ...state,
+    dailyTasks: [task, ...state.dailyTasks],
+  }));
+  return task;
+}
+
+export async function updateDailyTask(
+  id: string,
+  patch: Partial<Pick<DailyTask, "title" | "timeSetup" | "tag" | "intensity">>,
+): Promise<void> {
+  await updateBrowserState((state) => ({
+    ...state,
+    dailyTasks: state.dailyTasks.map((task) => {
+      if (task.id !== id) return task;
+      const next: DailyTask = {
+        ...task,
+        ...patch,
+        ...(patch.title === undefined ? {} : { title: patch.title.trim() }),
+        ...(patch.timeSetup === undefined ? {} : { timeSetup: patch.timeSetup.trim() || "Any time" }),
+        ...(patch.tag === undefined ? {} : { tag: patch.tag.trim() || "General" }),
+        ...(patch.intensity === undefined ? {} : { intensity: clampProgress(patch.intensity) }),
+        updatedAt: now(),
+      };
+      return next;
+    }),
+  }));
+}
+
 export async function setProgress(id: string, value: number): Promise<void> {
   await updateTask(id, { progress: value });
 }
@@ -127,11 +183,31 @@ export async function deleteTask(id: string): Promise<void> {
   }));
 }
 
+export async function deleteDailyTask(id: string): Promise<void> {
+  const timestamp = now();
+  await updateBrowserState((state) => ({
+    ...state,
+    dailyTasks: state.dailyTasks.map((task) => task.id === id
+      ? { ...task, deletedAt: timestamp, updatedAt: timestamp }
+      : task),
+  }));
+}
+
 export async function archiveTask(id: string): Promise<void> {
   const timestamp = now();
   await updateBrowserState((state) => ({
     ...state,
     tasks: state.tasks.map((task) => task.id === id
+      ? { ...task, archivedAt: timestamp, updatedAt: timestamp }
+      : task),
+  }));
+}
+
+export async function archiveDailyTask(id: string): Promise<void> {
+  const timestamp = now();
+  await updateBrowserState((state) => ({
+    ...state,
+    dailyTasks: state.dailyTasks.map((task) => task.id === id
       ? { ...task, archivedAt: timestamp, updatedAt: timestamp }
       : task),
   }));
