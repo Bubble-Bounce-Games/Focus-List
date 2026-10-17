@@ -504,26 +504,31 @@ function contributionTone(count: number): string {
   return "#1f8d4d";
 }
 
-function buildContributionGrid(tasks: Task[]): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
+function buildContributionGrid(tasks: Task[], year: number): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
   const counts = new Map<string, number>();
   for (const task of tasks) {
-    const createdDate = task.createdAt ? toDateKey(new Date(task.createdAt)) : null;
-    const completedDate = task.completedAt ? toDateKey(new Date(task.completedAt)) : null;
-    if (createdDate) {
-      counts.set(createdDate, (counts.get(createdDate) ?? 0) + 1);
+    const createdDate = task.createdAt ? new Date(task.createdAt) : null;
+    const completedDate = task.completedAt ? new Date(task.completedAt) : null;
+    const createdYear = createdDate?.getFullYear();
+    const completedYear = completedDate?.getFullYear();
+
+    if (createdDate && createdYear === year) {
+      const key = toDateKey(createdDate);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    if (completedDate) {
-      counts.set(completedDate, (counts.get(completedDate) ?? 0) + 1);
+    if (completedDate && completedYear === year) {
+      const key = toDateKey(completedDate);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const anchor = new Date(year, 0, 1);
+  anchor.setHours(0, 0, 0, 0);
   const weeksToShow = 53;
   const totalDays = weeksToShow * 7;
-  const start = new Date(today);
-  const mondayOffset = (today.getDay() + 6) % 7;
-  start.setDate(today.getDate() - mondayOffset - (totalDays - 1));
+  const start = new Date(anchor);
+  const mondayOffset = (anchor.getDay() + 6) % 7;
+  start.setDate(anchor.getDate() - mondayOffset - (totalDays - 1));
 
   const cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }> = [];
   let total = 0;
@@ -546,9 +551,10 @@ function buildContributionGrid(tasks: Task[]): { cells: Array<{ date: string; co
 }
 
 function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
-  const { cells, total } = buildContributionGrid(tasks);
+  const currentYear = new Date().getFullYear();
+  const [reviewYear, setReviewYear] = useState(currentYear);
+  const { cells, total } = buildContributionGrid(tasks, reviewYear);
   const weeks = Array.from({ length: 53 }, (_, index) => index);
-  const year = new Date().getFullYear();
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
@@ -569,17 +575,20 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setReviewYear((value) => Math.max(2000, value - 1))}
             className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
             aria-label="Previous year"
           >
             ‹
           </button>
           <span className="inline-flex min-w-[5rem] items-center justify-center rounded-full border border-[#d9d5e6] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2430]">
-            {year}
+            {reviewYear}
           </span>
           <button
             type="button"
-            className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
+            disabled={reviewYear >= currentYear}
+            onClick={() => setReviewYear((value) => Math.min(currentYear, value + 1))}
+            className={`flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] ${reviewYear >= currentYear ? "cursor-not-allowed opacity-40" : "hover:bg-[#f0f1f5]"}`}
             aria-label="Next year"
           >
             ›
@@ -771,10 +780,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             <div className="flex size-8 items-center justify-center rounded-full bg-[#e8e3f8] text-[#5f5ce2]">
               <CalendarDays className="size-4" />
             </div>
-            <div>
-              <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
-              <p className="text-[13px] text-[#5d6470]">{formattedDate}</p>
-            </div>
+            <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
           </div>
 
           <div className="flex items-center gap-2">
@@ -821,7 +827,11 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="min-w-[220px] text-center text-[16px] font-medium text-[#1f2430]">{formattedDate}</span>
+            <span className="inline-flex min-w-[220px] items-center justify-center gap-1 text-[16px] font-medium text-[#1f2430]">
+              <span>{"<"}</span>
+              <span className="min-w-[160px] text-center">{formattedDate}</span>
+              <span>{">"}</span>
+            </span>
             <button
               type="button"
               onClick={() => adjustDate(1)}
@@ -860,56 +870,66 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                   { id: "placeholder-3", title: "Write Journal", tagLabel: "Mind", detailText: "", color: "#ec4899", progress: 80 },
                 ]
               : dailyRows
-            ).map((row) => (
-              <div key={row.id} className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 rounded-xl px-2 py-2">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex size-5 items-center justify-center rounded-[6px] border border-[#5a5ce5]/30 bg-[#eef0ff] text-[10px] text-[#4b53df]">
-                    ✓
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
-                      <button
-                        type="button"
-                        aria-label={`More options for ${row.title}`}
-                        className="flex size-6 items-center justify-center rounded-full text-[#5d6470] hover:bg-[#eef0f5]"
-                      >
-                        <EllipsisVertical className="size-4" />
-                      </button>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 text-[11px] text-[#5d6470]">
-                      <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${row.color}22`, color: row.color }}>
-                        {row.tagLabel}
-                      </span>
-                      {row.detailText ? <span>{row.detailText}</span> : null}
-                    </div>
-                  </div>
-                </div>
+            ).map((row) => {
+             const isDone = row.progress >= 100;
+             const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
+             return (
+               <div key={row.id} className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 rounded-xl px-2 py-2">
+                 <div className="flex min-w-0 items-center gap-3">
+                   <span
+                     className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
+                       isDone
+                         ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
+                         : "border-[#5a5ce5]/30 bg-[#eef0ff] text-[#4b53df]"
+                     }`}
+                   >
+                     ✓
+                   </span>
+                   <div className="min-w-0 flex-1">
+                     <div className="flex min-w-0 items-center justify-between gap-2">
+                       <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
+                       <button
+                         type="button"
+                         aria-label={`More options for ${row.title}`}
+                         className="flex size-6 items-center justify-center rounded-full text-[#5d6470] hover:bg-[#eef0f5]"
+                       >
+                         <EllipsisVertical className="size-4" />
+                       </button>
+                     </div>
+                     <div className="mt-1 flex items-center gap-2 text-[11px] text-[#5d6470]">
+                       <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${row.color}22`, color: row.color }}>
+                         {row.tagLabel}
+                       </span>
+                       {row.detailText ? <span>{row.detailText}</span> : null}
+                     </div>
+                   </div>
+                 </div>
 
-                <div className="flex items-center justify-center gap-1">
-                  {Array.from({ length: 3 }, (_, index) => (
-                    <span
-                      key={`${row.id}-dot-${index}`}
-                      className={`block h-2.5 w-2.5 rounded-full ${
-                        index < Math.max(1, Math.round(row.progress / 34)) ? "bg-[#3b82f6]" : "bg-[#dfe4ef]"
-                      }`}
-                    />
-                  ))}
-                </div>
+                 <div className="flex items-center justify-center gap-1">
+                   {Array.from({ length: 3 }, (_, index) => (
+                     <span
+                       key={`${row.id}-dot-${index}`}
+                       className={`block h-2.5 w-2.5 rounded-full ${
+                         index < activeCount ? "bg-[#1e2d5f]" : "bg-[#dfe4ef]"
+                       }`}
+                     />
+                   ))}
+                 </div>
 
-                {Array.from({ length: 7 }, (_, index) => {
-                  const isActive = index < 3 && row.progress > 20 + index * 15;
-                  return (
-                    <span
-                      key={`${row.id}-day-${index}`}
-                      className={`mx-auto block h-7 w-full rounded-[6px] border ${
-                        isActive ? "border-[#4ea66b]/50 bg-[#8ec7a5]" : "border-[#e4e6eb] bg-[#f3f5f8]"
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-            ))}
+                 {Array.from({ length: 7 }, (_, index) => {
+                   const isActive = index < 3 && row.progress > 20 + index * 15;
+                   return (
+                     <span
+                       key={`${row.id}-day-${index}`}
+                       className={`mx-auto block h-7 w-full rounded-[6px] border ${
+                         isActive ? "border-[#1f2d5f]/40 bg-[#1f2d5f]" : "border-[#e4e6eb] bg-[#f3f5f8]"
+                       }`}
+                     />
+                   );
+                 })}
+               </div>
+             );
+            })}
           </div>
         </div>
       </section>
