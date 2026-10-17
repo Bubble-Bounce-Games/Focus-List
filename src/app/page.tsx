@@ -881,8 +881,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
           </div>
         </div>
          <div className="min-h-0 flex-1 overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
-            <span className="truncate">Task</span>
+          <div className="grid grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
+            <span className="text-left font-semibold tracking-[0.12em]">Task</span>
             <span className="flex justify-center">
               <Activity className="size-3.5" aria-hidden="true" />
             </span>
@@ -901,7 +901,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             ))}
           </div>
 
-          <div className="max-h-[340px] space-y-2 overflow-y-auto overflow-x-visible px-2 pb-3 pt-2">            {dailyRows.length === 0 ? (
+          <div className="relative z-10 max-h-[340px] space-y-2 overflow-y-auto overflow-x-visible px-2 pb-3 pt-2">            {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
                 <div className="text-center">
                   <p className="text-[15px] font-medium text-[#1f2430]">No daily tasks yet</p>
@@ -916,7 +916,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 const isMenuOpen = openTaskMenuId === row.id;
 
                 return (
-                  <div key={row.id} className="relative grid grid-cols-[minmax(0,1.8fr)_0.7fr_repeat(7,minmax(0,0.55fr))] items-center gap-1 rounded-xl px-2 py-2">
+                  <div key={row.id} className="relative z-10 grid grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] rounded-xl px-2 py-2">
                     <div
                       className="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition hover:bg-[#f0f3fa]"
                       onClick={() => openDailyTaskEditor(row)}
@@ -925,15 +925,15 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                         className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
                           isDone
                             ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
-                            : "border-[#f6c7c7] bg-[#fff7f7] text-[#c92a2a]"
+                            : "border-[#d9d5e6] bg-white text-[#9aa5b1]"
                         }`}
                       >
                         ✓
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center justify-between gap-2">
-                          <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
-                          <div className="relative shrink-0 z-30">
+                          <span className="whitespace-nowrap text-[15px] font-medium text-[#1f2430]">{row.title}</span>
+                          <div className="relative z-[60] shrink-0">
                             <button
                               ref={openTaskMenuId === row.id ? optionButtonRef : null}
                               type="button"
@@ -949,7 +949,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             {isMenuOpen ? (
                               <div
                                 ref={optionMenuRef}
-                                className="absolute right-0 top-8 z-50 w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.14)]"
+                                className="absolute right-0 top-8 z-[70] w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.14)]"
                               >
                                 <button
                                   type="button"
@@ -1012,7 +1012,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                       return (
                         <span
                           key={`${row.id}-day-${index}`}
-                          className="mx-auto block h-4 w-full rounded-[4px] border border-[#d9d5e6]"
+                          className="mx-auto block h-3.5 w-full rounded-[4px] border border-[#d9d5e6]"
                           style={{
                             backgroundColor: isFilled ? tone : "#ffffff",
                             borderColor: isFilled ? "#d5e7d8" : "#d9d5e6",
