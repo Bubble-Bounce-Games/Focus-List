@@ -916,7 +916,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 const isMenuOpen = openTaskMenuId === row.id;
 
                 return (
-                  <div key={row.id} className="relative grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 rounded-xl px-2 py-2">
+                  <div key={row.id} className="relative grid grid-cols-[minmax(0,1.8fr)_0.7fr_repeat(7,minmax(0,0.55fr))] items-center gap-1 rounded-xl px-2 py-2">
                     <div
                       className="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition hover:bg-[#f0f3fa]"
                       onClick={() => openDailyTaskEditor(row)}
@@ -925,7 +925,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                         className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
                           isDone
                             ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
-                            : "border-[#fca5a5] bg-[#fee2e2] text-[#b91c1c]"
+                            : "border-[#f6c7c7] bg-[#fff7f7] text-[#c92a2a]"
                         }`}
                       >
                         ✓
@@ -933,7 +933,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center justify-between gap-2">
                           <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
-                          <div className="relative shrink-0 z-20">
+                          <div className="relative shrink-0 z-30">
                             <button
                               ref={openTaskMenuId === row.id ? optionButtonRef : null}
                               type="button"
@@ -949,7 +949,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             {isMenuOpen ? (
                               <div
                                 ref={optionMenuRef}
-                                className="absolute right-0 top-8 z-30 w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.12)]"
+                                className="absolute right-0 top-8 z-50 w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.14)]"
                               >
                                 <button
                                   type="button"
@@ -998,7 +998,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               void handleAdjustIntensity(row.id, intensityValue);
                             }}
                             className={`block h-2.5 w-2.5 rounded-full transition ${
-                              index < activeCount ? "bg-[#16a34a]" : "bg-[#fca5a5]"
+                              index < activeCount ? "bg-[#22c55e]" : "bg-[#f7d4d4]"
                             } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
                           />
                         );
@@ -1007,15 +1007,15 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
 
                     {Array.from({ length: 7 }, (_, index) => {
                       const value = row.progress;
-                      const tone = dailyIntensityTone(value === 0 ? 0 : Math.min(value, 100));
-                      const isActive = value > 0 && index < 3;
+                      const tone = value > 0 && index < 3 ? dailyIntensityTone(value) : "#ffffff";
+                      const isFilled = value > 0 && index < 3;
                       return (
                         <span
                           key={`${row.id}-day-${index}`}
                           className="mx-auto block h-4 w-full rounded-[4px] border border-[#d9d5e6]"
                           style={{
-                            backgroundColor: isActive ? tone : "#fff1f2",
-                            borderColor: isActive ? "#d5e7d8" : "#f5b7b1",
+                            backgroundColor: isFilled ? tone : "#ffffff",
+                            borderColor: isFilled ? "#d5e7d8" : "#d9d5e6",
                           }}
                         />
                       );
