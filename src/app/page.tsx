@@ -743,6 +743,24 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
     });
   }, []);
 
+  const canEditSelectedDate = useCallback((date: Date) => {
+    const today = new Date();
+    const target = new Date(date);
+    today.setHours(0, 0, 0, 0);
+    target.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - target.getTime()) / 86400000);
+    return diff >= 0 && diff <= 6;
+  }, []);
+
+  const handleAdjustIntensity = useCallback(async (taskId: string, nextProgress: number) => {
+    if (!canEditSelectedDate(selectedDate)) {
+      toast.error("You can only adjust daily tasks from the last 7 days.");
+      return;
+    }
+
+    await updateTask(taskId, { progress: nextProgress });
+  }, [canEditSelectedDate, selectedDate]);
+
   const handleDailyTaskSubmit = useCallback(async (event: FormEvent) => {
     event.preventDefault();
     const title = dailyTitle.trim();
@@ -775,81 +793,82 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   return (
     <aside className="flex h-full min-h-0 flex-col gap-5 bg-transparent px-0 py-0 lg:pl-5">
       <section className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
-        <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 pb-3 pt-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
-              <CalendarDays className="size-4" />
+             <CalendarDays className="size-4" />
             </div>
-            <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
+            <h3 className="truncate text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setDailyDate(toDateKey(selectedDate));
-              setDailyTaskOpen(true);
-            }}
-            aria-label="Add daily task"
-            className="inline-flex items-center gap-2 rounded-full bg-[#1f2d5f] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
-          >
-            <Plus className="size-4" />
-            <span>Add Daily Task</span>
-          </button>
-        </div>
-
-        <div className="border-b border-[#d9d5e6] px-4 py-3">
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-1 items-center justify-center gap-3">
             <button
-              type="button"
-              onClick={() => adjustDate(-1)}
-              aria-label="Previous day"
-              className="flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+             type="button"
+             onClick={() => adjustDate(-1)}
+             aria-label="Previous day"
+             className="flex size-9 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
-              <ChevronLeft className="size-4" />
+             <ChevronLeft className="size-4" />
             </button>
-            <span className="inline-flex min-w-[220px] items-center justify-center text-[16px] font-medium text-[#1f2430]">
-              {formattedDate}
+            <span className="min-w-[220px] text-center text-[16px] font-medium text-[#1f2430]">
+             {formattedDate}
             </span>
             <button
-              type="button"
-              onClick={() => adjustDate(1)}
-              aria-label="Next day"
-              className="flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+             type="button"
+             onClick={() => adjustDate(1)}
+             aria-label="Next day"
+             className="flex size-9 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
-              <ChevronRight className="size-4" />
+             <ChevronRight className="size-4" />
+            </button>
+          </div>
+
+          <div className="flex flex-1 justify-end">
+            <button
+             type="button"
+             onClick={() => {
+               setDailyDate(toDateKey(selectedDate));
+               setDailyTaskOpen(true);
+             }}
+             aria-label="Add daily task"
+             className="inline-flex items-center gap-2 rounded-full bg-[#1f2d5f] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
+            >
+             <Plus className="size-4" />
+             <span>Add Daily Task</span>
             </button>
           </div>
         </div>
 
-        <div className="overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <div className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
             <span>Task</span>
             <span>Intensity</span>
             {[
-              "Mon",
-              "Tue",
-              "Wed",
-              "Thu",
-              "Fri",
-              "Sat",
-              "Sun",
+             "Mon",
+             "Tue",
+             "Wed",
+             "Thu",
+             "Fri",
+             "Sat",
+             "Sun",
             ].map((label) => (
-              <span key={label} className="text-center">
-                {label}
-              </span>
+             <span key={label} className="text-center">
+               {label}
+             </span>
             ))}
           </div>
 
-          <div className="space-y-2 px-2 pb-3 pt-2">
+          <div className="max-h-[340px] space-y-2 overflow-y-auto px-2 pb-3 pt-2">
             {(dailyRows.length === 0
-              ? [
-                  { id: "placeholder-1", title: "Morning Exercise", tagLabel: "Health", detailText: "", color: "#4f46e5", progress: 70 },
-                  { id: "placeholder-2", title: "Read A Book", tagLabel: "Learning", detailText: "", color: "#3b82f6", progress: 40 },
-                  { id: "placeholder-3", title: "Write Journal", tagLabel: "Mind", detailText: "", color: "#ec4899", progress: 80 },
-                ]
-              : dailyRows
+             ? [
+                 { id: "placeholder-1", title: "Morning Exercise", tagLabel: "Health", detailText: "", color: "#4f46e5", progress: 70 },
+                 { id: "placeholder-2", title: "Read A Book", tagLabel: "Learning", detailText: "", color: "#3b82f6", progress: 40 },
+                 { id: "placeholder-3", title: "Write Journal", tagLabel: "Mind", detailText: "", color: "#ec4899", progress: 80 },
+               ]
+             : dailyRows
             ).map((row) => {
              const isDone = row.progress >= 100;
+             const canEdit = canEditSelectedDate(selectedDate) && !row.id.startsWith("placeholder-");
              const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
              return (
                <div key={row.id} className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 rounded-xl px-2 py-2">
@@ -884,14 +903,26 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                  </div>
 
                  <div className="flex items-center justify-center gap-1">
-                   {Array.from({ length: 3 }, (_, index) => (
-                     <span
-                       key={`${row.id}-dot-${index}`}
-                       className={`block h-2.5 w-2.5 rounded-full ${
-                         index < activeCount ? "bg-[#1f2d5f]" : "bg-[#dfe4ef]"
-                       }`}
-                     />
-                   ))}
+                   {Array.from({ length: 3 }, (_, index) => {
+                     const level = index + 1;
+                     const intensityValue = level === 1 ? 35 : level === 2 ? 70 : 100;
+                     return (
+                       <button
+                         key={`${row.id}-dot-${index}`}
+                         type="button"
+                         aria-label={`Set intensity ${level} for ${row.title}`}
+                         disabled={!canEdit}
+                         onClick={() => {
+                           if (!row.id.startsWith("placeholder-")) {
+                             void handleAdjustIntensity(row.id, intensityValue);
+                           }
+                         }}
+                         className={`block h-2.5 w-2.5 rounded-full transition ${
+                           index < activeCount ? "bg-[#1f2d5f]" : "bg-[#dfe4ef]"
+                         } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
+                       />
+                     );
+                   })}
                  </div>
 
                  {Array.from({ length: 7 }, (_, index) => {
