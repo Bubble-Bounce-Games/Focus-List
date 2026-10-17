@@ -117,7 +117,7 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<void> {
 export type NewDailyTaskInput = {
   title: string;
   dateKey: string;
-  timeSetup: string;
+  timeSetup?: string;
   tag: string;
   intensity: number;
 };
@@ -128,7 +128,7 @@ export async function createDailyTask(input: NewDailyTaskInput): Promise<DailyTa
     id: uuid(),
     title: input.title.trim(),
     dateKey: input.dateKey,
-    timeSetup: input.timeSetup.trim() || "Any time",
+    timeSetup: (input.timeSetup ?? "").trim() || "Any time",
     tag: input.tag.trim() || "General",
     intensity: clampProgress(input.intensity),
     createdAt: timestamp,
