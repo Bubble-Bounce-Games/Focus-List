@@ -561,7 +561,7 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
     <div className="h-full bg-transparent p-0">
       <div className="flex items-center justify-between gap-3 px-4 pt-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-full bg-[#e8e3f8] text-[#5f5ce2]">
+          <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
             <CalendarDays className="size-4" />
           </div>
           <div>
@@ -576,19 +576,19 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
           <button
             type="button"
             onClick={() => setReviewYear((value) => Math.max(2000, value - 1))}
-            className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
+            className="flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             aria-label="Previous year"
           >
             ‹
           </button>
-          <span className="inline-flex min-w-[5rem] items-center justify-center rounded-full border border-[#d9d5e6] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2430]">
+          <span className="inline-flex min-w-[5rem] items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] px-3 py-1.5 text-[13px] font-medium text-white">
             {reviewYear}
           </span>
           <button
             type="button"
             disabled={reviewYear >= currentYear}
             onClick={() => setReviewYear((value) => Math.min(currentYear, value + 1))}
-            className={`flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] ${reviewYear >= currentYear ? "cursor-not-allowed opacity-40" : "hover:bg-[#f0f1f5]"}`}
+            className={`flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white ${reviewYear >= currentYear ? "cursor-not-allowed opacity-40" : "hover:bg-[#18264d]"}`}
             aria-label="Next year"
           >
             ›
@@ -777,44 +777,24 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       <section className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
         <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 pb-3 pt-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-full bg-[#e8e3f8] text-[#5f5ce2]">
+            <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
               <CalendarDays className="size-4" />
             </div>
             <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-full bg-[#5a5ce5] px-2.5 py-1.5 text-[12px] font-medium text-white shadow-sm"
-            >
-              <span>Active</span>
-              <span className="inline-flex min-w-[1.4rem] items-center justify-center rounded-full bg-white/15 px-1.5 py-0.5 text-[11px]">
-                {Math.max(dailyRows.length, 6)}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-full border border-[#d9d5e6] bg-white/40 px-2.5 py-1.5 text-[12px] font-medium text-[#4a5362]"
-            >
-              <span>Archived</span>
-              <span className="inline-flex min-w-[1.4rem] items-center justify-center rounded-full bg-[#eef0f5] px-1.5 py-0.5 text-[11px] text-[#4a5362]">
-                4
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDailyDate(toDateKey(selectedDate));
-                setDailyTaskOpen(true);
-              }}
-              aria-label="Add daily task"
-              className="inline-flex items-center gap-2 rounded-full bg-[#5a5ce5] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#4c52d3]"
-            >
-              <Plus className="size-4" />
-              <span>Add Daily Task</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDailyDate(toDateKey(selectedDate));
+              setDailyTaskOpen(true);
+            }}
+            aria-label="Add daily task"
+            className="inline-flex items-center gap-2 rounded-full bg-[#1f2d5f] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
+          >
+            <Plus className="size-4" />
+            <span>Add Daily Task</span>
+          </button>
         </div>
 
         <div className="border-b border-[#d9d5e6] px-4 py-3">
@@ -823,20 +803,18 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               type="button"
               onClick={() => adjustDate(-1)}
               aria-label="Previous day"
-              className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
+              className="flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="inline-flex min-w-[220px] items-center justify-center gap-1 text-[16px] font-medium text-[#1f2430]">
-              <span>{"<"}</span>
-              <span className="min-w-[160px] text-center">{formattedDate}</span>
-              <span>{">"}</span>
+            <span className="inline-flex min-w-[220px] items-center justify-center text-[16px] font-medium text-[#1f2430]">
+              {formattedDate}
             </span>
             <button
               type="button"
               onClick={() => adjustDate(1)}
               aria-label="Next day"
-              className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
+              className="flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -880,7 +858,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                      className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
                        isDone
                          ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
-                         : "border-[#5a5ce5]/30 bg-[#eef0ff] text-[#4b53df]"
+                         : "border-[#1f2d5f]/30 bg-[#edf2ff] text-[#1f2d5f]"
                      }`}
                    >
                      ✓
@@ -910,7 +888,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                      <span
                        key={`${row.id}-dot-${index}`}
                        className={`block h-2.5 w-2.5 rounded-full ${
-                         index < activeCount ? "bg-[#1e2d5f]" : "bg-[#dfe4ef]"
+                         index < activeCount ? "bg-[#1f2d5f]" : "bg-[#dfe4ef]"
                        }`}
                      />
                    ))}
@@ -921,8 +899,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                    return (
                      <span
                        key={`${row.id}-day-${index}`}
-                       className={`mx-auto block h-7 w-full rounded-[6px] border ${
-                         isActive ? "border-[#1f2d5f]/40 bg-[#1f2d5f]" : "border-[#e4e6eb] bg-[#f3f5f8]"
+                       className={`mx-auto block h-7 w-full rounded-[6px] border border-[#d9d5e6] ${
+                         isActive ? "bg-[#1f2d5f]" : "bg-[#f3f5f8]"
                        }`}
                      />
                    );
