@@ -146,10 +146,10 @@
   --radius: 0.75rem; /* 12px MD3 base */
 
   /* MD3 role palette — Light */
-  --md-primary: #4f46e5;
+  --md-primary: #1f2d5f;
   --md-on-primary: #ffffff;
-  --md-primary-container: #e4e0fa;
-  --md-on-primary-container: #1b1147;
+  --md-primary-container: #e8efff;
+  --md-on-primary-container: #101d3a;
 
   --md-secondary: #5d5c72;
   --md-on-secondary: #ffffff;

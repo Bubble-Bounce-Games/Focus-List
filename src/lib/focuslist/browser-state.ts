@@ -28,6 +28,7 @@ type CollectionField = "notes" | "reminders";
 const STORAGE_KEY = "focus-list.workspace.v1";
 const SESSION_KEY = "focus-list.account.v1";
 const ACCOUNT_API_URL = process.env.NEXT_PUBLIC_FOCUS_LIST_ACCOUNT_API_URL ?? "";
+const LOCAL_PREVIEW_MODE = process.env.NODE_ENV !== "production" && ACCOUNT_API_URL.trim() === "";
 const EMPTY_STATE: BrowserState = {
   schemaVersion: 1,
   projects: [],
@@ -45,7 +46,7 @@ type AccountSession = {
 
 let currentState = EMPTY_STATE;
 let accountSnapshot: AccountSnapshot = {
-  apiConfigured: ACCOUNT_API_URL.trim() !== "",
+  apiConfigured: ACCOUNT_API_URL.trim() !== "" || LOCAL_PREVIEW_MODE,
   status: "guest",
   username: null,
   message: null,
@@ -258,7 +259,23 @@ function startAccountLoad(): void {
   if (accountLoadStarted || typeof window === "undefined") return;
   accountLoadStarted = true;
   const session = readSession();
-  if (!session || !ACCOUNT_API_URL) return;
+  if (!session) return;
+
+  if (!ACCOUNT_API_URL && LOCAL_PREVIEW_MODE) {
+    currentState = readStoredState();
+    loaded = true;
+    setAccountSnapshot({
+      apiConfigured: true,
+      status: "signed-in",
+      username: session.username,
+      message: null,
+      syncStatus: "idle",
+    });
+    notify();
+    return;
+  }
+
+  if (!ACCOUNT_API_URL) return;
   void loadAccountState(session);
 }
 
@@ -349,9 +366,29 @@ export async function signUpAccount(
   username: string,
   password: string,
 ): Promise<void> {
-  if (!ACCOUNT_API_URL) {
+  if (!ACCOUNT_API_URL && !LOCAL_PREVIEW_MODE) {
     throw new Error("Account storage is not configured yet.");
   }
+
+  if (!ACCOUNT_API_URL && LOCAL_PREVIEW_MODE) {
+    const session: AccountSession = {
+      username,
+      token: `local-preview-${username}`,
+    };
+    saveSession(session);
+    currentState = readStoredState();
+    loaded = true;
+    setAccountSnapshot({
+      apiConfigured: true,
+      status: "signed-in",
+      username,
+      message: null,
+      syncStatus: "saved",
+    });
+    notify();
+    return;
+  }
+
   const payload = await accountFetch<AccountSession>("/signup", {
     method: "POST",
     body: JSON.stringify({ username, password }),
@@ -364,9 +401,29 @@ export async function signInAccount(
   username: string,
   password: string,
 ): Promise<void> {
-  if (!ACCOUNT_API_URL) {
+  if (!ACCOUNT_API_URL && !LOCAL_PREVIEW_MODE) {
     throw new Error("Account storage is not configured yet.");
   }
+
+  if (!ACCOUNT_API_URL && LOCAL_PREVIEW_MODE) {
+    const session: AccountSession = {
+      username,
+      token: `local-preview-${username}`,
+    };
+    saveSession(session);
+    currentState = readStoredState();
+    loaded = true;
+    setAccountSnapshot({
+      apiConfigured: true,
+      status: "signed-in",
+      username,
+      message: null,
+      syncStatus: "saved",
+    });
+    notify();
+    return;
+  }
+
   const payload = await accountFetch<AccountSession>("/signin", {
     method: "POST",
     body: JSON.stringify({ username, password }),
@@ -380,6 +437,7 @@ export function signOutAccount(): void {
   currentState = readStoredState();
   loaded = true;
   setAccountSnapshot({
+    apiConfigured: ACCOUNT_API_URL.trim() !== "" || LOCAL_PREVIEW_MODE,
     status: "guest",
     username: null,
     message: null,

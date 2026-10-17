@@ -24,6 +24,7 @@ import { DeleteConfirm } from "@/components/focuslist/delete-confirm";
 import {
   createTask,
   archiveProject,
+  archiveTask,
   deleteTask,
   duplicateTask,
   restoreProject,
@@ -84,12 +85,16 @@ import {
   AlignRight,
   Bold,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  EllipsisVertical,
   Eye,
   EyeOff,
   Italic,
   List,
   Palette,
   Pin,
+  Plus,
   StickyNote,
   Underline,
 } from "lucide-react";
@@ -492,741 +497,573 @@ function reminderTone(value: string): {
   };
 }
 
-function FocusSidePanel() {
-  const tasks = useAllTasks();
-  const projects = useProjects();
-  const projectsById = projectMap(projects);
-  const [noteValue, setNote] = usePersistentState<unknown>(
-    "fl.noteDraft",
-    "Pin quick notes here while you plan your next task."
-  );
-  const [pinnedNotesValue, setPinnedNotes] = useBrowserCollection<unknown>(
-    "notes",
-    []
-  );
-  const [calendarReminderValue] = useBrowserCollection<unknown>(
-    "reminders",
-    []
-  );
-  const [markerValue, setMarker] = usePersistentState<unknown>("fl.markerColor", markerColors[0]);
-  const [noteFontValue, setNoteFont] = usePersistentState<unknown>(
-    "fl.noteFont",
-    noteFontFamilies[0].value
-  );
-  const [noteFontSizeValue, setNoteFontSize] = usePersistentState<unknown>(
-    "fl.noteFontSize",
-    15
-  );
-  const [noteBoldValue, setNoteBold] = usePersistentState<unknown>("fl.noteBold", false);
-  const [noteItalicValue, setNoteItalic] = usePersistentState<unknown>("fl.noteItalic", false);
-  const [noteUnderlineValue, setNoteUnderline] = usePersistentState<unknown>(
-    "fl.noteUnderline",
-    false
-  );
-  const [noteAlignValue, setNoteAlign] = usePersistentState<unknown>("fl.noteAlign", "left");
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [formatMenuOpen, setFormatMenuOpen] = useState(false);
-  const [listMenuOpen, setListMenuOpen] = useState(false);
-  const [alignMenuOpen, setAlignMenuOpen] = useState(false);
-  const noteTextareaRef = useRef<HTMLDivElement>(null);
-  const noteSelectionRef = useRef<Range | null>(null);
-  const note = asString(noteValue);
-  const pinnedNotes = asPinnedNotes(pinnedNotesValue);
-  const calendarReminders = asCalendarReminders(calendarReminderValue);
-  const marker = isNoteColor(asString(markerValue))
-    ? asString(markerValue)
-    : markerColors[0];
-  const noteFont = asNoteFontFamily(noteFontValue);
-  const noteFontSize = asNoteFontSize(noteFontSizeValue);
-  const noteBold = asBoolean(noteBoldValue);
-  const noteItalic = asBoolean(noteItalicValue);
-  const noteUnderline = asBoolean(noteUnderlineValue);
-  const noteAlign = asNoteAlign(noteAlignValue);
-  const noteTextStyle = {
-    fontFamily: noteFont,
-    fontSize: `${noteFontSize}px`,
-  } as const;
-  const customMarkerColor = /^#[\da-f]{6}$/i.test(marker) ? marker : "#202124";
-  const todayKey = toDateKey(new Date());
-  const taskReminderRows: ReminderRow[] = tasks
-    .filter((task) => !task.archivedAt && !task.deletedAt && !isComplete(task))
-    .filter((task) => task.dueDate && isUpcomingReminderDate(task.dueDate, todayKey))
-    .map((task) => {
-      const project = projectsById[task.projectId];
-      return {
-        kind: "task",
-        id: task.id,
-        title: task.title,
-        dueDate: task.dueDate ?? "",
-        color: project?.color ?? "var(--md-outline)",
-        progress: task.progress,
-        task,
-      };
-    });
-  const calendarReminderRows: ReminderRow[] = calendarReminders
-    .filter((reminder) => isUpcomingReminderDate(reminder.dueDate, todayKey))
-    .map((reminder) => ({
-      kind: "calendar",
-      id: reminder.id,
-      title: reminder.title,
-      dueDate: reminder.dueDate,
-      color: "var(--md-error)",
-      progress: 0,
-      reminder,
-    }));
-  const allReminderRows = [...taskReminderRows, ...calendarReminderRows].sort(
-    (a, b) => a.dueDate.localeCompare(b.dueDate) || b.id.localeCompare(a.id)
-  );
-  const reminderRows = allReminderRows;
+function contributionTone(count: number): string {
+  if (count <= 0) return "#e7ebf0";
+  if (count <= 1) return "#c5e8d0";
+  if (count <= 2) return "#8ad2a0";
+  if (count <= 4) return "#53bb74";
+  return "#1f8d4d";
+}
 
-  const handleSaveNote = useCallback(() => {
-    const text = sanitizeNoteHtml(note).trim();
-    if (!notePlainText(text).trim()) return;
-    setPinnedNotes((current) => {
-      const currentNotes = asPinnedNotes(current);
-      const savedAt = new Date().toISOString();
-      if (activeNoteId && currentNotes.some((item) => item.id === activeNoteId)) {
-        return currentNotes.map((item) =>
-          item.id === activeNoteId
-            ? {
-                ...item,
-                text,
-                color: marker,
-                fontFamily: noteFont,
-                fontSize: noteFontSize,
-                bold: noteBold,
-                italic: noteItalic,
-                underline: noteUnderline,
-                align: noteAlign,
-                createdAt: savedAt,
-              }
-            : item
-        );
-      }
-      return [
-        {
-          id: crypto.randomUUID(),
-          text,
-          color: marker,
-          fontFamily: noteFont,
-          fontSize: noteFontSize,
-          bold: noteBold,
-          italic: noteItalic,
-          underline: noteUnderline,
-          align: noteAlign,
-          createdAt: savedAt,
-        },
-        ...currentNotes,
-      ];
-    });
-    setNote("");
-    setActiveNoteId(null);
-  }, [
-    activeNoteId,
-    marker,
-    note,
-    noteAlign,
-    noteBold,
-    noteFont,
-    noteFontSize,
-    noteItalic,
-    noteUnderline,
-    setNote,
-    setPinnedNotes,
-  ]);
+function buildContributionGrid(tasks: Task[], year: number): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
+  const counts = new Map<string, number>();
+  for (const task of tasks) {
+    const createdDate = task.createdAt ? new Date(task.createdAt) : null;
+    const completedDate = task.completedAt ? new Date(task.completedAt) : null;
+    const createdYear = createdDate?.getFullYear();
+    const completedYear = completedDate?.getFullYear();
 
-  const handleViewNote = useCallback(
-    (item: PinnedNote) => {
-      setNote(item.text);
-      if (isNoteColor(item.color)) {
-        setMarker(item.color);
-      }
-      setNoteFont(asNoteFontFamily(item.fontFamily));
-      setNoteFontSize(asNoteFontSize(item.fontSize));
-      setNoteBold(item.bold === true);
-      setNoteItalic(item.italic === true);
-      setNoteUnderline(item.underline === true);
-      setNoteAlign(asNoteAlign(item.align));
-      setActiveNoteId(item.id);
-    },
-    [setMarker, setNote, setNoteAlign, setNoteBold, setNoteFont, setNoteFontSize, setNoteItalic, setNoteUnderline]
-  );
-
-  const handleDeleteNote = useCallback(
-    (id: string) => {
-      setPinnedNotes((current) => asPinnedNotes(current).filter((item) => item.id !== id));
-      setActiveNoteId((current) => (current === id ? null : current));
-    },
-    [setPinnedNotes]
-  );
-
-  const syncNoteFromEditor = useCallback(() => {
-    const editor = noteTextareaRef.current;
-    if (!editor) return;
-    setNote(sanitizeNoteHtml(editor.innerHTML));
-    setNoteBold(document.queryCommandState("bold"));
-    setNoteItalic(document.queryCommandState("italic"));
-    setNoteUnderline(document.queryCommandState("underline"));
-  }, [setNote, setNoteBold, setNoteItalic, setNoteUnderline]);
-
-  const rememberNoteSelection = useCallback(() => {
-    const editor = noteTextareaRef.current;
-    const selection = window.getSelection();
-    if (!editor || !selection || selection.rangeCount === 0) return;
-    const range = selection.getRangeAt(0);
-    if (!editor.contains(range.commonAncestorContainer)) return;
-    noteSelectionRef.current = range.cloneRange();
-  }, []);
-
-  const restoreNoteSelection = useCallback(() => {
-    const editor = noteTextareaRef.current;
-    const range = noteSelectionRef.current;
-    const selection = window.getSelection();
-    if (!editor || !range || !selection || !editor.contains(range.commonAncestorContainer)) {
-      editor?.focus();
-      return;
+    if (createdDate && createdYear === year) {
+      const key = toDateKey(createdDate);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    editor.focus();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  }, []);
-
-  const runNoteCommand = useCallback(
-    (command: "bold" | "italic" | "underline" | "insertOrderedList" | "insertUnorderedList") => {
-      restoreNoteSelection();
-      document.execCommand(command);
-      syncNoteFromEditor();
-    },
-    [restoreNoteSelection, syncNoteFromEditor]
-  );
-
-  const runNoteColor = useCallback(
-    (color: string) => {
-      restoreNoteSelection();
-      document.execCommand("foreColor", false, color);
-      setMarker(color);
-      syncNoteFromEditor();
-    },
-    [restoreNoteSelection, setMarker, syncNoteFromEditor]
-  );
-
-  const runNoteAlign = useCallback(
-    (align: NoteAlign) => {
-      const commands = {
-        left: "justifyLeft",
-        center: "justifyCenter",
-        right: "justifyRight",
-        justify: "justifyFull",
-      } as const;
-      restoreNoteSelection();
-      document.execCommand(commands[align]);
-      setNoteAlign(align);
-      syncNoteFromEditor();
-    },
-    [restoreNoteSelection, setNoteAlign, syncNoteFromEditor]
-  );
-
-  const insertCustomList = useCallback(
-    (kind: NoteListKind) => {
-      const selection = window.getSelection();
-      const selectedText = selection?.toString() ?? "";
-      const sourceLines = selectedText.trim()
-        ? selectedText.split(/\n+/).map((line) => line.trim()).filter(Boolean)
-        : [""];
-      const formatLine = (text: string, index: number) => {
-        const bare = text
-          .replace(/^(•\s+|-+\s+|✓\s+|→\s+|\d+[\).]\s+|[a-z]\.\s+|[ivx]+\.\s+|[☐☑☒]\s+)/i, "")
-          .trim();
-        if (kind === "dash") return `- ${bare}`;
-        if (kind === "check") return `✓ ${bare}`;
-        if (kind === "arrow") return `→ ${bare}`;
-        if (kind === "checklist") return `☐ ${bare}`;
-        if (kind === "checked") return `☑ ${bare}`;
-        if (kind === "roman") return `${romanNumeral(index + 1)}. ${bare}`;
-        if (kind === "letter") return `${letterMarker(index + 1)}. ${bare}`;
-        if (kind === "numerical") return `${index + 1}) ${bare}`;
-        return bare;
-      };
-      const html = sourceLines
-        .map((line, index) => `<div>${escapeNoteHtml(formatLine(line, index))}</div>`)
-        .join("");
-      document.execCommand("insertHTML", false, html);
-      syncNoteFromEditor();
-    },
-    [syncNoteFromEditor]
-  );
-
-  const runNoteList = useCallback(
-    (kind: NoteListKind) => {
-      restoreNoteSelection();
-      if (kind === "bullet") {
-        runNoteCommand("insertUnorderedList");
-        return;
-      }
-      if (kind === "number" || kind === "roman" || kind === "letter") {
-        runNoteCommand("insertOrderedList");
-        const selection = window.getSelection();
-        const list = selection?.anchorNode?.parentElement?.closest("ol");
-        if (list) {
-          list.style.listStyleType =
-            kind === "roman" ? "lower-roman" : kind === "letter" ? "lower-alpha" : "decimal";
-          syncNoteFromEditor();
-        }
-        return;
-      }
-      insertCustomList(kind);
-    },
-    [insertCustomList, restoreNoteSelection, runNoteCommand, syncNoteFromEditor]
-  );
-
-  useEffect(() => {
-    const editor = noteTextareaRef.current;
-    if (!editor) return;
-    const nextHtml = noteEditorHtml(note);
-    if (editor.innerHTML !== nextHtml) {
-      const wasActive = document.activeElement === editor;
-      editor.innerHTML = nextHtml;
-      if (wasActive) placeCaretAtEnd(editor);
+    if (completedDate && completedYear === year) {
+      const key = toDateKey(completedDate);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-  }, [note]);
+  }
 
-  const handleNoteKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (event.key !== "Enter" || event.shiftKey) return;
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) return;
-      const plainNote = notePlainText(note);
-      const cursorStart = plainNote.length;
+  const anchor = new Date(year, 0, 1);
+  anchor.setHours(0, 0, 0, 0);
+  const weeksToShow = 53;
+  const totalDays = weeksToShow * 7;
+  const start = new Date(anchor);
+  const mondayOffset = (anchor.getDay() + 6) % 7;
+  start.setDate(anchor.getDate() - mondayOffset - (totalDays - 1));
 
-      const lineStart = plainNote.lastIndexOf("\n", cursorStart - 1) + 1;
-      const currentLine = plainNote.slice(lineStart);
-      const marker = nextListMarker(currentLine);
-      if (!marker) return;
+  const cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }> = [];
+  let total = 0;
 
-      event.preventDefault();
-      const markerOnlyLength = listMarkerOnlyLength(currentLine);
-      if (markerOnlyLength !== null) {
-        const nextNote = plainNote.slice(0, lineStart);
-        setNote(nextNote);
-        return;
-      }
+  for (let index = 0; index < totalDays; index += 1) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const key = toDateKey(date);
+    const count = counts.get(key) ?? 0;
+    total += count;
+    cells.push({
+      date: key,
+      count,
+      weekIndex: Math.floor(index / 7),
+      dayIndex: index % 7,
+    });
+  }
 
-      const nextNote = `${plainNote}\n${marker}`;
-      setNote(nextNote);
-    },
-    [note, setNote]
-  );
+  return { cells, total };
+}
 
-  const toolbarButtonClass =
-    "flex size-7 items-center justify-center rounded-full text-on-warning-container transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-on-warning-container/[0.08] focus-visible:bg-on-warning-container/[0.10] active:bg-on-warning-container/[0.12]";
+function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
+  const currentYear = new Date().getFullYear();
+  const [reviewYear, setReviewYear] = useState(currentYear);
+  const { cells, total } = buildContributionGrid(tasks, reviewYear);
+  const weeks = Array.from({ length: 53 }, (_, index) => index);
+  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
-    <aside className="flex min-h-0 flex-col border-t border-outline-variant bg-surface-container-low lg:border-l lg:border-t-0">
-      <div className="flex items-center gap-2 border-b border-outline-variant px-5 py-3">
-        <StickyNote className="size-5 text-warning" />
-        <h2 className="text-title-medium text-on-surface">Pinned Notes</h2>
-        <Pin className="ml-auto size-4 text-on-surface-variant" />
+    <div className="h-full bg-transparent p-0">
+      <div className="flex items-center justify-between gap-3 px-4 pt-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
+            <CalendarDays className="size-4" />
+          </div>
+          <div>
+            <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Year in Review</h3>
+            <p className="text-[13px] text-[#5d6470]">
+              Darker squares mean higher task completion or stronger daily focus.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setReviewYear((value) => Math.max(2000, value - 1))}
+            className="flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+            aria-label="Previous year"
+          >
+            ‹
+          </button>
+          <span className="inline-flex min-w-[5rem] items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] px-3 py-1.5 text-[13px] font-medium text-white">
+            {reviewYear}
+          </span>
+          <button
+            type="button"
+            disabled={reviewYear >= currentYear}
+            onClick={() => setReviewYear((value) => Math.min(currentYear, value + 1))}
+            className={`flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white ${reviewYear >= currentYear ? "cursor-not-allowed opacity-40" : "hover:bg-[#18264d]"}`}
+            aria-label="Next year"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
-      <div className="fl-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <section className="grid min-h-[380px] flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)]">
-          <div className="flex min-h-0 flex-col rounded-lg border border-outline-variant bg-warning-container p-4 shadow-e1">
-            <div className="mb-2 flex min-w-0 items-center gap-1.5">
-              <StickyNote className="size-4 text-on-warning-container" />
-              <span className="min-w-0 shrink truncate text-label-medium uppercase tracking-[0.08em] text-on-warning-container">
-                Sticky note
-              </span>
-
-              <div className="ml-auto flex items-center gap-1">
-                {/* Format popover (migrated to Radix Popover for outside-click
-                    + keyboard nav + portal layering) */}
-                <Popover
-                  open={formatMenuOpen}
-                  onOpenChange={(open) => {
-                    setFormatMenuOpen(open);
-                    if (open) {
-                      setPaletteOpen(false);
-                      setListMenuOpen(false);
-                      setAlignMenuOpen(false);
-                    }
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className={toolbarButtonClass}
-                      aria-label="Text format"
-                      title="Text format"
-                    >
-                      <Bold className="size-3.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    sideOffset={6}
-                    className="w-auto min-w-32 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
-                  >
-                    {noteFormatItems.map((item) => {
-                      const active =
-                        item.command === "bold"
-                          ? noteBold
-                          : item.command === "italic"
-                            ? noteItalic
-                            : noteUnderline;
-                      return (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          runNoteCommand(item.command);
-                        }}
-                        className={`flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] ${
-                          active
-                            ? "bg-secondary-container text-on-secondary-container"
-                            : "text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
-                        }`}
-                      >
-                        {item.icon}
-                        {item.label}
-                      </button>
-                      );
-                    })}
-                  </PopoverContent>
-                </Popover>
-
-                {/* Palette popover */}
-                <Popover
-                  open={paletteOpen}
-                  onOpenChange={(open) => {
-                    setPaletteOpen(open);
-                    if (open) {
-                      setFormatMenuOpen(false);
-                      setListMenuOpen(false);
-                      setAlignMenuOpen(false);
-                    }
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className={toolbarButtonClass}
-                      aria-label="Choose note color"
-                      title="Color"
-                    >
-                      <Palette className="size-3.5" style={{ color: marker }} />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    sideOffset={6}
-                    className="flex w-auto max-w-52 flex-wrap items-center gap-1.5 rounded-md border border-outline-variant bg-surface-container-high p-2 text-on-surface shadow-e2"
-                  >
-                    {markerColors.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          runNoteColor(color);
-                          setPaletteOpen(false);
-                        }}
-                        className={`size-7 rounded-full border-2 transition-transform duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:scale-110 focus-visible:scale-110 ${
-                          marker === color ? "border-outline" : "border-transparent"
-                        }`}
-                        style={{ backgroundColor: color }}
-                        aria-label={`Use note color ${color}`}
-                      />
-                    ))}
-                    <label
-                      className="relative flex size-7 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-outline-variant bg-surface-container-low text-on-surface-variant transition-transform duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:scale-110 focus-within:scale-110"
-                      title="Custom color"
-                    >
-                      <Palette className="pointer-events-none size-3.5" />
-                      <input
-                        type="color"
-                        value={customMarkerColor}
-                        onChange={(event) => runNoteColor(event.target.value)}
-                        className="absolute inset-0 cursor-pointer opacity-0"
-                        aria-label="Choose custom note color"
-                      />
-                    </label>
-                  </PopoverContent>
-                </Popover>
-
-                {/* List popover */}
-                <Popover
-                  open={listMenuOpen}
-                  onOpenChange={(open) => {
-                    setListMenuOpen(open);
-                    if (open) {
-                      setFormatMenuOpen(false);
-                      setPaletteOpen(false);
-                      setAlignMenuOpen(false);
-                    }
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className={toolbarButtonClass}
-                      aria-label="List style"
-                      title="List style"
-                    >
-                      <List className="size-3.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    sideOffset={6}
-                    className="fl-scroll max-h-80 w-auto min-w-36 overflow-y-auto rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
-                  >
-                    {noteListItems.map((item) => (
-                      <button
-                        key={item.kind}
-                        type="button"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          runNoteList(item.kind);
-                          setListMenuOpen(false);
-                        }}
-                        className="flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
-                      >
-                        <span className="w-5 text-left">{item.mark}</span>
-                        {item.label}
-                      </button>
-                    ))}
-                  </PopoverContent>
-                </Popover>
-
-                {/* Align popover */}
-                <Popover
-                  open={alignMenuOpen}
-                  onOpenChange={(open) => {
-                    setAlignMenuOpen(open);
-                    if (open) {
-                      setFormatMenuOpen(false);
-                      setPaletteOpen(false);
-                      setListMenuOpen(false);
-                    }
-                  }}
-                >
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className={toolbarButtonClass}
-                      aria-label="Paragraph alignment"
-                      title="Paragraph alignment"
-                    >
-                      {noteAlign === "center" ? (
-                        <AlignCenter className="size-3.5" />
-                      ) : noteAlign === "right" ? (
-                        <AlignRight className="size-3.5" />
-                      ) : noteAlign === "justify" ? (
-                        <AlignJustify className="size-3.5" />
-                      ) : (
-                        <AlignLeft className="size-3.5" />
-                      )}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    sideOffset={6}
-                    className="w-auto min-w-28 rounded-md border border-outline-variant bg-surface-container-high p-1 text-on-surface shadow-e2"
-                  >
-                    {noteAlignItems.map((item) => (
-                      <button
-                        key={item.align}
-                        type="button"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          runNoteAlign(item.align);
-                          setAlignMenuOpen(false);
-                        }}
-                        className={`flex h-9 w-full items-center gap-2 rounded-md px-3 text-label-large transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] ${
-                          noteAlign === item.align
-                            ? "bg-secondary-container text-on-secondary-container"
-                            : "text-on-surface hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
-                        }`}
-                      >
-                        {item.icon}
-                        {item.label}
-                      </button>
-                    ))}
-                  </PopoverContent>
-                </Popover>
-
-                <Button
-                  type="button"
-                  onClick={handleSaveNote}
-                  variant="default"
-                  size="icon"
-                  className="size-7 shadow-e1"
-                  aria-label="Save pinned note"
-                  title="Save pin"
-                >
-                  <Pin className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-            <div className="relative min-h-[220px] flex-1">
-              {!notePlainText(note).trim() && (
-                <span className="pointer-events-none absolute left-0 top-3 text-body-large leading-6 text-on-warning-container/60">
-                  Write a quick note...
+      <div className="overflow-x-auto px-4 pb-4 pt-3">
+        <div className="min-w-[500px]">
+          <div className="grid grid-cols-[18px_minmax(0,1fr)] gap-2">
+            <div className="flex flex-col justify-between pt-6 text-[10px] uppercase tracking-[0.08em] text-[#5d6470]">
+              {dayLabels.filter((_, index) => index % 2 === 1).map((label) => (
+                <span key={label} className="h-2.5 leading-2.5">
+                  {label}
                 </span>
-              )}
-              <div
-              ref={noteTextareaRef}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={() => {
-                rememberNoteSelection();
-                syncNoteFromEditor();
-              }}
-              onKeyDown={handleNoteKeyDown}
-              onMouseUp={() => {
-                rememberNoteSelection();
-                syncNoteFromEditor();
-              }}
-              onKeyUp={() => {
-                rememberNoteSelection();
-                syncNoteFromEditor();
-              }}
-              onFocus={rememberNoteSelection}
-              className="min-h-[220px] w-full whitespace-pre-wrap break-words border-0 bg-transparent py-3 leading-6 text-body-large font-medium text-on-warning-container outline-none [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
-              style={noteTextStyle}
-              role="textbox"
-              aria-label="Pinned note"
-              />
+              ))}
             </div>
-          </div>
 
-          <div className="flex min-h-[260px] flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface-container p-3">
-            <div className="mb-2 flex items-center gap-2">
-              <Pin className="size-4 text-on-surface-variant" />
-              <p className="text-label-medium uppercase tracking-[0.08em] text-on-surface-variant">
-                Saved notes
-              </p>
-            </div>
-            {pinnedNotes.length === 0 ? (
-              <div className="min-h-[140px]" aria-hidden="true" />
-            ) : (
-              <div className="fl-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-                {pinnedNotes.map((item) => {
-                  const preview = notePreview(item.text);
-                  const savedNoteStyle = {
-                    color: item.color,
-                    fontFamily: asNoteFontFamily(item.fontFamily),
-                    fontSize: `${Math.max(12, asNoteFontSize(item.fontSize) - 2)}px`,
-                    fontWeight: item.bold ? 700 : 600,
-                    fontStyle: item.italic ? "italic" : "normal",
-                    textDecoration: item.underline ? "underline" : "none",
-                    textAlign: asNoteAlign(item.align),
-                  } as const;
+            <div>
+              <div
+                className="mb-2 grid gap-1"
+                style={{ gridTemplateColumns: `repeat(${weeks.length}, minmax(10px, 1fr))` }}
+              >
+                {weeks.map((weekIndex) => {
+                  const date = new Date(cells[weekIndex * 7]?.date ?? new Date().toISOString());
+                  const month = date.toLocaleDateString("en-US", { month: "short" });
+                  const previousMonth =
+                    weekIndex === 0
+                      ? null
+                      : new Date(cells[(weekIndex - 1) * 7]?.date ?? new Date().toISOString())
+                          .toLocaleDateString("en-US", { month: "short" });
+                  const showLabel = previousMonth !== month;
+
                   return (
-                    <div
-                      key={item.id}
-                      className={`rounded-md border border-outline-variant bg-warning-container p-2.5 shadow-e0 ${
-                        activeNoteId === item.id ? "ring-2 ring-primary" : ""
-                      }`}
+                    <span
+                      key={`month-${weekIndex}`}
+                      className={`text-center text-[10px] ${showLabel ? "text-[#5d6470]" : "opacity-0"}`}
                     >
-                      <div className="flex items-start gap-1.5">
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className="truncate text-body-medium font-semibold leading-5"
-                            style={savedNoteStyle}
-                          >
-                            {preview.title}
-                          </p>
-                          <p
-                            className="line-clamp-2 text-body-small leading-4 text-on-warning-container/80"
-                            style={{ textAlign: asNoteAlign(item.align) }}
-                          >
-                            {preview.description || preview.title}
-                          </p>
-                          <p className="mt-1.5 text-label-small text-on-warning-container/80">
-                            {timestampLabel(item.createdAt)}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleViewNote(item)}
-                          className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-1.5 text-label-small text-primary hover:bg-on-surface/[0.08] focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
-                          aria-label="View saved note"
-                        >
-                          <Eye className="size-3.5" />
-                          View
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteNote(item.id)}
-                          className="flex size-6 shrink-0 items-center justify-center rounded-full text-base leading-none text-on-surface-variant transition-[background-color] duration-[var(--duration-short)] [transition-timing-function:var(--ease-standard)] hover:bg-error-container/[0.30] hover:text-error focus-visible:bg-error-container/[0.30] active:bg-error-container/[0.40]"
-                          aria-label="Delete saved note"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
+                      {showLabel ? month : ""}
+                    </span>
                   );
                 })}
               </div>
-            )}
-          </div>
-        </section>
 
-        <section className="shrink-0 rounded-lg border border-outline-variant bg-surface-container p-4">
-          <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <CalendarDays className="size-4 text-primary" />
-            <h3 className="text-title-medium text-on-surface">Reminder Board</h3>
-            <span className="text-body-small leading-5 text-on-surface-variant">
-              Mark dates in the calendar tool and your reminders will appear here.
+              <div
+                className="grid gap-1"
+                style={{
+                  gridTemplateColumns: `repeat(${weeks.length}, minmax(10px, 1fr))`,
+                  gridTemplateRows: "repeat(7, 10px)",
+                }}
+              >
+                {cells.map((cell) => (
+                  <span
+                    key={`${cell.date}-${cell.weekIndex}-${cell.dayIndex}`}
+                    className="block h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
+                    style={{
+                      backgroundColor: contributionTone(cell.count),
+                      gridColumn: cell.weekIndex + 1,
+                      gridRow: cell.dayIndex + 1,
+                    }}
+                    title={`${cell.date}: ${cell.count} contribution${cell.count === 1 ? "" : "s"}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3 text-[11px] text-[#5d6470]">
+            <div className="flex items-center gap-2">
+              <span>No activity</span>
+              <div className="flex items-center gap-1">
+                {[0, 1, 2, 3, 4].map((level) => (
+                  <span
+                    key={level}
+                    className="h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
+                    style={{ backgroundColor: contributionTone(level) }}
+                  />
+                ))}
+              </div>
+              <span>Low</span>
+              <div className="flex items-center gap-1">
+                {[0, 1, 2, 3, 4].map((level) => (
+                  <span
+                    key={`high-${level}`}
+                    className="h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
+                    style={{ backgroundColor: contributionTone(level + 1) }}
+                  />
+                ))}
+              </div>
+              <span>High</span>
+            </div>
+            <span className="text-[11px] text-[#5d6470]">{total} focused days this year</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
+  const tasks = useAllTasks();
+  const projects = useProjects();
+  const tags = useTags();
+  const projectsById = projectMap(projects);
+  const tagsById = tagMap(tags);
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
+  const [dailyTitle, setDailyTitle] = useState("");
+  const [dailyDate, setDailyDate] = useState("");
+  const [dailyTag, setDailyTag] = useState("");
+  const [dailyIntensity, setDailyIntensity] = useState(60);
+  const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null);
+
+  const activeTasks = tasks.filter(
+    (task) => !task.archivedAt && !task.deletedAt && !isComplete(task)
+  );
+
+  const dailyRows = activeTasks.slice(0, 5).map((task) => {
+    const project = projectsById[task.projectId];
+    const tag = tagsById[task.tagId];
+    const color = project?.color ?? "#4f46e5";
+    const progress = Math.min(100, Math.max(0, task.progress));
+    const label = tag?.name ?? project?.name ?? "General";
+    const detailText = task.dueDate
+      ? new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+        }).format(new Date(`${task.dueDate}T00:00:00`))
+      : "No time set";
+
+    return {
+      id: task.id,
+      title: task.title,
+      tagLabel: label,
+      detailText,
+      color,
+      progress,
+    };
+  });
+
+  const formattedDate = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(selectedDate);
+
+  const adjustDate = useCallback((offset: number) => {
+    setSelectedDate((current) => {
+      const next = new Date(current);
+      next.setDate(next.getDate() + offset);
+      return next;
+    });
+  }, []);
+
+  const canEditSelectedDate = useCallback((date: Date) => {
+    const today = new Date();
+    const target = new Date(date);
+    today.setHours(0, 0, 0, 0);
+    target.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - target.getTime()) / 86400000);
+    return diff >= 0 && diff <= 6;
+  }, []);
+
+  const handleAdjustIntensity = useCallback(async (taskId: string, nextProgress: number) => {
+    if (!canEditSelectedDate(selectedDate)) {
+      toast.error("You can only adjust daily tasks from the last 7 days.");
+      return;
+    }
+
+    await updateTask(taskId, { progress: nextProgress });
+  }, [canEditSelectedDate, selectedDate]);
+
+  const handleArchiveDailyTask = useCallback(async (taskId: string) => {
+    await archiveTask(taskId);
+    setOpenTaskMenuId(null);
+    toast.success("Daily task archived");
+  }, []);
+
+  const handleDeleteDailyTask = useCallback(async (taskId: string) => {
+    await deleteTask(taskId);
+    setOpenTaskMenuId(null);
+    toast.success("Daily task deleted");
+  }, []);
+
+  const handleDailyTaskSubmit = useCallback(async (event: FormEvent) => {
+    event.preventDefault();
+    const title = dailyTitle.trim();
+    if (!title) {
+      toast.error("Daily task title is required.");
+      return;
+    }
+
+    const project = await findOrCreateProject("Daily Tasks");
+    const tag = await findOrCreateTag(dailyTag.trim() || "General");
+    const task = await createTask({
+      title,
+      projectId: project.id,
+      tagId: tag.id,
+      progress: dailyIntensity,
+    });
+
+    if (dailyDate) {
+      await updateTask(task.id, { dueDate: dailyDate });
+    }
+
+    setDailyTaskOpen(false);
+    setDailyTitle("");
+    setDailyDate("");
+    setDailyTag("");
+    setDailyIntensity(60);
+    toast.success("Daily task added", { description: title });
+  }, [dailyDate, dailyIntensity, dailyTag, dailyTitle]);
+
+  return (
+    <aside className="flex h-full min-h-0 flex-col gap-5 bg-transparent px-0 py-0 lg:pl-5">
+      <section className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+        <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
+             <CalendarDays className="size-4" />
+            </div>
+            <h3 className="truncate text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
+          </div>
+
+          <div className="flex flex-1 items-center justify-center gap-3">
+            <button
+             type="button"
+             onClick={() => adjustDate(-1)}
+             aria-label="Previous day"
+             className="flex size-9 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+            >
+             <ChevronLeft className="size-4" />
+            </button>
+            <span className="min-w-[220px] text-center text-[16px] font-medium text-[#1f2430]">
+             {formattedDate}
             </span>
+            <button
+             type="button"
+             onClick={() => adjustDate(1)}
+             aria-label="Next day"
+             className="flex size-9 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+            >
+             <ChevronRight className="size-4" />
+            </button>
           </div>
 
-          <div className="fl-scroll h-[132px] min-h-24 space-y-2 overflow-y-auto pr-1">
-            {reminderRows.length === 0 ? (
-              <div className="min-h-24" aria-hidden="true" />
+          <div className="flex flex-1 justify-end">
+            <button
+             type="button"
+             onClick={() => {
+               setDailyDate(toDateKey(selectedDate));
+               setDailyTaskOpen(true);
+             }}
+             aria-label="Add daily task"
+             className="inline-flex items-center gap-2 rounded-full bg-[#1f2d5f] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
+            >
+             <Plus className="size-4" />
+             <span>Add Daily Task</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
+            <span>Task</span>
+            <span>Intensity</span>
+            {[
+             "Mon",
+             "Tue",
+             "Wed",
+             "Thu",
+             "Fri",
+             "Sat",
+             "Sun",
+            ].map((label) => (
+             <span key={label} className="text-center">
+               {label}
+             </span>
+            ))}
+          </div>
+
+          <div className="max-h-[340px] space-y-2 overflow-y-auto px-2 pb-3 pt-2">
+            {dailyRows.length === 0 ? (
+              <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
+                <div className="text-center">
+                  <p className="text-[15px] font-medium text-[#1f2430]">No daily tasks yet</p>
+                  <p className="mt-1 text-[12px] text-[#5d6470]">Add your first daily task to start tracking progress.</p>
+                </div>
+              </div>
             ) : (
-              reminderRows.map((reminder) => {
-                const tone = reminderTone(reminder.dueDate);
+              dailyRows.map((row) => {
+                const isDone = row.progress >= 100;
+                const canEdit = canEditSelectedDate(selectedDate);
+                const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
+                const isMenuOpen = openTaskMenuId === row.id;
+
                 return (
-                  <div
-                    key={`${reminder.kind}-${reminder.id}`}
-                    className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="mb-1 flex items-center gap-2">
-                        <span
-                          className="size-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: reminder.color }}
-                        />
-                        <span className={`rounded-full px-2 py-0.5 text-label-small ${tone.className}`}>
-                          {tone.label}
-                        </span>
-                        <span className="text-label-small text-on-surface-variant">
-                          {dateLabel(reminder.dueDate)}
-                        </span>
-                      </div>
-                      <p className="line-clamp-1 text-body-medium font-semibold leading-5 text-on-surface">
-                        {reminder.title}
-                      </p>
-                      {reminder.kind === "task" && (
-                        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-variant">
-                          <div
-                            className="h-full rounded-full bg-primary transition-[width] duration-[var(--duration-medium)] [transition-timing-function:var(--ease-standard)]"
-                            style={{ width: `${reminder.progress}%` }}
-                          />
+                  <div key={row.id} className="relative grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 rounded-xl px-2 py-2">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
+                          isDone
+                            ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
+                            : "border-[#1f2d5f]/30 bg-[#edf2ff] text-[#1f2d5f]"
+                        }`}
+                      >
+                        ✓
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center justify-between gap-2">
+                          <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
+                          <div className="relative shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setOpenTaskMenuId((current) => current === row.id ? null : row.id)}
+                              aria-label={`More options for ${row.title}`}
+                              className="flex size-6 items-center justify-center rounded-full text-[#5d6470] hover:bg-[#eef0f5]"
+                            >
+                              <EllipsisVertical className="size-4" />
+                            </button>
+                            {isMenuOpen ? (
+                              <div className="absolute right-0 top-8 z-20 w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={() => void handleArchiveDailyTask(row.id)}
+                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                                >
+                                  Archive
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDeleteDailyTask(row.id)}
+                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
-                      )}
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-[#5d6470]">
+                          <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${row.color}22`, color: row.color }}>
+                            {row.tagLabel}
+                          </span>
+                          {row.detailText ? <span>{row.detailText}</span> : null}
+                        </div>
+                      </div>
                     </div>
+
+                    <div className="flex items-center justify-center gap-1">
+                      {Array.from({ length: 3 }, (_, index) => {
+                        const level = index + 1;
+                        const intensityValue = level === 1 ? 35 : level === 2 ? 70 : 100;
+                        return (
+                          <button
+                            key={`${row.id}-dot-${index}`}
+                            type="button"
+                            aria-label={`Set intensity ${level} for ${row.title}`}
+                            disabled={!canEdit}
+                            onClick={() => {
+                              void handleAdjustIntensity(row.id, intensityValue);
+                            }}
+                            className={`block h-2.5 w-2.5 rounded-full transition ${
+                              index < activeCount ? "bg-[#1f2d5f]" : "bg-[#dfe4ef]"
+                            } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {Array.from({ length: 7 }, (_, index) => {
+                      const isActive = index < 3 && row.progress > 20 + index * 15;
+                      return (
+                        <span
+                          key={`${row.id}-day-${index}`}
+                          className={`mx-auto block h-7 w-full rounded-[6px] border border-[#d9d5e6] ${
+                            isActive ? "bg-[#1f2d5f]" : "bg-[#f3f5f8]"
+                          }`}
+                        />
+                      );
+                    })}
                   </div>
                 );
               })
             )}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <section className="mt-0 min-h-[260px] overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+        <ContributionHeatmap tasks={tasks} />
+      </section>
+
+      {dailyTaskOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 px-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-e2">
+            <div className="mb-4 flex items-center justify-between">
+              <h4 className="text-title-large text-on-surface">Add daily task</h4>
+              <button
+                type="button"
+                onClick={() => setDailyTaskOpen(false)}
+                className="flex size-8 items-center justify-center rounded-full text-lg text-on-surface-variant hover:bg-on-surface/[0.06]"
+                aria-label="Close daily task form"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleDailyTaskSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-label-large text-on-surface">Daily Task Title</label>
+                <input
+                  value={dailyTitle}
+                  onChange={(event) => setDailyTitle(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none ring-0 placeholder:text-on-surface-variant focus:border-primary"
+                  placeholder="Morning exercise"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-label-large text-on-surface">Time Set-Up</label>
+                <input
+                  type="date"
+                  value={dailyDate}
+                  onChange={(event) => setDailyDate(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-label-large text-on-surface">Tags</label>
+                <input
+                  value={dailyTag}
+                  onChange={(event) => setDailyTag(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none placeholder:text-on-surface-variant focus:border-primary"
+                  placeholder="Health, Focus, Learning"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-label-large text-on-surface">Intensity</label>
+                  <span className="text-label-medium text-on-surface-variant">{dailyIntensity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={dailyIntensity}
+                  onChange={(event) => setDailyIntensity(Number(event.target.value))}
+                  className="h-2 w-full accent-primary"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDailyTaskOpen(false)}
+                  className="rounded-full border border-outline-variant px-4 py-2 text-label-large text-on-surface-variant"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-primary px-4 py-2 text-label-large text-on-primary"
+                >
+                  Save daily task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
@@ -1626,7 +1463,7 @@ function DashboardPage() {
           )}
         </section>
 
-        <FocusSidePanel />
+        <FocusSidePanel onAddTask={openCreate} />
       </main>
 
       <AddTaskPanel
