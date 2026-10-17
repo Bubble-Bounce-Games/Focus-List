@@ -84,12 +84,16 @@ import {
   AlignRight,
   Bold,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  EllipsisVertical,
   Eye,
   EyeOff,
   Italic,
   List,
   Palette,
   Pin,
+  Plus,
   StickyNote,
   Underline,
 } from "lucide-react";
@@ -548,15 +552,15 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
-    <div className="bg-transparent p-0">
-      <div className="mb-3 flex items-center justify-between gap-3 border-b border-outline-variant pb-3">
+    <div className="h-full bg-transparent p-0">
+      <div className="flex items-center justify-between gap-3 px-4 pt-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-full bg-surface-variant text-primary">
+          <div className="flex size-8 items-center justify-center rounded-full bg-[#e8e3f8] text-[#5f5ce2]">
             <CalendarDays className="size-4" />
           </div>
           <div>
-            <h3 className="text-title-large text-on-surface">Year in Review</h3>
-            <p className="text-body-small text-on-surface-variant">
+            <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Year in Review</h3>
+            <p className="text-[13px] text-[#5d6470]">
               Darker squares mean higher task completion or stronger daily focus.
             </p>
           </div>
@@ -565,17 +569,17 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="flex size-8 items-center justify-center rounded-lg border border-outline-variant bg-surface text-title-medium text-on-surface-variant hover:bg-surface-container-low"
+            className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
             aria-label="Previous year"
           >
             ‹
           </button>
-          <span className="inline-flex min-w-[4.5rem] items-center justify-center rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-label-large text-on-surface">
+          <span className="inline-flex min-w-[5rem] items-center justify-center rounded-full border border-[#d9d5e6] bg-white px-3 py-1.5 text-[13px] font-medium text-[#1f2430]">
             {year}
           </span>
           <button
             type="button"
-            className="flex size-8 items-center justify-center rounded-lg border border-outline-variant bg-surface text-title-medium text-on-surface-variant hover:bg-surface-container-low"
+            className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
             aria-label="Next year"
           >
             ›
@@ -583,10 +587,10 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-1">
-        <div className="min-w-[520px]">
+      <div className="overflow-x-auto px-4 pb-4 pt-3">
+        <div className="min-w-[500px]">
           <div className="grid grid-cols-[18px_minmax(0,1fr)] gap-2">
-            <div className="flex flex-col justify-between pt-6 text-[10px] uppercase tracking-[0.08em] text-on-surface-variant">
+            <div className="flex flex-col justify-between pt-6 text-[10px] uppercase tracking-[0.08em] text-[#5d6470]">
               {dayLabels.filter((_, index) => index % 2 === 1).map((label) => (
                 <span key={label} className="h-2.5 leading-2.5">
                   {label}
@@ -612,7 +616,7 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
                   return (
                     <span
                       key={`month-${weekIndex}`}
-                      className={`text-center text-[10px] ${showLabel ? "text-on-surface-variant" : "opacity-0"}`}
+                      className={`text-center text-[10px] ${showLabel ? "text-[#5d6470]" : "opacity-0"}`}
                     >
                       {showLabel ? month : ""}
                     </span>
@@ -630,7 +634,7 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
                 {cells.map((cell) => (
                   <span
                     key={`${cell.date}-${cell.weekIndex}-${cell.dayIndex}`}
-                    className="block h-2.5 w-2.5 rounded-[3px] border border-on-surface/[0.04]"
+                    className="block h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
                     style={{
                       backgroundColor: contributionTone(cell.count),
                       gridColumn: cell.weekIndex + 1,
@@ -643,14 +647,14 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3 text-[11px] text-on-surface-variant">
+          <div className="mt-4 flex items-center justify-between gap-3 text-[11px] text-[#5d6470]">
             <div className="flex items-center gap-2">
               <span>No activity</span>
               <div className="flex items-center gap-1">
                 {[0, 1, 2, 3, 4].map((level) => (
                   <span
                     key={level}
-                    className="h-2.5 w-2.5 rounded-[3px] border border-on-surface/[0.04]"
+                    className="h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
                     style={{ backgroundColor: contributionTone(level) }}
                   />
                 ))}
@@ -660,14 +664,14 @@ function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
                 {[0, 1, 2, 3, 4].map((level) => (
                   <span
                     key={`high-${level}`}
-                    className="h-2.5 w-2.5 rounded-[3px] border border-on-surface/[0.04]"
+                    className="h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
                     style={{ backgroundColor: contributionTone(level + 1) }}
                   />
                 ))}
               </div>
               <span>High</span>
             </div>
-            <span className="text-label-small text-on-surface-variant">{total} focused days this year</span>
+            <span className="text-[11px] text-[#5d6470]">{total} focused days this year</span>
           </div>
         </div>
       </div>
@@ -681,18 +685,22 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const tags = useTags();
   const projectsById = projectMap(projects);
   const tagsById = tagMap(tags);
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
+  const [dailyTitle, setDailyTitle] = useState("");
+  const [dailyDate, setDailyDate] = useState("");
+  const [dailyTag, setDailyTag] = useState("");
+  const [dailyIntensity, setDailyIntensity] = useState(60);
 
   const activeTasks = tasks.filter(
     (task) => !task.archivedAt && !task.deletedAt && !isComplete(task)
   );
-  const archivedTasks = tasks.filter((task) => task.archivedAt && !task.deletedAt);
 
   const dailyRows = activeTasks.slice(0, 5).map((task) => {
     const project = projectsById[task.projectId];
     const tag = tagsById[task.tagId];
     const color = project?.color ?? "#4f46e5";
     const progress = Math.min(100, Math.max(0, task.progress));
-    const filledCells = Math.max(1, Math.round((progress / 100) * 7));
     const label = tag?.name ?? project?.name ?? "General";
     const detailText = task.dueDate
       ? new Intl.DateTimeFormat("en-US", {
@@ -708,113 +716,288 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       detailText,
       color,
       progress,
-      filledCells,
     };
   });
 
-  return (
-    <aside className="flex min-h-0 flex-col border-t border-outline-variant bg-surface-container-low lg:border-l lg:border-t-0">
-      <div className="space-y-4 p-4">
-        <section className="bg-transparent p-0">
-          <div className="mb-3 flex items-center justify-between gap-3 border-b border-outline-variant pb-3">
-            <div className="flex items-center gap-3">
-              <div className="flex size-8 items-center justify-center rounded-full bg-surface-variant text-primary">
-                <CalendarDays className="size-4" />
-              </div>
-              <div>
-                <h3 className="text-title-large text-on-surface">Daily Tasks</h3>
-                <p className="text-body-small text-on-surface-variant">
-                  Build better habits, one day at a time.
-                </p>
-              </div>
-            </div>
+  const formattedDate = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(selectedDate);
 
-            <div className="flex items-center gap-2">
-              <button type="button" className="rounded-full border border-outline-variant bg-surface-container-low px-2.5 py-1 text-label-medium text-on-surface-variant">
-                Active <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-label-small text-primary">{activeTasks.length}</span>
-              </button>
-              <button type="button" className="rounded-full border border-outline-variant bg-surface-container-low px-2.5 py-1 text-label-medium text-on-surface-variant">
-                Archived <span className="ml-1 rounded-full bg-on-surface/[0.06] px-1.5 py-0.5 text-label-small text-on-surface-variant">{archivedTasks.length}</span>
-              </button>
-              <button type="button" onClick={onAddTask} className="rounded-full bg-primary px-3 py-1.5 text-label-large text-on-primary shadow-e1 hover:bg-primary/90">
-                Add daily task
-              </button>
+  const adjustDate = useCallback((offset: number) => {
+    setSelectedDate((current) => {
+      const next = new Date(current);
+      next.setDate(next.getDate() + offset);
+      return next;
+    });
+  }, []);
+
+  const handleDailyTaskSubmit = useCallback(async (event: FormEvent) => {
+    event.preventDefault();
+    const title = dailyTitle.trim();
+    if (!title) {
+      toast.error("Daily task title is required.");
+      return;
+    }
+
+    const project = await findOrCreateProject("Daily Tasks");
+    const tag = await findOrCreateTag(dailyTag.trim() || "General");
+    const task = await createTask({
+      title,
+      projectId: project.id,
+      tagId: tag.id,
+      progress: dailyIntensity,
+    });
+
+    if (dailyDate) {
+      await updateTask(task.id, { dueDate: dailyDate });
+    }
+
+    setDailyTaskOpen(false);
+    setDailyTitle("");
+    setDailyDate("");
+    setDailyTag("");
+    setDailyIntensity(60);
+    toast.success("Daily task added", { description: title });
+  }, [dailyDate, dailyIntensity, dailyTag, dailyTitle]);
+
+  return (
+    <aside className="flex h-full min-h-0 flex-col gap-5 bg-transparent px-0 py-0 lg:pl-5">
+      <section className="flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+        <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 pb-3 pt-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-8 items-center justify-center rounded-full bg-[#e8e3f8] text-[#5f5ce2]">
+              <CalendarDays className="size-4" />
+            </div>
+            <div>
+              <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
+              <p className="text-[13px] text-[#5d6470]">{formattedDate}</p>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-none border-0 bg-transparent">
-            <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(72px,0.8fr)_repeat(7,minmax(0,0.5fr))_24px] items-center gap-2 border-b border-outline-variant px-3 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-on-surface-variant">
-              <span>Task</span>
-              <span>Intensity</span>
-              {Array.from({ length: 7 }, (_, index) => (
-                <span key={`day-header-${index}`} className="text-center">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
-                </span>
-              ))}
-              <span className="text-center"> </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full bg-[#5a5ce5] px-2.5 py-1.5 text-[12px] font-medium text-white shadow-sm"
+            >
+              <span>Active</span>
+              <span className="inline-flex min-w-[1.4rem] items-center justify-center rounded-full bg-white/15 px-1.5 py-0.5 text-[11px]">
+                {Math.max(dailyRows.length, 6)}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-[#d9d5e6] bg-white/40 px-2.5 py-1.5 text-[12px] font-medium text-[#4a5362]"
+            >
+              <span>Archived</span>
+              <span className="inline-flex min-w-[1.4rem] items-center justify-center rounded-full bg-[#eef0f5] px-1.5 py-0.5 text-[11px] text-[#4a5362]">
+                4
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDailyDate(toDateKey(selectedDate));
+                setDailyTaskOpen(true);
+              }}
+              aria-label="Add daily task"
+              className="inline-flex items-center gap-2 rounded-full bg-[#5a5ce5] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#4c52d3]"
+            >
+              <Plus className="size-4" />
+              <span>Add Daily Task</span>
+            </button>
+          </div>
+        </div>
 
-            <div className="divide-y divide-outline-variant">
-              {dailyRows.map((row) => (
-                <div
-                  key={row.id}
-                  className="grid grid-cols-[minmax(0,1.5fr)_minmax(72px,0.8fr)_repeat(7,minmax(0,0.5fr))_24px] items-center gap-2 px-3 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-4 items-center justify-center rounded-sm border border-primary/30 bg-primary/5 text-[10px] text-primary">
-                        ✓
-                      </span>
-                      <span className="truncate text-body-medium font-medium text-on-surface">
-                        {row.title}
-                      </span>
+        <div className="border-b border-[#d9d5e6] px-4 py-3">
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => adjustDate(-1)}
+              aria-label="Previous day"
+              className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="min-w-[220px] text-center text-[16px] font-medium text-[#1f2430]">{formattedDate}</span>
+            <button
+              type="button"
+              onClick={() => adjustDate(1)}
+              aria-label="Next day"
+              className="flex size-8 items-center justify-center rounded-full border border-[#d9d5e6] bg-white text-[#5b6474] hover:bg-[#f0f1f5]"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
+            <span>Task</span>
+            <span>Intensity</span>
+            {[
+              "Mon",
+              "Tue",
+              "Wed",
+              "Thu",
+              "Fri",
+              "Sat",
+              "Sun",
+            ].map((label) => (
+              <span key={label} className="text-center">
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <div className="space-y-2 px-2 pb-3 pt-2">
+            {(dailyRows.length === 0
+              ? [
+                  { id: "placeholder-1", title: "Morning Exercise", tagLabel: "Health", detailText: "", color: "#4f46e5", progress: 70 },
+                  { id: "placeholder-2", title: "Read A Book", tagLabel: "Learning", detailText: "", color: "#3b82f6", progress: 40 },
+                  { id: "placeholder-3", title: "Write Journal", tagLabel: "Mind", detailText: "", color: "#ec4899", progress: 80 },
+                ]
+              : dailyRows
+            ).map((row) => (
+              <div key={row.id} className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 rounded-xl px-2 py-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex size-5 items-center justify-center rounded-[6px] border border-[#5a5ce5]/30 bg-[#eef0ff] text-[10px] text-[#4b53df]">
+                    ✓
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center justify-between gap-2">
+                      <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
+                      <button
+                        type="button"
+                        aria-label={`More options for ${row.title}`}
+                        className="flex size-6 items-center justify-center rounded-full text-[#5d6470] hover:bg-[#eef0f5]"
+                      >
+                        <EllipsisVertical className="size-4" />
+                      </button>
                     </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="rounded-full bg-primary/8 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    <div className="mt-1 flex items-center gap-2 text-[11px] text-[#5d6470]">
+                      <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${row.color}22`, color: row.color }}>
                         {row.tagLabel}
                       </span>
-                      <span className="text-[10px] text-on-surface-variant">{row.detailText}</span>
+                      {row.detailText ? <span>{row.detailText}</span> : null}
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-center">
-                    <div className="h-1.5 w-14 overflow-hidden rounded-full bg-surface-variant">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${row.progress}%`, backgroundColor: row.color }}
-                      />
-                    </div>
-                  </div>
-
-                  {Array.from({ length: 7 }, (_, index) => {
-                    const filled = index < row.filledCells;
-                    return (
-                      <span
-                        key={`${row.id}-day-${index}`}
-                        className={`mx-auto block h-3.5 w-3.5 rounded-[4px] border ${filled ? "border-transparent" : "border-on-surface/[0.12]"}`}
-                        style={{
-                          backgroundColor: filled ? row.color : "#e7ebf0",
-                          opacity: filled ? 1 : 0.8,
-                        }}
-                      />
-                    );
-                  })}
-
-                  <button
-                    type="button"
-                    className="flex size-6 items-center justify-center rounded-full text-lg text-on-surface-variant hover:bg-on-surface/[0.06]"
-                    aria-label={`More options for ${row.title}`}
-                  >
-                    ⋮
-                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
+                <div className="flex items-center justify-center gap-1">
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <span
+                      key={`${row.id}-dot-${index}`}
+                      className={`block h-2.5 w-2.5 rounded-full ${
+                        index < Math.max(1, Math.round(row.progress / 34)) ? "bg-[#3b82f6]" : "bg-[#dfe4ef]"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {Array.from({ length: 7 }, (_, index) => {
+                  const isActive = index < 3 && row.progress > 20 + index * 15;
+                  return (
+                    <span
+                      key={`${row.id}-day-${index}`}
+                      className={`mx-auto block h-7 w-full rounded-[6px] border ${
+                        isActive ? "border-[#4ea66b]/50 bg-[#8ec7a5]" : "border-[#e4e6eb] bg-[#f3f5f8]"
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-0 min-h-[260px] overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
         <ContributionHeatmap tasks={tasks} />
-      </div>
+      </section>
+
+      {dailyTaskOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 px-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-e2">
+            <div className="mb-4 flex items-center justify-between">
+              <h4 className="text-title-large text-on-surface">Add daily task</h4>
+              <button
+                type="button"
+                onClick={() => setDailyTaskOpen(false)}
+                className="flex size-8 items-center justify-center rounded-full text-lg text-on-surface-variant hover:bg-on-surface/[0.06]"
+                aria-label="Close daily task form"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleDailyTaskSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-label-large text-on-surface">Daily Task Title</label>
+                <input
+                  value={dailyTitle}
+                  onChange={(event) => setDailyTitle(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none ring-0 placeholder:text-on-surface-variant focus:border-primary"
+                  placeholder="Morning exercise"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-label-large text-on-surface">Time Set-Up</label>
+                <input
+                  type="date"
+                  value={dailyDate}
+                  onChange={(event) => setDailyDate(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-label-large text-on-surface">Tags</label>
+                <input
+                  value={dailyTag}
+                  onChange={(event) => setDailyTag(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none placeholder:text-on-surface-variant focus:border-primary"
+                  placeholder="Health, Focus, Learning"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-label-large text-on-surface">Intensity</label>
+                  <span className="text-label-medium text-on-surface-variant">{dailyIntensity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={dailyIntensity}
+                  onChange={(event) => setDailyIntensity(Number(event.target.value))}
+                  className="h-2 w-full accent-primary"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDailyTaskOpen(false)}
+                  className="rounded-full border border-outline-variant px-4 py-2 text-label-large text-on-surface-variant"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-primary px-4 py-2 text-label-large text-on-primary"
+                >
+                  Save daily task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

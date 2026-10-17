@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
-  CalendarDays,
   FolderArchive,
   LogOut,
   Plus,
@@ -80,17 +79,6 @@ export function Header({
         >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Add Task</span>
-        </Button>
-
-        {/* Calendar — MD3 icon button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-on-surface-variant hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:bg-on-surface/[0.10] active:bg-on-surface/[0.12]"
-          aria-label="Task calendar"
-          onClick={() => onOpenTool?.("calendar")}
-        >
-          <CalendarDays className="h-5 w-5" />
         </Button>
 
         <DropdownMenu>
