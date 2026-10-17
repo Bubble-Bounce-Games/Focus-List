@@ -84,6 +84,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Activity,
   AlignCenter,
   AlignJustify,
   AlignLeft,
@@ -504,10 +505,17 @@ function reminderTone(value: string): {
 
 function contributionTone(count: number): string {
   if (count <= 0) return "#e7ebf0";
-  if (count <= 1) return "#c5e8d0";
-  if (count <= 2) return "#8ad2a0";
-  if (count <= 4) return "#53bb74";
-  return "#1f8d4d";
+  if (count <= 1) return "#d6f5dd";
+  if (count <= 2) return "#9ae6b4";
+  if (count <= 4) return "#4ade80";
+  return "#16a34a";
+}
+
+function dailyIntensityTone(value: number): string {
+  if (value <= 0) return "#fca5a5";
+  if (value <= 35) return "#bbf7d0";
+  if (value <= 70) return "#4ade80";
+  return "#16a34a";
 }
 
 function buildContributionGrid(tasks: Task[], year: number): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
@@ -872,27 +880,28 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             </button>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden">
+         <div className="min-h-0 flex-1 overflow-hidden">
           <div className="grid grid-cols-[minmax(0,1.7fr)_0.8fr_repeat(7,minmax(0,0.74fr))] items-center gap-2 border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
-            <span>Task</span>
-            <span>Intensity</span>
+            <span className="truncate">Task</span>
+            <span className="flex justify-center">
+              <Activity className="size-3.5" aria-hidden="true" />
+            </span>
             {[
-             "Mon",
-             "Tue",
-             "Wed",
-             "Thu",
-             "Fri",
-             "Sat",
-             "Sun",
-            ].map((label) => (
-             <span key={label} className="text-center">
+             "M",
+             "T",
+             "W",
+             "T",
+             "F",
+             "S",
+             "S",
+            ].map((label, index) => (
+             <span key={`${label}-${index}`} className="flex justify-center text-[9px] font-semibold tracking-[0.12em] text-[#5d6470]">
                {label}
              </span>
             ))}
           </div>
 
-          <div className="max-h-[340px] space-y-2 overflow-y-auto px-2 pb-3 pt-2">
-            {dailyRows.length === 0 ? (
+          <div className="max-h-[340px] space-y-2 overflow-y-auto overflow-x-visible px-2 pb-3 pt-2">            {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
                 <div className="text-center">
                   <p className="text-[15px] font-medium text-[#1f2430]">No daily tasks yet</p>
@@ -916,7 +925,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                         className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
                           isDone
                             ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
-                            : "border-[#1f2d5f]/30 bg-[#edf2ff] text-[#1f2d5f]"
+                            : "border-[#fca5a5] bg-[#fee2e2] text-[#b91c1c]"
                         }`}
                       >
                         ✓
@@ -924,7 +933,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center justify-between gap-2">
                           <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
-                          <div className="relative shrink-0">
+                          <div className="relative shrink-0 z-20">
                             <button
                               ref={openTaskMenuId === row.id ? optionButtonRef : null}
                               type="button"
@@ -940,7 +949,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             {isMenuOpen ? (
                               <div
                                 ref={optionMenuRef}
-                                className="absolute right-0 top-8 z-20 w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-lg"
+                                className="absolute right-0 top-8 z-30 w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_10px_30px_rgba(15,23,42,0.12)]"
                               >
                                 <button
                                   type="button"
@@ -989,7 +998,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               void handleAdjustIntensity(row.id, intensityValue);
                             }}
                             className={`block h-2.5 w-2.5 rounded-full transition ${
-                              index < activeCount ? "bg-[#1f2d5f]" : "bg-[#dfe4ef]"
+                              index < activeCount ? "bg-[#16a34a]" : "bg-[#fca5a5]"
                             } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
                           />
                         );
@@ -997,13 +1006,17 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                     </div>
 
                     {Array.from({ length: 7 }, (_, index) => {
-                      const isActive = index < 3 && row.progress > 20 + index * 15;
+                      const value = row.progress;
+                      const tone = dailyIntensityTone(value === 0 ? 0 : Math.min(value, 100));
+                      const isActive = value > 0 && index < 3;
                       return (
                         <span
                           key={`${row.id}-day-${index}`}
-                          className={`mx-auto block h-7 w-full rounded-[6px] border border-[#d9d5e6] ${
-                            isActive ? "bg-[#1f2d5f]" : "bg-[#f3f5f8]"
-                          }`}
+                          className="mx-auto block h-4 w-full rounded-[4px] border border-[#d9d5e6]"
+                          style={{
+                            backgroundColor: isActive ? tone : "#fff1f2",
+                            borderColor: isActive ? "#d5e7d8" : "#f5b7b1",
+                          }}
                         />
                       );
                     })}
