@@ -34,6 +34,7 @@ const EMPTY_STATE: BrowserState = {
   projects: [],
   tags: [],
   tasks: [],
+  dailyTasks: [],
   notes: [],
   reminders: [],
   updatedAt: null,
@@ -63,7 +64,7 @@ const accountListeners = new Set<() => void>();
 function validState(value: unknown): value is BrowserState {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const state = value as Partial<BrowserState>;
-  return [state.projects, state.tags, state.tasks, state.notes, state.reminders]
+  return [state.projects ?? [], state.tags ?? [], state.tasks ?? [], state.dailyTasks ?? [], state.notes ?? [], state.reminders ?? []]
     .every(Array.isArray);
 }
 
@@ -71,11 +72,12 @@ function normalizeState(value: unknown): BrowserState {
   if (!validState(value)) return EMPTY_STATE;
   return {
     schemaVersion: 1,
-    projects: value.projects,
-    tags: value.tags,
-    tasks: value.tasks,
-    notes: value.notes,
-    reminders: value.reminders,
+    projects: Array.isArray(value.projects) ? value.projects : [],
+    tags: Array.isArray(value.tags) ? value.tags : [],
+    tasks: Array.isArray(value.tasks) ? value.tasks : [],
+    dailyTasks: Array.isArray(value.dailyTasks) ? value.dailyTasks : [],
+    notes: Array.isArray(value.notes) ? value.notes : [],
+    reminders: Array.isArray(value.reminders) ? value.reminders : [],
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : null,
   };
 }
