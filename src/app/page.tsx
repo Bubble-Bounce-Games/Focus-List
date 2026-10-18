@@ -831,7 +831,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
 
   return (
     <aside className="flex h-full min-h-0 flex-col gap-5 bg-transparent px-0 py-0 lg:pl-5">
-      <section className="relative z-0 flex max-h-[540px] min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+      <section className="relative z-0 flex max-h-[540px] min-h-[520px] flex-1 flex-col overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
         <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
@@ -901,7 +901,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             ))}
           </div>
 
-          <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 pt-2">
+          <div className="relative z-20 min-h-0 flex-1 overflow-y-auto overflow-x-visible overscroll-contain px-2 pb-3 pt-2">
             <div className="flex flex-col gap-2">
             {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
@@ -920,7 +920,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 return (
                   <div
                     key={row.id}
-                    className="relative z-10 grid min-h-[64px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border border-[#d9d5e6] bg-white/80 px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
+                    className="relative z-30 grid min-h-[64px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border border-[#d9d5e6] bg-white/80 px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
                   >
                     <div
                       className="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition hover:bg-[#f0f3fa]"
@@ -1002,8 +1002,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               event.stopPropagation();
                               void handleAdjustIntensity(row.id, intensityValue);
                             }}
-                            className={`block h-2.5 w-2.5 rounded-full transition ${
-                              index < activeCount ? "bg-[#22c55e]" : "bg-[#f6a7a3]"
+                            className={`block h-2.5 w-2.5 rounded-full border border-[#d9d5e6] transition ${
+                              index < activeCount ? "bg-[#22c55e]" : "bg-white"
                             } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
                           />
                         );
@@ -1034,7 +1034,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         </div>
       </section>
 
-      <section className="mt-0 min-h-[260px] overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+      <section className="mt-0 min-h-[260px] overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
         <ContributionHeatmap tasks={tasks} />
       </section>
 
