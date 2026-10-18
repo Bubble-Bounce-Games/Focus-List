@@ -711,6 +711,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const [dailyIntensity, setDailyIntensity] = useState(60);
   const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null);
   const [editingDailyTaskId, setEditingDailyTaskId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const dailyTasks = useDailyTasks();
   const optionButtonRef = useRef<HTMLButtonElement | null>(null);
   const optionMenuRef = useRef<HTMLDivElement | null>(null);
@@ -725,6 +726,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         optionButtonRef.current && !optionButtonRef.current.contains(target)
       ) {
         setOpenTaskMenuId(null);
+        setMenuPosition(null);
       }
     }
 
@@ -779,12 +781,14 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const handleArchiveDailyTask = useCallback(async (taskId: string) => {
     await archiveDailyTask(taskId);
     setOpenTaskMenuId(null);
+    setMenuPosition(null);
     toast.success("Daily task archived");
   }, []);
 
   const handleDeleteDailyTask = useCallback(async (taskId: string) => {
     await deleteDailyTask(taskId);
     setOpenTaskMenuId(null);
+    setMenuPosition(null);
     toast.success("Daily task deleted");
   }, []);
 
@@ -901,8 +905,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             ))}
           </div>
 
-          <div className="relative z-20 min-h-0 max-h-[420px] flex-1 overflow-y-auto overflow-x-visible overscroll-contain px-2 pb-3 pt-2">
-            <div className="flex flex-col gap-1">
+          <div className="relative z-20 min-h-0 max-h-[430px] flex-1 overflow-y-auto overflow-x-visible overscroll-contain px-2 pb-3 pt-2">
+            <div className="flex flex-col gap-2">
             {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
                 <div className="text-center">
@@ -920,7 +924,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 return (
                   <div
                     key={row.id}
-                    className="relative z-40 grid min-h-[52px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-lg border-0 bg-transparent px-0 py-1.5 shadow-none"
+                    className="relative z-30 grid min-h-[52px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border border-[#d9d5e6] bg-white/80 px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
                   >
                     <div
                       className="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition hover:bg-[#f0f3fa]"
@@ -944,6 +948,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
+                                const rect = event.currentTarget.getBoundingClientRect();
+                                setMenuPosition({ x: rect.right - 144, y: rect.bottom + 8 });
                                 setOpenTaskMenuId((current) => current === row.id ? null : row.id);
                               }}
                               aria-label={`More options for ${row.title}`}
@@ -951,10 +957,11 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             >
                               <EllipsisVertical className="size-4" />
                             </button>
-                            {isMenuOpen ? (
+                            {isMenuOpen && menuPosition ? (
                               <div
                                 ref={optionMenuRef}
-                                className="absolute right-0 top-8 z-[999] w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+                                style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 9999 }}
+                                className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                               >
                                 <button
                                   type="button"
