@@ -3,7 +3,8 @@
 // is testable without a database or a DOM.
 
 import { colorForName } from "./palette";
-import type { Project, SortKey, Tag, Task } from "./types";
+import { sumDailyTaskIntensityByDate, type DailyTask, type Project, type SortKey, type Tag, type Task } from "./types";
+import { toDateKey } from "./calendar-reminders";
 
 export type TaskFilter = {
   search: string;
@@ -129,4 +130,60 @@ export function groupDoneByProject(
   result.sort((a, b) => a.project.name.localeCompare(b.project.name));
 
   return result;
+}
+
+function contributionLevel(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.min(4, Math.max(1, Math.ceil(value / 25)));
+}
+
+export function buildContributionGrid(
+  tasks: Task[],
+  dailyTasks: DailyTask[],
+  year: number,
+): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
+  const counts = new Map<string, number>();
+
+  for (const task of tasks.filter((entry) => !entry.archivedAt && !entry.deletedAt)) {
+    const updatedAt = task.updatedAt ? new Date(task.updatedAt) : null;
+    if (!updatedAt || Number.isNaN(updatedAt.getTime()) || updatedAt.getFullYear() !== year) continue;
+    const dateKey = toDateKey(updatedAt);
+    const nextValue = contributionLevel(task.progress);
+    counts.set(dateKey, (counts.get(dateKey) ?? 0) + nextValue);
+  }
+
+  for (const [dateKey, intensity] of sumDailyTaskIntensityByDate(
+    dailyTasks
+      .filter((task) => !task.archivedAt && !task.deletedAt && !task.paused)
+      .map((task) => ({ dateKey: task.dateKey, intensity: task.intensity })),
+  ).entries()) {
+    if (!dateKey.startsWith(`${year}-`)) continue;
+    const nextValue = contributionLevel(intensity);
+    counts.set(dateKey, (counts.get(dateKey) ?? 0) + nextValue);
+  }
+
+  const anchor = new Date(year, 0, 1);
+  anchor.setHours(0, 0, 0, 0);
+  const start = new Date(anchor);
+  const mondayOffset = (anchor.getDay() + 6) % 7;
+  start.setDate(anchor.getDate() - mondayOffset);
+  const end = new Date(year, 11, 31);
+  end.setDate(end.getDate() + (6 - (end.getDay() + 6) % 7));
+
+  const cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }> = [];
+  let total = 0;
+
+  for (let index = 0, date = new Date(start); date <= end; index += 1, date.setDate(date.getDate() + 1)) {
+    const key = toDateKey(date);
+    const count = counts.get(key) ?? 0;
+    if (date.getFullYear() === year && count > 0) total += 1;
+    cells.push({
+      date: key,
+      count,
+      weekIndex: Math.floor(index / 7),
+      dayIndex: index % 7,
+    });
+  }
+
+  return { cells, total };
 }

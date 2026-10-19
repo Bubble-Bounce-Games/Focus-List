@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
 import { isUpcomingReminderDate } from "./calendar-reminders";
-import { groupDoneByProject, matchTask, sortTasks } from "./selectors";
+import { buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
 import {
   DEFAULT_SORT,
   DETAIL_FIELDS,
@@ -18,7 +18,7 @@ import {
   SORT_OPTIONS,
   sumDailyTaskIntensityByDate,
 } from "./types";
-import type { Project, Tag, Task } from "./types";
+import type { DailyTask, Project, Tag, Task } from "./types";
 
 const projects: Record<string, Project> = {
   p1: { id: "p1", name: "Website Redesign", color: "#6252e8" },
@@ -343,4 +343,30 @@ test("within a group the most recently completed comes first", () => {
 
 test("grouping an empty list yields no groups", () => {
   assert.deepEqual(groupDoneByProject([], projects), []);
+});
+
+
+test("year review highlights completed daily tasks in the selected year and counts distinct days", () => {
+  const dailyTask: DailyTask = {
+    id: "daily-1", title: "Exercise", tag: "Health", dateKey: "2026-10-19",
+    timeSetup: "Any time", intensity: 100, paused: false,
+    createdAt: "2026-10-19T08:00:00Z", updatedAt: "2026-10-19T08:00:00Z",
+  };
+  const grid = buildContributionGrid([], [dailyTask, { ...dailyTask, id: "daily-2" }], 2026);
+  assert.equal(grid.cells.find((cell) => cell.date === "2026-10-19")?.count, 4);
+  assert.equal(grid.total, 1);
+  assert.ok(grid.cells.some((cell) => cell.date === "2026-01-01"));
+  assert.ok(grid.cells.some((cell) => cell.date === "2026-12-31"));
+  assert.equal(buildContributionGrid([], [{ ...dailyTask, intensity: 0 }], 2026).total, 0);
+  assert.equal(buildContributionGrid([], [dailyTask], 2025).total, 0);
+  assert.equal(buildContributionGrid([], [{ ...dailyTask, deletedAt: dailyTask.updatedAt }], 2026).total, 0);
+});
+
+test("year review includes leap day and all weeks of a leap year starting on Sunday", () => {
+  const grid = buildContributionGrid([], [], 2012);
+  assert.equal(grid.cells.length, 54 * 7);
+  assert.ok(grid.cells.some((cell) => cell.date === "2012-02-29"));
+  assert.ok(grid.cells.some((cell) => cell.date === "2012-12-31"));
+  assert.equal(new Date(`${grid.cells[0].date}T12:00:00`).getDay(), 1);
+  assert.equal(new Date(`${grid.cells.at(-1)?.date}T12:00:00`).getDay(), 0);
 });

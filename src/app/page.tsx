@@ -50,6 +50,7 @@ import {
   tagMap,
 } from "@/lib/focuslist/store";
 import {
+  buildContributionGrid,
   groupDoneByProject,
   matchTask,
   sortTasks,
@@ -57,7 +58,6 @@ import {
 import {
   DEFAULT_SORT,
   isComplete,
-  sumDailyTaskIntensityByDate,
   type DailyTask,
   type DetailField,
   type Project,
@@ -524,69 +524,11 @@ function dailyIntensityTone(value: number): string {
   return "#16a34a";
 }
 
-function contributionLevel(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return 0;
-  return Math.min(4, Math.max(1, Math.ceil(value / 25)));
-}
-
-function buildContributionGrid(
-  tasks: Task[],
-  dailyTasks: DailyTask[],
-  year: number,
-): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
-  const counts = new Map<string, number>();
-
-  for (const task of tasks.filter((entry) => !entry.archivedAt && !entry.deletedAt)) {
-    const updatedAt = task.updatedAt ? new Date(task.updatedAt) : null;
-    if (!updatedAt || Number.isNaN(updatedAt.getTime()) || updatedAt.getFullYear() !== year) continue;
-    const dateKey = toDateKey(updatedAt);
-    const nextValue = contributionLevel(task.progress);
-    counts.set(dateKey, (counts.get(dateKey) ?? 0) + nextValue);
-  }
-
-  for (const [dateKey, intensity] of sumDailyTaskIntensityByDate(
-    dailyTasks
-      .filter((task) => !task.archivedAt && !task.deletedAt && !task.paused)
-      .map((task) => ({ dateKey: task.dateKey, intensity: task.intensity })),
-  ).entries()) {
-    if (!dateKey.startsWith(`${year}-`)) continue;
-    const nextValue = contributionLevel(intensity);
-    counts.set(dateKey, (counts.get(dateKey) ?? 0) + nextValue);
-  }
-
-  const anchor = new Date(year, 0, 1);
-  anchor.setHours(0, 0, 0, 0);
-  const weeksToShow = 53;
-  const totalDays = weeksToShow * 7;
-  const start = new Date(anchor);
-  const mondayOffset = (anchor.getDay() + 6) % 7;
-  start.setDate(anchor.getDate() - mondayOffset - (totalDays - 1));
-
-  const cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }> = [];
-  let total = 0;
-
-  for (let index = 0; index < totalDays; index += 1) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    const key = toDateKey(date);
-    const count = counts.get(key) ?? 0;
-    total += count;
-    cells.push({
-      date: key,
-      count,
-      weekIndex: Math.floor(index / 7),
-      dayIndex: index % 7,
-    });
-  }
-
-  return { cells, total };
-}
-
 function ContributionHeatmap({ tasks, dailyTasks }: { tasks: Task[]; dailyTasks?: DailyTask[] }) {
   const currentYear = new Date().getFullYear();
   const [reviewYear, setReviewYear] = useState(currentYear);
   const { cells, total } = buildContributionGrid(tasks, dailyTasks ?? [], reviewYear);
-  const weeks = Array.from({ length: 53 }, (_, index) => index);
+  const weeks = Array.from({ length: cells.length / 7 }, (_, index) => index);
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
@@ -632,7 +574,7 @@ function ContributionHeatmap({ tasks, dailyTasks }: { tasks: Task[]; dailyTasks?
         <div className="min-w-[500px]">
           <div className="grid grid-cols-[18px_minmax(0,1fr)] gap-2">
             <div className="flex flex-col justify-between pt-6 text-[10px] uppercase tracking-[0.08em] text-[#5d6470]">
-              {dayLabels.filter((_, index) => index % 2 === 1).map((label) => (
+              {dayLabels.filter((_, index) => index % 2 === 0).map((label) => (
                 <span key={label} className="h-2.5 leading-2.5">
                   {label}
                 </span>
@@ -645,12 +587,12 @@ function ContributionHeatmap({ tasks, dailyTasks }: { tasks: Task[]; dailyTasks?
                 style={{ gridTemplateColumns: `repeat(${weeks.length}, minmax(10px, 1fr))` }}
               >
                 {weeks.map((weekIndex) => {
-                  const date = new Date(cells[weekIndex * 7]?.date ?? new Date().toISOString());
+                  const date = new Date(`${cells[weekIndex * 7].date}T12:00:00`);
                   const month = date.toLocaleDateString("en-US", { month: "short" });
                   const previousMonth =
                     weekIndex === 0
                       ? null
-                      : new Date(cells[(weekIndex - 1) * 7]?.date ?? new Date().toISOString())
+                      : new Date(`${cells[(weekIndex - 1) * 7].date}T12:00:00`)
                           .toLocaleDateString("en-US", { month: "short" });
                   const showLabel = previousMonth !== month;
 
@@ -944,10 +886,11 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                         disabled={!canEdit}
                         onClick={() => void handleAdjustIntensity(row.id, isDone ? 0 : 100)}
                         aria-label={`${isDone ? "Reset" : "Complete"} ${row.title}`}
-                        aria-pressed={isDone}
-                        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[10px] border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a]" : "border-[#d9d5e6] bg-white text-[#9aa5b1] hover:border-[#49b974]"}`}
+                        role="checkbox"
+                        aria-checked={isDone}
+                        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[10px] border-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.55)]" : "border-[#d9d5e6] bg-white text-[#9aa5b1] hover:border-[#49b974]"}`}
                       >
-                        {isPaused ? <span aria-hidden="true">⏸</span> : isDone ? <Check className="size-5" /> : null}
+                        {isPaused ? <span aria-hidden="true">⏸</span> : isDone ? <Check className="size-5" strokeWidth={3} /> : null}
                       </button>
                       <button
                         type="button"
