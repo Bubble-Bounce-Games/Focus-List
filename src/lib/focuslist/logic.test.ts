@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
 import { isUpcomingReminderDate } from "./calendar-reminders";
-import { buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
+import { advanceDailyTaskIntensity, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
 import {
   DEFAULT_SORT,
   DETAIL_FIELDS,
@@ -369,4 +369,50 @@ test("year review includes leap day and all weeks of a leap year starting on Sun
   assert.ok(grid.cells.some((cell) => cell.date === "2012-12-31"));
   assert.equal(new Date(`${grid.cells[0].date}T12:00:00`).getDay(), 1);
   assert.equal(new Date(`${grid.cells.at(-1)?.date}T12:00:00`).getDay(), 0);
+});
+
+
+test("daily history offers only elapsed days since creation, with Today first", () => {
+  assert.deepEqual(dailyTaskHistoryOffsets("2026-10-19", "2026-10-19", "2026-10-19"), [0]);
+  assert.deepEqual(dailyTaskHistoryOffsets("2026-10-19", "2026-10-22", "2026-10-22"), [0, 1, 2, 3]);
+  assert.deepEqual(dailyTaskHistoryOffsets("2026-10-19", "2026-10-25", "2026-10-22"), [0, 1, 2, 3]);
+  assert.deepEqual(dailyTaskHistoryOffsets("2026-10-19", "2026-10-18", "2026-10-22"), []);
+});
+
+test("recurring daily tasks start fresh and preserve separate intensity for previous days", () => {
+  const dailyTask: DailyTask = {
+    id: "daily-1", title: "Exercise", tag: "Health", dateKey: "2026-10-19",
+    timeSetup: "Any time", intensity: 100, paused: false,
+    createdAt: "2026-10-19T08:00:00Z", updatedAt: "2026-10-19T08:00:00Z",
+  };
+  assert.equal(dailyTaskIntensityOnDate(dailyTask, "2026-10-19"), 100);
+  assert.equal(dailyTaskIntensityOnDate(dailyTask, "2026-10-20"), 0);
+  const updated = { ...dailyTask, intensityByDate: { "2026-10-22": 50 } };
+  assert.equal(dailyTaskIntensityOnDate(updated, "2026-10-22"), 50);
+  assert.equal(dailyTaskIntensityOnDate(updated, "2026-10-19"), 100);
+  assert.equal(dailyTaskIntensityOnDate(updated, "2026-10-23"), 0);
+  const grid = buildContributionGrid([], [updated], 2026);
+  assert.equal(grid.cells.find((cell) => cell.date === "2026-10-19")?.count, 4);
+  assert.equal(grid.cells.find((cell) => cell.date === "2026-10-22")?.count, 2);
+  assert.equal(grid.total, 2);
+});
+
+
+test("saved daily intensity cannot decrease or reset, and increases stay separate by date", () => {
+  const dailyTask: DailyTask = {
+    id: "daily-1", title: "Exercise", tag: "Health", dateKey: "2026-10-19",
+    timeSetup: "Any time", intensity: 75, paused: false,
+    createdAt: "2026-10-19T08:00:00Z", updatedAt: "2026-10-19T08:00:00Z",
+    intensityByDate: { "2026-10-20": 50 },
+  };
+  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-19", 25).intensity, 75);
+  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-19", 100).intensity, 100);
+  const completed = { ...dailyTask, intensity: 100 };
+  assert.equal(advanceDailyTaskIntensity(completed, "2026-10-19", 0).intensity, 100);
+  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-20", 0).intensityByDate?.["2026-10-20"], 50);
+  const advanced = advanceDailyTaskIntensity(dailyTask, "2026-10-20", 75);
+  assert.equal(advanced.intensity, 75);
+  assert.equal(advanced.intensityByDate?.["2026-10-20"], 75);
+  assert.equal(advanceDailyTaskIntensity(completed, "2026-10-21", 25).intensityByDate?.["2026-10-21"], 25);
+  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-19", NaN).intensity, 75);
 });

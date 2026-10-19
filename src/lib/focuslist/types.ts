@@ -43,6 +43,7 @@ export type DailyTask = {
   timeSetup: string;
   tag: string;
   intensity: number;
+  intensityByDate?: Record<string, number>;
   paused: boolean;
   createdAt: string;
   updatedAt: string;

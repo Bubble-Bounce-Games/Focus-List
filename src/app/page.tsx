@@ -51,6 +51,8 @@ import {
 } from "@/lib/focuslist/store";
 import {
   buildContributionGrid,
+  dailyTaskIntensityOnDate,
+  dailyTaskHistoryOffsets,
   groupDoneByProject,
   matchTask,
   sortTasks,
@@ -83,6 +85,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -97,6 +106,7 @@ import {
   AlignRight,
   Bold,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   EllipsisVertical,
@@ -666,6 +676,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const tasks = useAllTasks();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
+  const [historyRanges, setHistoryRanges] = useState<Record<string, number>>({});
   const [dailyTitle, setDailyTitle] = useState("");
   const [dailyTag, setDailyTag] = useState("");
   const [dailyIntensity, setDailyIntensity] = useState(0);
@@ -673,9 +684,23 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const [editingDailyTaskId, setEditingDailyTaskId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const dailyTasks = useDailyTasks();
+  const [editingDailyDateKey, setEditingDailyDateKey] = useState("");
+  const todayKeyRef = useRef(toDateKey(new Date()));
   const intensityInputRef = useRef<HTMLInputElement | null>(null);
   const optionButtonRef = useRef<HTMLButtonElement | null>(null);
   const optionMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const todayKey = toDateKey(new Date());
+      if (todayKey === todayKeyRef.current) return;
+      const previousToday = todayKeyRef.current;
+      todayKeyRef.current = todayKey;
+      setHistoryRanges({});
+      setSelectedDate((current) => toDateKey(current) === previousToday ? new Date() : current);
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (dailyTaskOpen && editingDailyTaskId) intensityInputRef.current?.focus();
@@ -699,17 +724,42 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [openTaskMenuId]);
 
+  const todayKey = toDateKey(new Date());
+  const selectedDateKey = toDateKey(selectedDate);
+  const historyAnchorKey = selectedDateKey < todayKey ? selectedDateKey : todayKey;
   const dailyRows = dailyTasks
-    .filter((task) => !task.archivedAt && !task.deletedAt && task.dateKey === toDateKey(selectedDate))
+    .filter((task) => !task.archivedAt && !task.deletedAt && task.dateKey <= historyAnchorKey)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((task) => ({
-      id: task.id,
-      title: task.title,
-      tagLabel: task.tag || "General",
-      color: "#1f2d5f",
-      progress: task.intensity,
-      paused: Boolean(task.paused),
-    }));
+    .map((task) => {
+      const historyOffsets = dailyTaskHistoryOffsets(task.dateKey, historyAnchorKey, todayKey);
+      const historyOffset = Math.min(historyRanges[task.id] ?? 0, historyOffsets.length - 1);
+      const date = new Date(`${historyAnchorKey}T12:00:00`);
+      date.setDate(date.getDate() - historyOffset);
+      const dateKey = toDateKey(date);
+      return {
+        id: task.id,
+        title: task.title,
+        tagLabel: task.tag || "General",
+        progress: dailyTaskIntensityOnDate(task, dateKey),
+        paused: Boolean(task.paused),
+        dateKey,
+        historyOffsets,
+        historyOffset,
+        historyCells: Array.from({ length: 7 }, (_, index) => {
+          const cellDate = new Date(`${historyAnchorKey}T12:00:00`);
+          cellDate.setDate(cellDate.getDate() - Math.max(0, historyOffset - 6) - 6 + index);
+          const cellDateKey = toDateKey(cellDate);
+          return {
+            dateKey: cellDateKey,
+            intensity: dailyTaskIntensityOnDate(task, cellDateKey),
+            started: cellDateKey >= task.dateKey,
+          };
+        }),
+      };
+    });
+
+  const editingDailyTask = dailyTasks.find((task) => task.id === editingDailyTaskId);
+  const savedDailyIntensity = editingDailyTask ? dailyTaskIntensityOnDate(editingDailyTask, editingDailyDateKey) : 0;
 
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -719,6 +769,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   }).format(selectedDate);
 
   const adjustDate = useCallback((offset: number) => {
+    setHistoryRanges({});
     setSelectedDate((current) => {
       const next = new Date(current);
       next.setDate(next.getDate() + offset);
@@ -735,14 +786,14 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
     return diff >= 0 && diff <= 6;
   }, []);
 
-  const handleAdjustIntensity = useCallback(async (taskId: string, nextProgress: number) => {
-    if (!canEditSelectedDate(selectedDate)) {
+  const handleAdjustIntensity = useCallback(async (taskId: string, nextProgress: number, dateKey: string) => {
+    if (!canEditSelectedDate(new Date(`${dateKey}T12:00:00`))) {
       toast.error("You can only adjust daily tasks from the last 7 days.");
       return;
     }
 
-    await updateDailyTask(taskId, { intensity: nextProgress });
-  }, [canEditSelectedDate, selectedDate]);
+    await updateDailyTask(taskId, { intensity: nextProgress }, dateKey);
+  }, [canEditSelectedDate]);
 
   const handleTogglePauseDailyTask = useCallback(async (taskId: string, paused: boolean) => {
     await updateDailyTask(taskId, { paused });
@@ -765,11 +816,12 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
     toast.success("Daily task deleted");
   }, []);
 
-  const openDailyTaskEditor = useCallback((task: { id: string; title: string; tagLabel: string; progress: number }) => {
+  const openDailyTaskEditor = useCallback((task: { id: string; title: string; tagLabel: string; progress: number; dateKey: string }) => {
     setEditingDailyTaskId(task.id);
     setDailyTitle(task.title);
     setDailyTag(task.tagLabel === "General" ? "" : task.tagLabel);
     setDailyIntensity(task.progress);
+    setEditingDailyDateKey(task.dateKey);
     setDailyTaskOpen(true);
     setOpenTaskMenuId(null);
   }, []);
@@ -787,15 +839,17 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         title,
         tag: dailyTag.trim() || "General",
         intensity: dailyIntensity,
-      });
+      }, editingDailyDateKey);
       toast.success("Daily task updated", { description: title });
     } else {
       await createDailyTask({
         title,
-        dateKey: toDateKey(selectedDate),
+        dateKey: toDateKey(new Date()),
         tag: dailyTag.trim() || "General",
         intensity: 0,
       });
+      setSelectedDate(new Date());
+      setHistoryRanges({});
       toast.success("Daily task added", { description: title });
     }
 
@@ -804,7 +858,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
     setDailyTitle("");
     setDailyTag("");
     setDailyIntensity(0);
-  }, [dailyIntensity, dailyTag, dailyTitle, editingDailyTaskId, selectedDate]);
+  }, [dailyIntensity, dailyTag, dailyTitle, editingDailyTaskId, editingDailyDateKey, selectedDate]);
 
   return (
     <aside className="flex h-full min-h-0 flex-col gap-3 bg-transparent px-0 py-0 lg:pl-5">
@@ -833,7 +887,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               type="button"
               onClick={() => adjustDate(1)}
               aria-label="Next day"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+              disabled={selectedDateKey >= todayKey}
+              className="disabled:cursor-not-allowed disabled:opacity-40 flex size-8 shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -871,9 +926,10 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               dailyRows.map((row) => {
                 const isDone = row.progress >= 100;
                 const isPaused = row.paused;
-                const canEdit = canEditSelectedDate(selectedDate) && !isPaused;
+                const canEdit = canEditSelectedDate(new Date(`${row.dateKey}T12:00:00`)) && !isPaused;
                 const activeCount = Math.min(4, Math.max(0, Math.ceil(row.progress / 25)));
                 const isMenuOpen = openTaskMenuId === row.id;
+                const historyLabel = row.historyOffset === 0 ? "Today" : `Last ${row.historyOffset} ${row.historyOffset === 1 ? "day" : "days"}`;
 
                 return (
                   <div
@@ -881,17 +937,16 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                     className={`@container relative rounded-[22px] border border-[#e5e5ed] p-4 shadow-[0_1px_0_rgba(15,23,42,0.02)] sm:p-5 ${isPaused ? "bg-[#f3f4f6] opacity-75" : "bg-white/90"}`}
                   >
                     <div className="flex items-start gap-3">
-                      <button
-                        type="button"
-                        disabled={!canEdit}
-                        onClick={() => void handleAdjustIntensity(row.id, isDone ? 0 : 100)}
-                        aria-label={`${isDone ? "Reset" : "Complete"} ${row.title}`}
+                      <span
                         role="checkbox"
                         aria-checked={isDone}
-                        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[10px] border-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.55)]" : "border-[#d9d5e6] bg-white text-[#9aa5b1] hover:border-[#49b974]"}`}
+                        aria-disabled="true"
+                        aria-label={`${row.title}: ${isDone ? "Completed" : "Not completed"}`}
+                        title="Automatically completed at 100% intensity"
+                        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[10px] border-2 transition-colors ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.55)]" : "border-[#8bd5a4] bg-white text-[#c5cbd3]"}`}
                       >
-                        {isPaused ? <span aria-hidden="true">⏸</span> : isDone ? <Check className="size-5" strokeWidth={3} /> : null}
-                      </button>
+                        <Check className="size-5" strokeWidth={3} aria-hidden="true" />
+                      </span>
                       <button
                         type="button"
                         disabled={isPaused}
@@ -985,8 +1040,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               type="button"
                               aria-label={`Set intensity to ${(index + 1) * 25}% for ${row.title}`}
                               aria-pressed={index < activeCount}
-                              disabled={!canEdit}
-                              onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 25)}
+                              disabled={!canEdit || (index + 1) * 25 <= row.progress}
+                              onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 25, row.dateKey)}
                               className="aspect-square w-full max-w-3.5 rounded-[clamp(2px,0.7cqw,4px)] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
                               style={{
                                 backgroundColor: index < activeCount ? ["#dcf3e2", "#8bd5a4", "#4fbb76", "#16a34a"][index] : "#ffffff",
@@ -997,28 +1052,48 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                         </div>
                       </div>
                       <div className="flex min-w-0 items-center gap-[clamp(4px,1.5cqw,10px)] border-l border-[#e5e5ed] pl-[clamp(4px,1.5cqw,12px)]">
-                        <span className="inline-flex shrink-0 items-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1">
-                          <CalendarDays className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
-                          Last 7 days
-                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label={`History day for ${row.title}: ${historyLabel}`}
+                              title={row.dateKey}
+                              className="inline-flex shrink-0 items-center gap-[clamp(2px,0.7cqw,5px)] rounded-full bg-[#f0eff6] px-[clamp(3px,1cqw,8px)] py-1 focus-visible:outline-2 focus-visible:outline-primary"
+                            >
+                              <CalendarDays className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
+                              {historyLabel}
+                              <ChevronDown className="size-[clamp(7px,1.8cqw,10px)] shrink-0" aria-hidden="true" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuRadioGroup
+                              value={String(row.historyOffset)}
+                              onValueChange={(value) => setHistoryRanges((current) => ({ ...current, [row.id]: Number(value) }))}
+                            >
+                              {row.historyOffsets.map((offset) => (
+                                <DropdownMenuRadioItem key={offset} value={String(offset)}>
+                                  {offset === 0 ? "Today" : `Last ${offset} ${offset === 1 ? "day" : "days"}`}
+                                </DropdownMenuRadioItem>
+                              ))}
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <div className="grid min-w-0 flex-1 grid-cols-7 gap-[clamp(2px,0.8cqw,5px)]">
-                          {Array.from({ length: 7 }, (_, index) => {
-                            const date = new Date(selectedDate);
-                            date.setDate(date.getDate() - 6 + index);
-                            const dateKey = toDateKey(date);
-                            const matchingTask = dailyTasks.find((task) =>
-                              !task.archivedAt && !task.deletedAt && task.dateKey === dateKey &&
-                              task.title === row.title && (task.tag || "General") === row.tagLabel
-                            );
-                            const value = dateKey === toDateKey(selectedDate) ? row.progress : matchingTask?.intensity ?? 0;
+                          {row.historyCells.map((cell) => {
+                            const selected = cell.dateKey === row.dateKey;
+                            const label = `${cell.dateKey}: ${cell.started ? `${cell.intensity}% intensity` : "Not started"}${selected ? ", selected day" : ""}`;
                             return (
                               <span
-                                key={dateKey}
+                                key={cell.dateKey}
                                 role="img"
-                                aria-label={`${dateKey}: ${value}% intensity`}
-                                title={`${dateKey}: ${value}% intensity`}
+                                aria-label={label}
+                                title={label}
                                 className="block aspect-square w-full max-w-[18px] rounded-[clamp(2px,0.8cqw,5px)] border"
-                                style={{ backgroundColor: value > 0 ? dailyIntensityTone(value) : "#ffffff", borderColor: value > 0 ? "transparent" : "#e0dfe8" }}
+                                style={{
+                                  backgroundColor: cell.intensity > 0 ? dailyIntensityTone(cell.intensity) : "#ffffff",
+                                  borderColor: selected ? "#22a65a" : cell.intensity > 0 ? "transparent" : "#e0dfe8",
+                                  boxShadow: selected ? "0 0 0 1px #22a65a" : undefined,
+                                }}
                               />
                             );
                           })}
@@ -1081,19 +1156,20 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label htmlFor="daily-intensity" className="text-label-large text-on-surface">Intensity</label>
-                    <span className="text-label-medium text-on-surface-variant">{dailyIntensity}%</span>
+                    <span className="text-label-medium text-on-surface-variant">{Math.max(savedDailyIntensity, dailyIntensity)}%</span>
                   </div>
                   <input
                     ref={intensityInputRef}
                     id="daily-intensity"
                     type="range"
-                    min={0}
+                    min={savedDailyIntensity}
                     max={100}
-                    value={dailyIntensity}
-                    onChange={(event) => setDailyIntensity(Number(event.target.value))}
-                    disabled={!canEditSelectedDate(selectedDate)}
+                    value={Math.max(savedDailyIntensity, dailyIntensity)}
+                    onChange={(event) => setDailyIntensity(Math.max(savedDailyIntensity, Number(event.target.value)))}
+                    disabled={savedDailyIntensity >= 100 || !canEditSelectedDate(new Date(`${editingDailyDateKey}T12:00:00`))}
                     className="h-2 w-full accent-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                   />
+                  <p className="text-label-small text-on-surface-variant">Saved intensity can only increase.</p>
                 </div>
 
               )}

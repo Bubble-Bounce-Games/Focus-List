@@ -2,6 +2,7 @@
 
 import { v4 as uuid } from "uuid";
 import { colorForName } from "./palette";
+import { advanceDailyTaskIntensity } from "./selectors";
 import {
   updateBrowserState,
   useBrowserState,
@@ -148,6 +149,7 @@ export async function createDailyTask(input: NewDailyTaskInput): Promise<DailyTa
 export async function updateDailyTask(
   id: string,
   patch: Partial<Pick<DailyTask, "title" | "timeSetup" | "tag" | "intensity" | "paused">>,
+  dateKey?: string,
 ): Promise<void> {
   await updateBrowserState((state) => ({
     ...state,
@@ -159,7 +161,7 @@ export async function updateDailyTask(
         ...(patch.title === undefined ? {} : { title: patch.title.trim() }),
         ...(patch.timeSetup === undefined ? {} : { timeSetup: patch.timeSetup.trim() || "Any time" }),
         ...(patch.tag === undefined ? {} : { tag: patch.tag.trim() || "General" }),
-        ...(patch.intensity === undefined ? {} : { intensity: clampProgress(patch.intensity) }),
+        ...(patch.intensity === undefined ? {} : advanceDailyTaskIntensity(task, dateKey ?? task.dateKey, patch.intensity)),
         ...(patch.paused === undefined ? {} : { paused: Boolean(patch.paused) }),
         updatedAt: now(),
       };

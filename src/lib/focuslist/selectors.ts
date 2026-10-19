@@ -155,7 +155,12 @@ export function buildContributionGrid(
   for (const [dateKey, intensity] of sumDailyTaskIntensityByDate(
     dailyTasks
       .filter((task) => !task.archivedAt && !task.deletedAt && !task.paused)
-      .map((task) => ({ dateKey: task.dateKey, intensity: task.intensity })),
+      .flatMap((task) => [
+        { dateKey: task.dateKey, intensity: task.intensity },
+        ...Object.entries(task.intensityByDate ?? {})
+          .filter(([dateKey]) => dateKey > task.dateKey)
+          .map(([dateKey, intensity]) => ({ dateKey, intensity })),
+      ]),
   ).entries()) {
     if (!dateKey.startsWith(`${year}-`)) continue;
     const nextValue = contributionLevel(intensity);
@@ -186,4 +191,29 @@ export function buildContributionGrid(
   }
 
   return { cells, total };
+}
+
+/** A daily task starts fresh each day while retaining earlier intensity values. */
+export function dailyTaskIntensityOnDate(task: DailyTask, dateKey: string): number {
+  if (dateKey < task.dateKey) return 0;
+  return dateKey === task.dateKey ? task.intensity : task.intensityByDate?.[dateKey] ?? 0;
+}
+
+export function dailyTaskHistoryOffsets(startDateKey: string, selectedDateKey: string, todayDateKey: string): number[] {
+  const endDateKey = selectedDateKey < todayDateKey ? selectedDateKey : todayDateKey;
+  const start = new Date(`${startDateKey}T00:00:00Z`);
+  const end = new Date(`${endDateKey}T00:00:00Z`);
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000);
+  if (!Number.isFinite(days) || days < 0) return [];
+  return Array.from({ length: days + 1 }, (_, index) => index);
+}
+
+/** Persisted daily intensity can only advance, independently for each date. */
+export function advanceDailyTaskIntensity(task: DailyTask, dateKey: string, requested: number): Pick<DailyTask, "intensity" | "intensityByDate"> {
+  if (dateKey < task.dateKey) return { intensity: task.intensity };
+  const current = dailyTaskIntensityOnDate(task, dateKey);
+  const next = Math.max(current, Number.isFinite(requested) ? Math.min(100, Math.max(0, Math.round(requested))) : current);
+  return dateKey === task.dateKey
+    ? { intensity: next }
+    : { intensity: task.intensity, intensityByDate: { ...task.intensityByDate, [dateKey]: next } };
 }
