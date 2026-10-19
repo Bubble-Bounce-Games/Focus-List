@@ -9,6 +9,7 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
@@ -891,7 +892,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             </button>
           </div>
         </div>
-         <div className="min-h-0 flex-1 overflow-visible">
+         <div className="relative z-0 min-h-0 flex-1 overflow-visible">
           <div className="grid grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
             <span className="text-left font-semibold tracking-[0.12em]">Task</span>
             <span className="flex justify-center">
@@ -969,32 +970,35 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               <EllipsisVertical className="size-4" />
                             </button>
                             {isMenuOpen && menuPosition ? (
-                              <div
-                                ref={optionMenuRef}
-                                style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
-                                className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
-                              >
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    void handleArchiveDailyTask(row.id);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                              createPortal(
+                                <div
+                                  ref={optionMenuRef}
+                                  style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
+                                  className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                                 >
-                                  Archive
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    void handleDeleteDailyTask(row.id);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void handleArchiveDailyTask(row.id);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                                  >
+                                    Archive
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void handleDeleteDailyTask(row.id);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>,
+                                document.body,
+                              )
                             ) : null}
                           </div>
                         </div>
