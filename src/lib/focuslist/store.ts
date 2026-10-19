@@ -119,7 +119,7 @@ export type NewDailyTaskInput = {
   dateKey: string;
   timeSetup?: string;
   tag: string;
-  intensity: number;
+  intensity?: number;
   paused?: boolean;
 };
 
@@ -131,7 +131,7 @@ export async function createDailyTask(input: NewDailyTaskInput): Promise<DailyTa
     dateKey: input.dateKey,
     timeSetup: (input.timeSetup ?? "").trim() || "Any time",
     tag: input.tag.trim() || "General",
-    intensity: clampProgress(input.intensity),
+    intensity: clampProgress(input.intensity ?? 0),
     paused: Boolean(input.paused),
     createdAt: timestamp,
     updatedAt: timestamp,

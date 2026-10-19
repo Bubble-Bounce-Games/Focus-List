@@ -726,7 +726,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
   const [dailyTitle, setDailyTitle] = useState("");
   const [dailyTag, setDailyTag] = useState("");
-  const [dailyIntensity, setDailyIntensity] = useState(60);
+  const [dailyIntensity, setDailyIntensity] = useState(0);
   const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null);
   const [editingDailyTaskId, setEditingDailyTaskId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
@@ -852,7 +852,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         title,
         dateKey: toDateKey(selectedDate),
         tag: dailyTag.trim() || "General",
-        intensity: 60,
+        intensity: 0,
       });
       toast.success("Daily task added", { description: title });
     }
@@ -861,62 +861,62 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
     setEditingDailyTaskId(null);
     setDailyTitle("");
     setDailyTag("");
-    setDailyIntensity(60);
+    setDailyIntensity(0);
   }, [dailyIntensity, dailyTag, dailyTitle, editingDailyTaskId, selectedDate]);
 
   return (
     <aside className="flex h-full min-h-0 flex-col gap-3 bg-transparent px-0 py-0 lg:pl-5">
       <section className="relative z-0 flex min-h-[420px] flex-[1_1_0] flex-col overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
-        <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 py-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 border-b border-[#d9d5e6] px-4 py-4">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
               <CalendarDays className="size-4" />
             </div>
-            <h3 className="truncate text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
+            <h3 className="truncate text-[20px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
           </div>
 
-          <div className="flex flex-1 items-center justify-center gap-3">
+          <div className="order-3 col-span-2 flex items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => adjustDate(-1)}
               aria-label="Previous day"
-              className="flex size-9 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="min-w-[220px] text-center text-[16px] font-medium text-[#1f2430]">
+            <span className="whitespace-nowrap text-center text-[14px] font-medium tabular-nums text-[#1f2430]">
               {formattedDate}
             </span>
             <button
               type="button"
               onClick={() => adjustDate(1)}
               aria-label="Next day"
-              className="flex size-9 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
               <ChevronRight className="size-4" />
             </button>
           </div>
 
-          <div className="flex flex-1 justify-end">
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={() => {
                 setEditingDailyTaskId(null);
                 setDailyTitle("");
                 setDailyTag("");
-                setDailyIntensity(60);
+                setDailyIntensity(0);
                 setDailyTaskOpen(true);
               }}
               aria-label="Add daily task"
-              className="inline-flex items-center gap-2 rounded-full bg-[#1f2d5f] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#1f2d5f] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
             >
               <Plus className="size-4" />
               <span>Add Daily Task</span>
             </button>
           </div>
         </div>
-         <div className="relative z-0 min-h-0 flex-1 overflow-visible">
-          <div className="relative z-20 min-h-0 max-h-[430px] flex-1 overflow-y-auto overflow-x-visible overscroll-contain px-2 pb-3 pt-2">
+        <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="relative z-20 min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-3 pt-2">
             <div className="flex flex-col gap-2">
             {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
@@ -1135,7 +1135,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               </div>
 
               {editingDailyTaskId && (
-                <div className="space-y-2 rounded-xl border border-[#8bd5a4] bg-[#e1f7e7]/40 p-3 focus-within:ring-2 focus-within:ring-[#49b974]/40">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label htmlFor="daily-intensity" className="text-label-large text-on-surface">Intensity</label>
                     <span className="text-label-medium text-on-surface-variant">{dailyIntensity}%</span>
@@ -1149,7 +1149,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                     value={dailyIntensity}
                     onChange={(event) => setDailyIntensity(Number(event.target.value))}
                     disabled={!canEditSelectedDate(selectedDate)}
-                    className="h-2 w-full accent-[#22a65a]"
+                    className="h-2 w-full accent-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                   />
                 </div>
 
