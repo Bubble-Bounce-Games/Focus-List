@@ -120,6 +120,7 @@ export type NewDailyTaskInput = {
   timeSetup?: string;
   tag: string;
   intensity: number;
+  paused?: boolean;
 };
 
 export async function createDailyTask(input: NewDailyTaskInput): Promise<DailyTask> {
@@ -131,6 +132,7 @@ export async function createDailyTask(input: NewDailyTaskInput): Promise<DailyTa
     timeSetup: (input.timeSetup ?? "").trim() || "Any time",
     tag: input.tag.trim() || "General",
     intensity: clampProgress(input.intensity),
+    paused: Boolean(input.paused),
     createdAt: timestamp,
     updatedAt: timestamp,
     archivedAt: null,
@@ -145,7 +147,7 @@ export async function createDailyTask(input: NewDailyTaskInput): Promise<DailyTa
 
 export async function updateDailyTask(
   id: string,
-  patch: Partial<Pick<DailyTask, "title" | "timeSetup" | "tag" | "intensity">>,
+  patch: Partial<Pick<DailyTask, "title" | "timeSetup" | "tag" | "intensity" | "paused">>,
 ): Promise<void> {
   await updateBrowserState((state) => ({
     ...state,
@@ -158,6 +160,7 @@ export async function updateDailyTask(
         ...(patch.timeSetup === undefined ? {} : { timeSetup: patch.timeSetup.trim() || "Any time" }),
         ...(patch.tag === undefined ? {} : { tag: patch.tag.trim() || "General" }),
         ...(patch.intensity === undefined ? {} : { intensity: clampProgress(patch.intensity) }),
+        ...(patch.paused === undefined ? {} : { paused: Boolean(patch.paused) }),
         updatedAt: now(),
       };
       return next;
