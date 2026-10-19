@@ -522,39 +522,34 @@ function dailyIntensityTone(value: number): string {
   return "#16a34a";
 }
 
+function contributionLevel(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.min(4, Math.max(1, Math.ceil(value / 25)));
+}
+
 function buildContributionGrid(
   tasks: Task[],
   dailyTasks: DailyTask[],
   year: number,
 ): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
   const counts = new Map<string, number>();
-  const activitySource = dailyTasks.length > 0 ? dailyTasks : tasks;
 
-  if (activitySource === dailyTasks) {
-    for (const [key, value] of sumDailyTaskIntensityByDate(
-      dailyTasks
-        .filter((task) => !task.archivedAt && !task.deletedAt)
-        .map((task) => ({ dateKey: task.dateKey, intensity: task.intensity })),
-    ).entries()) {
-      if (!key.startsWith(`${year}-`)) continue;
-      counts.set(key, value);
-    }
-  } else {
-    for (const task of tasks) {
-      const createdDate = task.createdAt ? new Date(task.createdAt) : null;
-      const completedDate = task.completedAt ? new Date(task.completedAt) : null;
-      const createdYear = createdDate?.getFullYear();
-      const completedYear = completedDate?.getFullYear();
+  for (const task of tasks.filter((entry) => !entry.archivedAt && !entry.deletedAt)) {
+    const updatedAt = task.updatedAt ? new Date(task.updatedAt) : null;
+    if (!updatedAt || Number.isNaN(updatedAt.getTime()) || updatedAt.getFullYear() !== year) continue;
+    const dateKey = toDateKey(updatedAt);
+    const nextValue = contributionLevel(task.progress);
+    counts.set(dateKey, (counts.get(dateKey) ?? 0) + nextValue);
+  }
 
-      if (createdDate && createdYear === year) {
-        const key = toDateKey(createdDate);
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-      if (completedDate && completedYear === year) {
-        const key = toDateKey(completedDate);
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-    }
+  for (const [dateKey, intensity] of sumDailyTaskIntensityByDate(
+    dailyTasks
+      .filter((task) => !task.archivedAt && !task.deletedAt && !task.paused)
+      .map((task) => ({ dateKey: task.dateKey, intensity: task.intensity })),
+  ).entries()) {
+    if (!dateKey.startsWith(`${year}-`)) continue;
+    const nextValue = contributionLevel(intensity);
+    counts.set(dateKey, (counts.get(dateKey) ?? 0) + nextValue);
   }
 
   const anchor = new Date(year, 0, 1);
@@ -764,6 +759,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       tagLabel: task.tag || "General",
       color: "#1f2d5f",
       progress: task.intensity,
+      paused: Boolean(task.paused),
     }));
 
   const todayStart = useMemo(() => {
@@ -802,8 +798,15 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       return;
     }
 
-    await updateTask(taskId, { progress: nextProgress });
+    await updateDailyTask(taskId, { intensity: nextProgress });
   }, [canEditSelectedDate, selectedDate]);
+
+  const handleTogglePauseDailyTask = useCallback(async (taskId: string, paused: boolean) => {
+    await updateDailyTask(taskId, { paused });
+    setOpenTaskMenuId(null);
+    setMenuPosition(null);
+    toast.success(paused ? "Daily task paused" : "Daily task resumed");
+  }, []);
 
   const handleArchiveDailyTask = useCallback(async (taskId: string) => {
     await archiveDailyTask(taskId);
@@ -944,32 +947,37 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             ) : (
               dailyRows.map((row) => {
                 const isDone = row.progress >= 100;
-                const canEdit = canEditSelectedDate(selectedDate);
+                const isPaused = row.paused;
+                const canEdit = canEditSelectedDate(selectedDate) && !isPaused;
                 const missedDay = row.progress <= 0 && selectedDate < todayStart;
                 const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
                 const isMenuOpen = openTaskMenuId === row.id;
-  
+   
                 return (
                   <div
                     key={row.id}
-                    className="relative z-30 grid min-h-[52px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border border-[#d9d5e6] bg-white/80 px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
+                    className={`relative z-30 grid min-h-[52px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)] ${isPaused ? "border-[#d9d5e6] bg-[#f3f4f6] opacity-75" : "border-[#d9d5e6] bg-white/80"}`}
                   >
                     <div
-                      className="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition hover:bg-[#f0f3fa]"
-                      onClick={() => openDailyTaskEditor(row)}
+                      className={`flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition ${isPaused ? "cursor-default" : "hover:bg-[#f0f3fa]"}`}
+                      onClick={() => {
+                        if (!isPaused) openDailyTaskEditor(row);
+                      }}
                     >
                       <span
                         className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
-                          isDone
-                            ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
-                            : "border-[#d9d5e6] bg-white text-[#9aa5b1]"
+                          isPaused
+                            ? "border-[#d9d5e6] bg-[#eef2f7] text-[#75809a]"
+                            : isDone
+                              ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
+                              : "border-[#d9d5e6] bg-white text-[#9aa5b1]"
                         }`}
                       >
-                        ✓
+                        {isPaused ? "⏸" : "✓"}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center justify-between gap-2">
-                          <span className="truncate text-[15px] font-medium text-[#1f2430]">{row.title}</span>
+                          <span className={`truncate text-[15px] font-medium ${isPaused ? "text-[#667085] line-through" : "text-[#1f2430]"}`}>{row.title}</span>
                           <div className="relative z-[80] shrink-0">
                             <button
                               ref={openTaskMenuId === row.id ? optionButtonRef : null}
@@ -995,6 +1003,16 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                                   style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
                                   className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                                 >
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void handleTogglePauseDailyTask(row.id, !row.paused);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                                  >
+                                    {row.paused ? "Resume" : "Pause"}
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={(event) => {
@@ -1025,10 +1043,13 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                           <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${row.color}22`, color: row.color }}>
                             {row.tagLabel}
                           </span>
+                          {isPaused ? (
+                            <span className="rounded-full bg-[#eef2f7] px-1.5 py-0.5 text-[9px] font-medium text-[#58657a]">Paused</span>
+                          ) : null}
                         </div>
                       </div>
                     </div>
- 
+  
                     <div className="flex items-center justify-center gap-1">
                       {Array.from({ length: 3 }, (_, index) => {
                         const level = index + 1;
