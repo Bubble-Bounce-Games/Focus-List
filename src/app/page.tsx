@@ -989,7 +989,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 20)}
                               className="aspect-square w-full max-w-3.5 rounded-[clamp(2px,0.7cqw,4px)] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
                               style={{
-                                backgroundColor: index < activeCount ? ["#16a34a", "#4fbb76", "#8bd5a4", "#c0e9cd", "#dcf3e2"][index] : "#ffffff",
+                                backgroundColor: index < activeCount ? ["#dcf3e2", "#c0e9cd", "#8bd5a4", "#4fbb76", "#16a34a"][index] : "#ffffff",
                                 borderColor: index < activeCount ? "transparent" : "#e0dfe8",
                               }}
                             />
