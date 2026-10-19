@@ -88,7 +88,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Activity,
+  ChartNoAxesColumnIncreasing,
+  Check,
+  HeartPulse,
   AlignCenter,
   AlignJustify,
   AlignLeft,
@@ -729,8 +731,13 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const [editingDailyTaskId, setEditingDailyTaskId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const dailyTasks = useDailyTasks();
+  const intensityInputRef = useRef<HTMLInputElement | null>(null);
   const optionButtonRef = useRef<HTMLButtonElement | null>(null);
   const optionMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (dailyTaskOpen && editingDailyTaskId) intensityInputRef.current?.focus();
+  }, [dailyTaskOpen, editingDailyTaskId]);
 
   useEffect(() => {
     if (!openTaskMenuId) return;
@@ -761,12 +768,6 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       progress: task.intensity,
       paused: Boolean(task.paused),
     }));
-
-  const todayStart = useMemo(() => {
-    const current = new Date();
-    current.setHours(0, 0, 0, 0);
-    return current;
-  }, []);
 
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -851,7 +852,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         title,
         dateKey: toDateKey(selectedDate),
         tag: dailyTag.trim() || "General",
-        intensity: dailyIntensity,
+        intensity: 60,
       });
       toast.success("Daily task added", { description: title });
     }
@@ -915,26 +916,6 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
           </div>
         </div>
          <div className="relative z-0 min-h-0 flex-1 overflow-visible">
-          <div className="grid grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
-            <span className="text-left font-semibold tracking-[0.12em]">Task</span>
-            <span className="flex justify-center">
-              <Activity className="size-3.5" aria-hidden="true" />
-            </span>
-            {[
-             "M",
-             "T",
-             "W",
-             "T",
-             "F",
-             "S",
-             "S",
-            ].map((label, index) => (
-             <span key={`${label}-${index}`} className="flex justify-center text-[9px] font-semibold tracking-[0.12em] text-[#5d6470]">
-               {label}
-             </span>
-            ))}
-          </div>
-
           <div className="relative z-20 min-h-0 max-h-[430px] flex-1 overflow-y-auto overflow-x-visible overscroll-contain px-2 pb-3 pt-2">
             <div className="flex flex-col gap-2">
             {dailyRows.length === 0 ? (
@@ -949,144 +930,159 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 const isDone = row.progress >= 100;
                 const isPaused = row.paused;
                 const canEdit = canEditSelectedDate(selectedDate) && !isPaused;
-                const missedDay = row.progress <= 0 && selectedDate < todayStart;
-                const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
+                const activeCount = Math.min(5, Math.max(0, Math.ceil(row.progress / 20)));
                 const isMenuOpen = openTaskMenuId === row.id;
-   
+
                 return (
                   <div
                     key={row.id}
-                    className={`relative z-30 grid min-h-[52px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)] ${isPaused ? "border-[#d9d5e6] bg-[#f3f4f6] opacity-75" : "border-[#d9d5e6] bg-white/80"}`}
+                    className={`relative rounded-[22px] border border-[#e5e5ed] p-4 shadow-[0_1px_0_rgba(15,23,42,0.02)] sm:p-5 ${isPaused ? "bg-[#f3f4f6] opacity-75" : "bg-white/90"}`}
                   >
-                    <div
-                      className={`flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition ${isPaused ? "cursor-default" : "hover:bg-[#f0f3fa]"}`}
-                      onClick={() => {
-                        if (!isPaused) openDailyTaskEditor(row);
-                      }}
-                    >
-                      <span
-                        className={`flex size-5 items-center justify-center rounded-[6px] border text-[10px] ${
-                          isPaused
-                            ? "border-[#d9d5e6] bg-[#eef2f7] text-[#75809a]"
-                            : isDone
-                              ? "border-[#7ac08b] bg-[#dff5e0] text-[#1f8d4d]"
-                              : "border-[#d9d5e6] bg-white text-[#9aa5b1]"
-                        }`}
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        disabled={!canEdit}
+                        onClick={() => void handleAdjustIntensity(row.id, isDone ? 0 : 100)}
+                        aria-label={`${isDone ? "Reset" : "Complete"} ${row.title}`}
+                        aria-pressed={isDone}
+                        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[10px] border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a]" : "border-[#d9d5e6] bg-white text-[#9aa5b1] hover:border-[#49b974]"}`}
                       >
-                        {isPaused ? "⏸" : "✓"}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center justify-between gap-2">
-                          <span className={`truncate text-[15px] font-medium ${isPaused ? "text-[#667085] line-through" : "text-[#1f2430]"}`}>{row.title}</span>
-                          <div className="relative z-[80] shrink-0">
-                            <button
-                              ref={openTaskMenuId === row.id ? optionButtonRef : null}
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                const rect = event.currentTarget.getBoundingClientRect();
-                                setMenuPosition({
-                                  x: Math.min(window.innerWidth - 176, rect.right - 144),
-                                  y: Math.min(window.innerHeight - 120, rect.bottom + 8),
-                                });
-                                setOpenTaskMenuId((current) => current === row.id ? null : row.id);
-                              }}
-                              aria-label={`More options for ${row.title}`}
-                              className={`flex size-6 items-center justify-center rounded-full transition ${isMenuOpen ? "bg-[#edf2ff] text-[#1f2d5f]" : "text-[#5d6470] hover:bg-[#eef0f5]"}`}
+                        {isPaused ? <span aria-hidden="true">⏸</span> : isDone ? <Check className="size-5" /> : null}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isPaused}
+                        onClick={() => openDailyTaskEditor(row)}
+                        className={`min-w-0 flex-1 rounded-md text-left text-[17px] font-semibold leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] sm:text-[19px] ${isPaused ? "text-[#667085] line-through" : "text-[#171e2b] hover:text-[#1f8d4d]"}`}
+                      >
+                        {row.title}
+                      </button>
+                      <div className="relative z-[80] shrink-0">
+                        <button
+                          ref={openTaskMenuId === row.id ? optionButtonRef : null}
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            const rect = event.currentTarget.getBoundingClientRect();
+                            setMenuPosition({
+                              x: Math.min(window.innerWidth - 176, rect.right - 144),
+                              y: Math.min(window.innerHeight - 120, rect.bottom + 8),
+                            });
+                            setOpenTaskMenuId((current) => current === row.id ? null : row.id);
+                          }}
+                          aria-label={`More options for ${row.title}`}
+                          className={`flex size-6 items-center justify-center rounded-full transition ${isMenuOpen ? "bg-[#edf2ff] text-[#1f2d5f]" : "text-[#5d6470] hover:bg-[#eef0f5]"}`}
+                        >
+                          <EllipsisVertical className="size-4" />
+                        </button>
+                        {isMenuOpen && menuPosition ? (
+                          createPortal(
+                            <div
+                              ref={optionMenuRef}
+                              style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
+                              className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                             >
-                              <EllipsisVertical className="size-4" />
-                            </button>
-                            {isMenuOpen && menuPosition ? (
-                              createPortal(
-                                <div
-                                  ref={optionMenuRef}
-                                  style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
-                                  className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      void handleTogglePauseDailyTask(row.id, !row.paused);
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
-                                  >
-                                    {row.paused ? "Resume" : "Pause"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      void handleArchiveDailyTask(row.id);
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
-                                  >
-                                    Archive
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      void handleDeleteDailyTask(row.id);
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>,
-                                document.body,
-                              )
-                            ) : null}
-                          </div>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleTogglePauseDailyTask(row.id, !row.paused);
+                                }}
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                              >
+                                {row.paused ? "Resume" : "Pause"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleArchiveDailyTask(row.id);
+                                }}
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                              >
+                                Archive
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleDeleteDailyTask(row.id);
+                                }}
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
+                              >
+                                Delete
+                              </button>
+                            </div>,
+                            document.body,
+                          )
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 pl-11 text-[12px] font-medium text-[#404a63]">
+                      <span className="inline-flex max-w-full items-center gap-2 rounded-full bg-[#f0eff6] px-3 py-1.5">
+                        <HeartPulse className="size-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{row.tagLabel}</span>
+                      </span>
+                      {isPaused && <span className="text-[#75809a]">Paused</span>}
+                      <div className="flex flex-wrap items-center gap-2 border-l border-[#e5e5ed] pl-4">
+                        <button
+                          type="button"
+                          disabled={isPaused}
+                          onClick={() => openDailyTaskEditor(row)}
+                          className="inline-flex items-center gap-2 rounded-full bg-[#f0eff6] px-3 py-1.5 focus-visible:outline-2 focus-visible:outline-[#22a65a]"
+                          aria-label={`Edit intensity for ${row.title}, currently ${row.progress}%`}
+                        >
+                          <ChartNoAxesColumnIncreasing className="size-4" aria-hidden="true" />
+                          Intensity
+                        </button>
+                        <div className="flex gap-1" role="group" aria-label={`Intensity for ${row.title}: ${row.progress}%`}>
+                          {Array.from({ length: 5 }, (_, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              aria-label={`Set intensity to ${(index + 1) * 20}% for ${row.title}`}
+                              aria-pressed={index < activeCount}
+                              disabled={!canEdit}
+                              onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 20)}
+                              className="size-4 rounded-[5px] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
+                              style={{
+                                backgroundColor: index < activeCount ? ["#16a34a", "#4fbb76", "#8bd5a4", "#c0e9cd", "#dcf3e2"][index] : "#ffffff",
+                                borderColor: index < activeCount ? "transparent" : "#e0dfe8",
+                              }}
+                            />
+                          ))}
                         </div>
-                        <div className="mt-1 flex items-center gap-2 text-[11px] text-[#5d6470]">
-                          <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${row.color}22`, color: row.color }}>
-                            {row.tagLabel}
-                          </span>
-                          {isPaused ? (
-                            <span className="rounded-full bg-[#eef2f7] px-1.5 py-0.5 text-[9px] font-medium text-[#58657a]">Paused</span>
-                          ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 border-l border-[#e5e5ed] pl-4">
+                        <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#f0eff6] px-3 py-1.5">
+                          <CalendarDays className="size-4" aria-hidden="true" />
+                          Last 7 days
+                        </span>
+                        <div className="flex gap-1.5">
+                          {Array.from({ length: 7 }, (_, index) => {
+                            const date = new Date(selectedDate);
+                            date.setDate(date.getDate() - 6 + index);
+                            const dateKey = toDateKey(date);
+                            const matchingTask = dailyTasks.find((task) =>
+                              !task.archivedAt && !task.deletedAt && task.dateKey === dateKey &&
+                              task.title === row.title && (task.tag || "General") === row.tagLabel
+                            );
+                            const value = dateKey === toDateKey(selectedDate) ? row.progress : matchingTask?.intensity ?? 0;
+                            return (
+                              <span
+                                key={dateKey}
+                                role="img"
+                                aria-label={`${dateKey}: ${value}% intensity`}
+                                title={`${dateKey}: ${value}% intensity`}
+                                className="block size-6 rounded-[6px] border"
+                                style={{ backgroundColor: value > 0 ? dailyIntensityTone(value) : "#ffffff", borderColor: value > 0 ? "transparent" : "#e0dfe8" }}
+                              />
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
-  
-                    <div className="flex items-center justify-center gap-1">
-                      {Array.from({ length: 3 }, (_, index) => {
-                        const level = index + 1;
-                        const intensityValue = level === 1 ? 35 : level === 2 ? 70 : 100;
-                        return (
-                          <button
-                            key={`${row.id}-dot-${index}`}
-                            type="button"
-                            aria-label={`Set intensity ${level} for ${row.title}`}
-                            disabled={!canEdit}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void handleAdjustIntensity(row.id, intensityValue);
-                            }}
-                            className={`block h-2.5 w-2.5 rounded-full border border-[#d9d5e6] transition ${
-                              index < activeCount ? "bg-[#22c55e]" : missedDay ? "bg-[#f6a7a3]" : "bg-white"
-                            } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
-                          />
-                        );
-                      })}
-                    </div>
- 
-                    {Array.from({ length: 7 }, (_, index) => {
-                      const value = row.progress;
-                      const isFilled = value > 0 && index < 3;
-                      const tone = isFilled ? dailyIntensityTone(value) : missedDay ? "#fca5a5" : "#ffffff";
-                      return (
-                        <span
-                          key={`${row.id}-day-${index}`}
-                          className="mx-auto block h-3.5 w-full rounded-[4px] border border-[#d9d5e6]"
-                          style={{
-                            backgroundColor: tone,
-                            borderColor: isFilled || missedDay ? "#d5e7d8" : "#d9d5e6",
-                          }}
-                        />
-                      );
-                    })}
                   </div>
                 );
               })
@@ -1102,9 +1098,9 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
 
       {dailyTaskOpen && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/10 px-4 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-e2">
+          <div role="dialog" aria-modal="true" aria-labelledby="daily-task-heading" className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-e2">
             <div className="mb-4 flex items-center justify-between">
-              <h4 className="text-title-large text-on-surface">{editingDailyTaskId ? "Edit daily task" : "Add daily task"}</h4>
+              <h4 id="daily-task-heading" className="text-title-large text-on-surface">{editingDailyTaskId ? "Edit daily task" : "Add daily task"}</h4>
               <button
                 type="button"
                 onClick={() => {
@@ -1139,20 +1135,26 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-label-large text-on-surface">Intensity</label>
-                  <span className="text-label-medium text-on-surface-variant">{dailyIntensity}%</span>
+              {editingDailyTaskId && (
+                <div className="space-y-2 rounded-xl border border-[#8bd5a4] bg-[#e1f7e7]/40 p-3 focus-within:ring-2 focus-within:ring-[#49b974]/40">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="daily-intensity" className="text-label-large text-on-surface">Intensity</label>
+                    <span className="text-label-medium text-on-surface-variant">{dailyIntensity}%</span>
+                  </div>
+                  <input
+                    ref={intensityInputRef}
+                    id="daily-intensity"
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={dailyIntensity}
+                    onChange={(event) => setDailyIntensity(Number(event.target.value))}
+                    disabled={!canEditSelectedDate(selectedDate)}
+                    className="h-2 w-full accent-[#22a65a]"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={dailyIntensity}
-                  onChange={(event) => setDailyIntensity(Number(event.target.value))}
-                  className="h-2 w-full accent-primary"
-                />
-              </div>
+
+              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
