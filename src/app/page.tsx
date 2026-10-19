@@ -936,7 +936,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 return (
                   <div
                     key={row.id}
-                    className={`relative rounded-[22px] border border-[#e5e5ed] p-4 shadow-[0_1px_0_rgba(15,23,42,0.02)] sm:p-5 ${isPaused ? "bg-[#f3f4f6] opacity-75" : "bg-white/90"}`}
+                    className={`@container relative rounded-[22px] border border-[#e5e5ed] p-4 shadow-[0_1px_0_rgba(15,23,42,0.02)] sm:p-5 ${isPaused ? "bg-[#f3f4f6] opacity-75" : "bg-white/90"}`}
                   >
                     <div className="flex items-start gap-3">
                       <button
@@ -1019,24 +1019,23 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 pl-11 text-[12px] font-medium text-[#404a63]">
-                      <span className="inline-flex max-w-full items-center gap-2 rounded-full bg-[#f0eff6] px-3 py-1.5">
-                        <HeartPulse className="size-4 shrink-0" aria-hidden="true" />
+                    <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.45fr)_minmax(0,2fr)] items-center gap-[clamp(4px,1.5cqw,12px)] whitespace-nowrap text-[clamp(7px,1.8cqw,11px)] font-medium text-[#404a63] @min-[480px]:pl-11">
+                      <span className="inline-flex min-w-0 items-center justify-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1" title={isPaused ? `${row.tagLabel} (Paused)` : row.tagLabel}>
+                        <HeartPulse className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                         <span className="truncate">{row.tagLabel}</span>
                       </span>
-                      {isPaused && <span className="text-[#75809a]">Paused</span>}
-                      <div className="flex flex-wrap items-center gap-2 border-l border-[#e5e5ed] pl-4">
+                      <div className="flex min-w-0 items-center gap-[clamp(3px,1cqw,7px)] border-l border-[#e5e5ed] pl-[clamp(4px,1.5cqw,12px)]">
                         <button
                           type="button"
                           disabled={isPaused}
                           onClick={() => openDailyTaskEditor(row)}
-                          className="inline-flex items-center gap-2 rounded-full bg-[#f0eff6] px-3 py-1.5 focus-visible:outline-2 focus-visible:outline-[#22a65a]"
+                          className="inline-flex shrink-0 items-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1 focus-visible:outline-2 focus-visible:outline-[#22a65a]"
                           aria-label={`Edit intensity for ${row.title}, currently ${row.progress}%`}
                         >
-                          <ChartNoAxesColumnIncreasing className="size-4" aria-hidden="true" />
+                          <ChartNoAxesColumnIncreasing className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                           Intensity
                         </button>
-                        <div className="flex gap-1" role="group" aria-label={`Intensity for ${row.title}: ${row.progress}%`}>
+                        <div className="grid min-w-0 flex-1 grid-cols-5 gap-[clamp(2px,0.6cqw,4px)]" role="group" aria-label={`Intensity for ${row.title}: ${row.progress}%`}>
                           {Array.from({ length: 5 }, (_, index) => (
                             <button
                               key={index}
@@ -1045,7 +1044,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               aria-pressed={index < activeCount}
                               disabled={!canEdit}
                               onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 20)}
-                              className="size-4 rounded-[5px] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
+                              className="aspect-square w-full max-w-3.5 rounded-[clamp(2px,0.7cqw,4px)] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
                               style={{
                                 backgroundColor: index < activeCount ? ["#16a34a", "#4fbb76", "#8bd5a4", "#c0e9cd", "#dcf3e2"][index] : "#ffffff",
                                 borderColor: index < activeCount ? "transparent" : "#e0dfe8",
@@ -1054,12 +1053,12 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                           ))}
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 border-l border-[#e5e5ed] pl-4">
-                        <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#f0eff6] px-3 py-1.5">
-                          <CalendarDays className="size-4" aria-hidden="true" />
+                      <div className="flex min-w-0 items-center gap-[clamp(4px,1.5cqw,10px)] border-l border-[#e5e5ed] pl-[clamp(4px,1.5cqw,12px)]">
+                        <span className="inline-flex shrink-0 items-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1">
+                          <CalendarDays className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                           Last 7 days
                         </span>
-                        <div className="flex gap-1.5">
+                        <div className="grid min-w-0 flex-1 grid-cols-7 gap-[clamp(2px,0.8cqw,5px)]">
                           {Array.from({ length: 7 }, (_, index) => {
                             const date = new Date(selectedDate);
                             date.setDate(date.getDate() - 6 + index);
@@ -1075,7 +1074,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                                 role="img"
                                 aria-label={`${dateKey}: ${value}% intensity`}
                                 title={`${dateKey}: ${value}% intensity`}
-                                className="block size-6 rounded-[6px] border"
+                                className="block aspect-square w-full max-w-[18px] rounded-[clamp(2px,0.8cqw,5px)] border"
                                 style={{ backgroundColor: value > 0 ? dailyIntensityTone(value) : "#ffffff", borderColor: value > 0 ? "transparent" : "#e0dfe8" }}
                               />
                             );
