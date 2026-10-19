@@ -872,7 +872,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 const isDone = row.progress >= 100;
                 const isPaused = row.paused;
                 const canEdit = canEditSelectedDate(selectedDate) && !isPaused;
-                const activeCount = Math.min(5, Math.max(0, Math.ceil(row.progress / 20)));
+                const activeCount = Math.min(4, Math.max(0, Math.ceil(row.progress / 25)));
                 const isMenuOpen = openTaskMenuId === row.id;
 
                 return (
@@ -962,7 +962,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                       </div>
                     </div>
 
-                    <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.45fr)_minmax(0,2fr)] items-center gap-[clamp(4px,1.5cqw,12px)] whitespace-nowrap text-[clamp(7px,1.8cqw,11px)] font-medium text-[#404a63] @min-[480px]:pl-11">
+                    <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,0.95fr)_minmax(0,1.3fr)_minmax(0,2fr)] items-center gap-[clamp(4px,1.5cqw,12px)] whitespace-nowrap text-[clamp(7px,1.8cqw,11px)] font-medium text-[#404a63] @min-[480px]:pl-11">
                       <span className="inline-flex min-w-0 items-center justify-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1" title={isPaused ? `${row.tagLabel} (Paused)` : row.tagLabel}>
                         <HeartPulse className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                         <span className="truncate">{row.tagLabel}</span>
@@ -978,18 +978,18 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                           <ChartNoAxesColumnIncreasing className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                           Intensity
                         </button>
-                        <div className="grid min-w-0 flex-1 grid-cols-5 gap-[clamp(2px,0.6cqw,4px)]" role="group" aria-label={`Intensity for ${row.title}: ${row.progress}%`}>
-                          {Array.from({ length: 5 }, (_, index) => (
+                        <div className="grid min-w-0 flex-1 grid-cols-4 gap-[clamp(2px,0.6cqw,4px)]" role="group" aria-label={`Intensity for ${row.title}: ${row.progress}%`}>
+                          {Array.from({ length: 4 }, (_, index) => (
                             <button
                               key={index}
                               type="button"
-                              aria-label={`Set intensity to ${(index + 1) * 20}% for ${row.title}`}
+                              aria-label={`Set intensity to ${(index + 1) * 25}% for ${row.title}`}
                               aria-pressed={index < activeCount}
                               disabled={!canEdit}
-                              onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 20)}
+                              onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 25)}
                               className="aspect-square w-full max-w-3.5 rounded-[clamp(2px,0.7cqw,4px)] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
                               style={{
-                                backgroundColor: index < activeCount ? ["#dcf3e2", "#c0e9cd", "#8bd5a4", "#4fbb76", "#16a34a"][index] : "#ffffff",
+                                backgroundColor: index < activeCount ? ["#dcf3e2", "#8bd5a4", "#4fbb76", "#16a34a"][index] : "#ffffff",
                                 borderColor: index < activeCount ? "transparent" : "#e0dfe8",
                               }}
                             />
