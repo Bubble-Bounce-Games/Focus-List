@@ -57,6 +57,8 @@ import {
 import {
   DEFAULT_SORT,
   isComplete,
+  sumDailyTaskIntensityByDate,
+  type DailyTask,
   type DetailField,
   type Project,
   type SortKey,
@@ -520,21 +522,38 @@ function dailyIntensityTone(value: number): string {
   return "#16a34a";
 }
 
-function buildContributionGrid(tasks: Task[], year: number): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
+function buildContributionGrid(
+  tasks: Task[],
+  dailyTasks: DailyTask[],
+  year: number,
+): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
   const counts = new Map<string, number>();
-  for (const task of tasks) {
-    const createdDate = task.createdAt ? new Date(task.createdAt) : null;
-    const completedDate = task.completedAt ? new Date(task.completedAt) : null;
-    const createdYear = createdDate?.getFullYear();
-    const completedYear = completedDate?.getFullYear();
+  const activitySource = dailyTasks.length > 0 ? dailyTasks : tasks;
 
-    if (createdDate && createdYear === year) {
-      const key = toDateKey(createdDate);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+  if (activitySource === dailyTasks) {
+    for (const [key, value] of sumDailyTaskIntensityByDate(
+      dailyTasks
+        .filter((task) => !task.archivedAt && !task.deletedAt)
+        .map((task) => ({ dateKey: task.dateKey, intensity: task.intensity })),
+    ).entries()) {
+      if (!key.startsWith(`${year}-`)) continue;
+      counts.set(key, value);
     }
-    if (completedDate && completedYear === year) {
-      const key = toDateKey(completedDate);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+  } else {
+    for (const task of tasks) {
+      const createdDate = task.createdAt ? new Date(task.createdAt) : null;
+      const completedDate = task.completedAt ? new Date(task.completedAt) : null;
+      const createdYear = createdDate?.getFullYear();
+      const completedYear = completedDate?.getFullYear();
+
+      if (createdDate && createdYear === year) {
+        const key = toDateKey(createdDate);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      if (completedDate && completedYear === year) {
+        const key = toDateKey(completedDate);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
     }
   }
 
@@ -566,10 +585,10 @@ function buildContributionGrid(tasks: Task[], year: number): { cells: Array<{ da
   return { cells, total };
 }
 
-function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
+function ContributionHeatmap({ tasks, dailyTasks }: { tasks: Task[]; dailyTasks?: DailyTask[] }) {
   const currentYear = new Date().getFullYear();
   const [reviewYear, setReviewYear] = useState(currentYear);
-  const { cells, total } = buildContributionGrid(tasks, reviewYear);
+  const { cells, total } = buildContributionGrid(tasks, dailyTasks ?? [], reviewYear);
   const weeks = Array.from({ length: 53 }, (_, index) => index);
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -1057,7 +1076,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       </section>
 
       <section className="mt-0 min-h-[260px] flex-none overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
-        <ContributionHeatmap tasks={tasks} />
+        <ContributionHeatmap tasks={tasks} dailyTasks={dailyTasks} />
       </section>
 
       {dailyTaskOpen && (

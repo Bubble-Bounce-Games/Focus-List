@@ -16,6 +16,7 @@ import {
   isComplete,
   pickLatestWorkspaceState,
   SORT_OPTIONS,
+  sumDailyTaskIntensityByDate,
 } from "./types";
 import type { Project, Tag, Task } from "./types";
 
@@ -105,6 +106,18 @@ test("when both sources have data, the newer snapshot wins", () => {
     updatedAt: "2026-09-09T00:00:00.000Z",
   };
   assert.equal(pickLatestWorkspaceState(newerLocal, olderCloud), newerLocal);
+});
+
+test("daily task intensity stacks by date for the year review heatmap", () => {
+  const totals = sumDailyTaskIntensityByDate([
+    { dateKey: "2026-09-01", intensity: 35 },
+    { dateKey: "2026-09-01", intensity: 60 },
+    { dateKey: "2026-09-02", intensity: 10 },
+  ]);
+
+  assert.equal(totals.get("2026-09-01"), 95);
+  assert.equal(totals.get("2026-09-02"), 10);
+  assert.equal(totals.get("2026-09-03"), undefined);
 });
 
 test("reminder dates include today and the future, but not past dates", () => {
