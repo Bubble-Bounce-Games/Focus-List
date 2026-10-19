@@ -150,7 +150,6 @@ function attachStorageListener(): void {
 
 function save(state: BrowserState): void {
   if (typeof window === "undefined") return;
-  if (accountSnapshot.status === "signed-in") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 

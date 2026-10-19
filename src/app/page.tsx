@@ -3,11 +3,13 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,6 +57,8 @@ import {
 import {
   DEFAULT_SORT,
   isComplete,
+  sumDailyTaskIntensityByDate,
+  type DailyTask,
   type DetailField,
   type Project,
   type SortKey,
@@ -518,21 +522,38 @@ function dailyIntensityTone(value: number): string {
   return "#16a34a";
 }
 
-function buildContributionGrid(tasks: Task[], year: number): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
+function buildContributionGrid(
+  tasks: Task[],
+  dailyTasks: DailyTask[],
+  year: number,
+): { cells: Array<{ date: string; count: number; weekIndex: number; dayIndex: number }>; total: number } {
   const counts = new Map<string, number>();
-  for (const task of tasks) {
-    const createdDate = task.createdAt ? new Date(task.createdAt) : null;
-    const completedDate = task.completedAt ? new Date(task.completedAt) : null;
-    const createdYear = createdDate?.getFullYear();
-    const completedYear = completedDate?.getFullYear();
+  const activitySource = dailyTasks.length > 0 ? dailyTasks : tasks;
 
-    if (createdDate && createdYear === year) {
-      const key = toDateKey(createdDate);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+  if (activitySource === dailyTasks) {
+    for (const [key, value] of sumDailyTaskIntensityByDate(
+      dailyTasks
+        .filter((task) => !task.archivedAt && !task.deletedAt)
+        .map((task) => ({ dateKey: task.dateKey, intensity: task.intensity })),
+    ).entries()) {
+      if (!key.startsWith(`${year}-`)) continue;
+      counts.set(key, value);
     }
-    if (completedDate && completedYear === year) {
-      const key = toDateKey(completedDate);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+  } else {
+    for (const task of tasks) {
+      const createdDate = task.createdAt ? new Date(task.createdAt) : null;
+      const completedDate = task.completedAt ? new Date(task.completedAt) : null;
+      const createdYear = createdDate?.getFullYear();
+      const completedYear = completedDate?.getFullYear();
+
+      if (createdDate && createdYear === year) {
+        const key = toDateKey(createdDate);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      if (completedDate && completedYear === year) {
+        const key = toDateKey(completedDate);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
     }
   }
 
@@ -564,10 +585,10 @@ function buildContributionGrid(tasks: Task[], year: number): { cells: Array<{ da
   return { cells, total };
 }
 
-function ContributionHeatmap({ tasks }: { tasks: Task[] }) {
+function ContributionHeatmap({ tasks, dailyTasks }: { tasks: Task[]; dailyTasks?: DailyTask[] }) {
   const currentYear = new Date().getFullYear();
   const [reviewYear, setReviewYear] = useState(currentYear);
-  const { cells, total } = buildContributionGrid(tasks, reviewYear);
+  const { cells, total } = buildContributionGrid(tasks, dailyTasks ?? [], reviewYear);
   const weeks = Array.from({ length: 53 }, (_, index) => index);
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -711,6 +732,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const [dailyIntensity, setDailyIntensity] = useState(60);
   const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null);
   const [editingDailyTaskId, setEditingDailyTaskId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const dailyTasks = useDailyTasks();
   const optionButtonRef = useRef<HTMLButtonElement | null>(null);
   const optionMenuRef = useRef<HTMLDivElement | null>(null);
@@ -725,6 +747,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         optionButtonRef.current && !optionButtonRef.current.contains(target)
       ) {
         setOpenTaskMenuId(null);
+        setMenuPosition(null);
       }
     }
 
@@ -742,6 +765,12 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       color: "#1f2d5f",
       progress: task.intensity,
     }));
+
+  const todayStart = useMemo(() => {
+    const current = new Date();
+    current.setHours(0, 0, 0, 0);
+    return current;
+  }, []);
 
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -779,12 +808,14 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   const handleArchiveDailyTask = useCallback(async (taskId: string) => {
     await archiveDailyTask(taskId);
     setOpenTaskMenuId(null);
+    setMenuPosition(null);
     toast.success("Daily task archived");
   }, []);
 
   const handleDeleteDailyTask = useCallback(async (taskId: string) => {
     await deleteDailyTask(taskId);
     setOpenTaskMenuId(null);
+    setMenuPosition(null);
     toast.success("Daily task deleted");
   }, []);
 
@@ -830,8 +861,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
   }, [dailyIntensity, dailyTag, dailyTitle, editingDailyTaskId, selectedDate]);
 
   return (
-    <aside className="flex h-full min-h-0 flex-col gap-5 bg-transparent px-0 py-0 lg:pl-5">
-      <section className="relative z-0 flex max-h-[540px] min-h-[520px] flex-1 flex-col overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+    <aside className="flex h-full min-h-0 flex-col gap-3 bg-transparent px-0 py-0 lg:pl-5">
+      <section className="relative z-0 flex min-h-[420px] flex-[1_1_0] flex-col overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
         <div className="flex items-center justify-between gap-3 border-b border-[#d9d5e6] px-4 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
@@ -880,7 +911,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             </button>
           </div>
         </div>
-         <div className="min-h-0 flex-1 overflow-hidden">
+         <div className="relative z-0 min-h-0 flex-1 overflow-visible">
           <div className="grid grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
             <span className="text-left font-semibold tracking-[0.12em]">Task</span>
             <span className="flex justify-center">
@@ -901,7 +932,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             ))}
           </div>
 
-          <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 pt-2">
+          <div className="relative z-20 min-h-0 max-h-[430px] flex-1 overflow-y-auto overflow-x-visible overscroll-contain px-2 pb-3 pt-2">
             <div className="flex flex-col gap-2">
             {dailyRows.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
@@ -914,13 +945,14 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               dailyRows.map((row) => {
                 const isDone = row.progress >= 100;
                 const canEdit = canEditSelectedDate(selectedDate);
+                const missedDay = row.progress <= 0 && selectedDate < todayStart;
                 const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
                 const isMenuOpen = openTaskMenuId === row.id;
- 
+  
                 return (
                   <div
                     key={row.id}
-                    className="relative z-10 grid min-h-[64px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border border-[#d9d5e6] bg-white/80 px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
+                    className="relative z-30 grid min-h-[52px] grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] overflow-visible rounded-xl border border-[#d9d5e6] bg-white/80 px-2 py-2 shadow-[0_1px_0_rgba(15,23,42,0.02)]"
                   >
                     <div
                       className="flex min-w-0 items-center gap-3 rounded-lg px-1 py-1 transition hover:bg-[#f0f3fa]"
@@ -944,6 +976,11 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
+                                const rect = event.currentTarget.getBoundingClientRect();
+                                setMenuPosition({
+                                  x: Math.min(window.innerWidth - 176, rect.right - 144),
+                                  y: Math.min(window.innerHeight - 120, rect.bottom + 8),
+                                });
                                 setOpenTaskMenuId((current) => current === row.id ? null : row.id);
                               }}
                               aria-label={`More options for ${row.title}`}
@@ -951,32 +988,36 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             >
                               <EllipsisVertical className="size-4" />
                             </button>
-                            {isMenuOpen ? (
-                              <div
-                                ref={optionMenuRef}
-                                className="absolute right-0 top-8 z-[200] w-36 rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
-                              >
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    void handleArchiveDailyTask(row.id);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                            {isMenuOpen && menuPosition ? (
+                              createPortal(
+                                <div
+                                  ref={optionMenuRef}
+                                  style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
+                                  className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                                 >
-                                  Archive
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    void handleDeleteDailyTask(row.id);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void handleArchiveDailyTask(row.id);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                                  >
+                                    Archive
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void handleDeleteDailyTask(row.id);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>,
+                                document.body,
+                              )
                             ) : null}
                           </div>
                         </div>
@@ -1002,8 +1043,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               event.stopPropagation();
                               void handleAdjustIntensity(row.id, intensityValue);
                             }}
-                            className={`block h-2.5 w-2.5 rounded-full transition ${
-                              index < activeCount ? "bg-[#22c55e]" : "bg-[#f6a7a3]"
+                            className={`block h-2.5 w-2.5 rounded-full border border-[#d9d5e6] transition ${
+                              index < activeCount ? "bg-[#22c55e]" : missedDay ? "bg-[#f6a7a3]" : "bg-white"
                             } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
                           />
                         );
@@ -1012,15 +1053,15 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
  
                     {Array.from({ length: 7 }, (_, index) => {
                       const value = row.progress;
-                      const tone = value > 0 && index < 3 ? dailyIntensityTone(value) : "#ffffff";
                       const isFilled = value > 0 && index < 3;
+                      const tone = isFilled ? dailyIntensityTone(value) : missedDay ? "#fca5a5" : "#ffffff";
                       return (
                         <span
                           key={`${row.id}-day-${index}`}
                           className="mx-auto block h-3.5 w-full rounded-[4px] border border-[#d9d5e6]"
                           style={{
-                            backgroundColor: isFilled ? tone : "#ffffff",
-                            borderColor: isFilled ? "#d5e7d8" : "#d9d5e6",
+                            backgroundColor: tone,
+                            borderColor: isFilled || missedDay ? "#d5e7d8" : "#d9d5e6",
                           }}
                         />
                       );
@@ -1034,8 +1075,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         </div>
       </section>
 
-      <section className="mt-0 min-h-[260px] overflow-hidden rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
-        <ContributionHeatmap tasks={tasks} />
+      <section className="mt-0 min-h-[260px] flex-none overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+        <ContributionHeatmap tasks={tasks} dailyTasks={dailyTasks} />
       </section>
 
       {dailyTaskOpen && (

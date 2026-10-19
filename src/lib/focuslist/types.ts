@@ -49,6 +49,19 @@ export type DailyTask = {
   deletedAt?: string | null;
 };
 
+export function sumDailyTaskIntensityByDate(
+  dailyTasks: Array<Pick<DailyTask, "dateKey" | "intensity">>,
+): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const task of dailyTasks) {
+    const key = typeof task.dateKey === "string" && task.dateKey ? task.dateKey : null;
+    if (!key) continue;
+    const value = Number.isFinite(task.intensity) ? Math.max(0, Math.min(100, task.intensity)) : 0;
+    totals.set(key, (totals.get(key) ?? 0) + value);
+  }
+  return totals;
+}
+
 /** The three free-text fields shown in a task's expandable detail panel. */
 export const DETAIL_FIELDS = ["progressNote", "blocker", "notes"] as const;
 
