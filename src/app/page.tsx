@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -745,6 +746,12 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
       progress: task.intensity,
     }));
 
+  const todayStart = useMemo(() => {
+    const current = new Date();
+    current.setHours(0, 0, 0, 0);
+    return current;
+  }, []);
+
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "short",
@@ -884,7 +891,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
             </button>
           </div>
         </div>
-         <div className="min-h-0 flex-1 overflow-hidden">
+         <div className="min-h-0 flex-1 overflow-visible">
           <div className="grid grid-cols-[minmax(0,2.6fr)_0.8fr_repeat(7,minmax(0,0.42fr))] items-center gap-[3px] border-b border-[#d9d5e6] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#5d6470]">
             <span className="text-left font-semibold tracking-[0.12em]">Task</span>
             <span className="flex justify-center">
@@ -918,9 +925,10 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               dailyRows.map((row) => {
                 const isDone = row.progress >= 100;
                 const canEdit = canEditSelectedDate(selectedDate);
+                const missedDay = row.progress <= 0 && selectedDate < todayStart;
                 const activeCount = Math.min(3, Math.max(0, Math.round(row.progress / 34)));
                 const isMenuOpen = openTaskMenuId === row.id;
- 
+  
                 return (
                   <div
                     key={row.id}
@@ -949,7 +957,10 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               onClick={(event) => {
                                 event.stopPropagation();
                                 const rect = event.currentTarget.getBoundingClientRect();
-                                setMenuPosition({ x: rect.right - 144, y: rect.bottom + 8 });
+                                setMenuPosition({
+                                  x: Math.min(window.innerWidth - 176, rect.right - 144),
+                                  y: Math.min(window.innerHeight - 120, rect.bottom + 8),
+                                });
                                 setOpenTaskMenuId((current) => current === row.id ? null : row.id);
                               }}
                               aria-label={`More options for ${row.title}`}
@@ -960,7 +971,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                             {isMenuOpen && menuPosition ? (
                               <div
                                 ref={optionMenuRef}
-                                style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 9999 }}
+                                style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
                                 className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                               >
                                 <button
@@ -1010,7 +1021,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                               void handleAdjustIntensity(row.id, intensityValue);
                             }}
                             className={`block h-2.5 w-2.5 rounded-full border border-[#d9d5e6] transition ${
-                              index < activeCount ? "bg-[#22c55e]" : "bg-white"
+                              index < activeCount ? "bg-[#22c55e]" : missedDay ? "bg-[#f6a7a3]" : "bg-white"
                             } ${canEdit ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
                           />
                         );
@@ -1019,15 +1030,15 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
  
                     {Array.from({ length: 7 }, (_, index) => {
                       const value = row.progress;
-                      const tone = value > 0 && index < 3 ? dailyIntensityTone(value) : "#ffffff";
                       const isFilled = value > 0 && index < 3;
+                      const tone = isFilled ? dailyIntensityTone(value) : missedDay ? "#fca5a5" : "#ffffff";
                       return (
                         <span
                           key={`${row.id}-day-${index}`}
                           className="mx-auto block h-3.5 w-full rounded-[4px] border border-[#d9d5e6]"
                           style={{
-                            backgroundColor: isFilled ? tone : "#ffffff",
-                            borderColor: isFilled ? "#d5e7d8" : "#d9d5e6",
+                            backgroundColor: tone,
+                            borderColor: isFilled || missedDay ? "#d5e7d8" : "#d9d5e6",
                           }}
                         />
                       );
