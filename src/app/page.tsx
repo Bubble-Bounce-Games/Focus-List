@@ -862,25 +862,25 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
 
   return (
     <aside className="flex h-full min-h-0 flex-col gap-3 bg-transparent px-0 py-0 lg:pl-5">
-      <section className="relative z-0 flex min-h-[420px] flex-[1_1_0] flex-col overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
-        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 border-b border-[#d9d5e6] px-4 py-4">
+      <section className="@container relative z-0 flex min-h-[420px] flex-[1_1_0] flex-col overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-[#d9d5e6] px-4 py-4">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
+            <div className="hidden size-8 shrink-0 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f] @min-[580px]:flex">
               <CalendarDays className="size-4" />
             </div>
-            <h3 className="truncate text-[20px] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
+            <h3 className="truncate whitespace-nowrap text-[clamp(12px,2.8cqw,20px)] font-semibold tracking-[-0.02em] text-[#1f2430]">Daily Tasks</h3>
           </div>
 
-          <div className="order-3 col-span-2 flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-1.5">
             <button
               type="button"
               onClick={() => adjustDate(-1)}
               aria-label="Previous day"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+              className="flex size-[clamp(24px,4.5cqw,32px)] shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="whitespace-nowrap text-center text-[14px] font-medium tabular-nums text-[#1f2430]">
+            <span className="whitespace-nowrap text-center text-[clamp(10px,2cqw,14px)] font-medium tabular-nums text-[#1f2430]">
               {formattedDate}
             </span>
             <button
@@ -888,7 +888,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
               onClick={() => adjustDate(1)}
               aria-label="Next day"
               disabled={selectedDateKey >= todayKey}
-              className="disabled:cursor-not-allowed disabled:opacity-40 flex size-8 shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+              className="disabled:cursor-not-allowed disabled:opacity-40 flex size-[clamp(24px,4.5cqw,32px)] shrink-0 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -905,10 +905,10 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 setDailyTaskOpen(true);
               }}
               aria-label="Add daily task"
-              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#1f2d5f] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#1f2d5f] px-2 py-1.5 text-[clamp(10px,1.7cqw,12px)] font-medium text-white shadow-sm transition hover:bg-[#18264d]"
             >
               <Plus className="size-4" />
-              <span>Add Daily Task</span>
+              <span className="hidden @min-[500px]:inline">Add Daily Task</span>
             </button>
           </div>
         </div>
@@ -934,24 +934,24 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                 return (
                   <div
                     key={row.id}
-                    className={`@container relative rounded-[22px] border border-[#e5e5ed] p-4 shadow-[0_1px_0_rgba(15,23,42,0.02)] sm:p-5 ${isPaused ? "bg-[#f3f4f6] opacity-75" : "bg-white/90"}`}
+                    className={`@container relative grid grid-cols-[24px_minmax(0,1fr)] gap-x-2 rounded-lg border border-outline-variant bg-card px-3 py-1.5 sm:gap-x-3 transition-[background-color,border-color] hover:bg-on-surface/[0.04] sm:px-4 ${isPaused ? "opacity-75" : ""}`}
                   >
-                    <div className="flex items-start gap-3">
                       <span
                         role="checkbox"
                         aria-checked={isDone}
                         aria-disabled="true"
                         aria-label={`${row.title}: ${isDone ? "Completed" : "Not completed"}`}
                         title="Automatically completed at 100% intensity"
-                        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-[10px] border-2 transition-colors ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.55)]" : "border-[#8bd5a4] bg-white text-[#c5cbd3]"}`}
+                        className={`col-start-1 row-span-2 row-start-1 flex size-6 self-center items-center justify-center rounded-none border-2 transition-colors ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.55)]" : "border-[#8bd5a4] bg-transparent text-[#c5cbd3]"}`}
                       >
                         <Check className="size-5" strokeWidth={3} aria-hidden="true" />
                       </span>
+                    <div className="col-start-2 row-start-1 flex min-w-0 items-start gap-2 sm:gap-3">
                       <button
                         type="button"
                         disabled={isPaused}
                         onClick={() => openDailyTaskEditor(row)}
-                        className={`min-w-0 flex-1 rounded-md text-left text-[17px] font-semibold leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] sm:text-[19px] ${isPaused ? "text-[#667085] line-through" : "text-[#171e2b] hover:text-[#1f8d4d]"}`}
+                        className={`min-w-0 flex-1 rounded-md text-left text-body-large font-medium leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] ${isPaused ? "text-[#667085] line-through" : "text-[#171e2b] hover:text-[#1f8d4d]"}`}
                       >
                         {row.title}
                       </button>
@@ -1017,7 +1017,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                       </div>
                     </div>
 
-                    <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,0.95fr)_minmax(0,1.3fr)_minmax(0,2fr)] items-center gap-[clamp(4px,1.5cqw,12px)] whitespace-nowrap text-[clamp(7px,1.8cqw,11px)] font-medium text-[#404a63] @min-[480px]:pl-11">
+                    <div className="col-start-2 row-start-2 mt-1 grid min-w-0 grid-cols-[minmax(0,0.95fr)_minmax(0,1.3fr)_minmax(0,2fr)] items-center gap-[clamp(4px,1.5cqw,12px)] whitespace-nowrap text-[clamp(7px,1.8cqw,11px)] font-medium text-[#404a63]">
                       <span className="inline-flex min-w-0 items-center justify-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1" title={isPaused ? `${row.tagLabel} (Paused)` : row.tagLabel}>
                         <HeartPulse className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                         <span className="truncate">{row.tagLabel}</span>
