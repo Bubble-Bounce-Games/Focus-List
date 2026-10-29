@@ -434,3 +434,27 @@ test("rolling daily history shows the selected day last and the preceding six da
   assert.equal(dailyTaskRollingDates("2027-01-01")[0], "2026-12-26");
   assert.equal(dailyTaskRollingDates("2026-11-02")[6], "2026-11-02");
 });
+
+
+test("account year review retains main task marks and combines all daily task histories", () => {
+  const dailyTask: DailyTask = {
+    id: "daily-1", title: "Exercise", tag: "Health", dateKey: "2026-10-19",
+    timeSetup: "Any time", intensity: 100, paused: false,
+    createdAt: "2026-10-19T08:00:00Z", updatedAt: "2026-10-29T08:00:00Z",
+    intensityByDate: { "2026-10-28": 50 },
+  };
+  const mainTasks = [
+    task({ id: "main-1", progress: 100, updatedAt: "2026-09-15T12:00:00Z" }),
+    task({ id: "main-2", progress: 50, updatedAt: "2026-10-28T12:00:00Z" }),
+  ];
+  const dailyTasks = [dailyTask, { ...dailyTask, id: "daily-2", dateKey: "2026-10-20", intensity: 25, intensityByDate: {} }];
+  const original = JSON.stringify({ mainTasks, dailyTasks });
+  const grid = buildContributionGrid(mainTasks, dailyTasks, 2026);
+  const count = (date: string) => grid.cells.find((cell) => cell.date === date)?.count;
+  assert.equal(count("2026-09-15"), 4);
+  assert.equal(count("2026-10-19"), 4);
+  assert.equal(count("2026-10-20"), 1);
+  assert.equal(count("2026-10-28"), 4);
+  assert.equal(grid.total, 4);
+  assert.equal(JSON.stringify({ mainTasks, dailyTasks }), original);
+});

@@ -525,10 +525,10 @@ function dailyIntensityTone(value: number): string {
   return "#16a34a";
 }
 
-function ContributionHeatmap({ task }: { task: DailyTask }) {
+function ContributionHeatmap({ tasks, dailyTasks }: { tasks: Task[]; dailyTasks: DailyTask[] }) {
   const currentYear = new Date().getFullYear();
   const [reviewYear, setReviewYear] = useState(currentYear);
-  const { cells, total } = buildContributionGrid([], [task], reviewYear);
+  const { cells, total } = buildContributionGrid(tasks, dailyTasks, reviewYear);
   const weeks = Array.from({ length: cells.length / 7 }, (_, index) => index);
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -542,7 +542,7 @@ function ContributionHeatmap({ task }: { task: DailyTask }) {
           <div>
             <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-[#1f2430]">Year in Review</h3>
             <p className="text-[13px] text-[#5d6470]">
-              Daily intensity for this task.
+              Activity across your main and daily tasks.
             </p>
           </div>
         </div>
@@ -667,6 +667,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
   selectedDate: Date;
   setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
 }) {
+  const tasks = useAllTasks();
   const reviewPanelPrefix = useId();
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(() => new Set());
   const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
@@ -725,7 +726,6 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
     .map((task) => {
       const dateKey = historyAnchorKey;
       return {
-        task,
         id: task.id,
         title: task.title,
         tagLabel: task.tag || "General",
@@ -1001,9 +1001,8 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                         </span>
                         <div className="grid min-w-0 flex-1 grid-cols-7 gap-[clamp(2px,0.8cqw,5px)]">
                           {row.historyCells.map((cell) => {
-                            const selected = cell.dateKey === row.dateKey;
                             const weekday = new Date(`${cell.dateKey}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" });
-                            const label = `${weekday}, ${cell.dateKey}: ${cell.dateKey > todayKey ? "Upcoming" : cell.started ? `${cell.intensity}% intensity` : "Not started"}${selected ? ", selected day" : ""}`;
+                            const label = `${weekday}, ${cell.dateKey}: ${cell.dateKey > todayKey ? "Upcoming" : cell.started ? `${cell.intensity}% intensity` : "Not started"}`;
                             return (
                               <span
                                 key={cell.dateKey}
@@ -1013,8 +1012,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                                 className="block aspect-square w-full max-w-[18px] rounded-[clamp(2px,0.8cqw,5px)] border"
                                 style={{
                                   backgroundColor: cell.intensity > 0 ? dailyIntensityTone(cell.intensity) : "#ffffff",
-                                  borderColor: selected ? "#22a65a" : cell.intensity > 0 ? "transparent" : "#e0dfe8",
-                                  boxShadow: selected ? "0 0 0 1px #22a65a" : undefined,
+                                  borderColor: cell.intensity > 0 ? "transparent" : "#e0dfe8",
                                 }}
                               />
                             );
@@ -1023,8 +1021,8 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                       </div>
                     </div>
                     {expanded && (
-                      <div id={reviewPanelId} role="region" aria-label={`Year in Review for ${row.title}`} className="col-span-2 col-start-1 row-start-3 mt-2 min-w-0 border-t border-outline-variant">
-                        <ContributionHeatmap task={row.task} />
+                      <div id={reviewPanelId} role="region" aria-label={`Account Year in Review, expanded from ${row.title}`} className="col-span-2 col-start-1 row-start-3 mt-2 min-w-0 border-t border-outline-variant">
+                        <ContributionHeatmap tasks={tasks} dailyTasks={dailyTasks} />
                       </div>
                     )}
                   </div>
