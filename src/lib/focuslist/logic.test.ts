@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
 import { isUpcomingReminderDate } from "./calendar-reminders";
-import { dailyTaskWeekDates, advanceDailyTaskIntensity, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
+import { dailyTaskRollingDates, dailyTaskWeekDates, advanceDailyTaskIntensity, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
 import {
   DEFAULT_SORT,
   DETAIL_FIELDS,
@@ -426,4 +426,11 @@ test("daily task cells stay Monday through Sunday with Thursday in the fourth po
   assert.deepEqual(dailyTaskWeekDates("2026-11-01"), week);
   assert.equal(dailyTaskWeekDates("2026-11-02")[0], "2026-11-02");
   assert.equal(dailyTaskWeekDates("2027-01-01")[4], "2027-01-01");
+});
+
+
+test("rolling daily history shows the selected day last and the preceding six dates", () => {
+  assert.deepEqual(dailyTaskRollingDates("2026-10-29"), ["2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29"]);
+  assert.equal(dailyTaskRollingDates("2027-01-01")[0], "2026-12-26");
+  assert.equal(dailyTaskRollingDates("2026-11-02")[6], "2026-11-02");
 });

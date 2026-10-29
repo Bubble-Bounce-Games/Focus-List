@@ -228,3 +228,13 @@ export function dailyTaskWeekDates(dateKey: string): string[] {
     return toDateKey(date);
   });
 }
+
+/** Rolling history ends on the selected day, with the previous six days first. */
+export function dailyTaskRollingDates(dateKey: string): string[] {
+  const end = new Date(`${dateKey}T12:00:00`);
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(end);
+    date.setDate(end.getDate() - 6 + index);
+    return toDateKey(date);
+  });
+}

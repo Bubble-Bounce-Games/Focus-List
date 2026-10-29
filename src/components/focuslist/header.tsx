@@ -12,10 +12,13 @@ import { Button } from "@/components/ui/button";
 import {
   FolderArchive,
   LogOut,
-  Plus,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Search,
   UserCircle,
 } from "lucide-react";
+import { toDateKey } from "@/lib/focuslist/calendar-reminders";
 import { signOutAccount, type AccountSnapshot } from "@/lib/focuslist/browser-state";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -24,7 +27,8 @@ const logoPath = `${basePath}/brand/focus-list-mark.png`;
 type HeaderProps = {
   search: string;
   onSearchChange: (value: string) => void;
-  onAddTask: () => void;
+  selectedDate: Date;
+  onDateChange: (offset: number) => void;
   onOpenTool?: (view: "calendar" | "archive" | "trash") => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
   account: AccountSnapshot;
@@ -33,7 +37,8 @@ type HeaderProps = {
 export function Header({
   search,
   onSearchChange,
-  onAddTask,
+  selectedDate,
+  onDateChange,
   onOpenTool,
   searchInputRef,
   account,
@@ -71,15 +76,18 @@ export function Header({
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {/* Add Task — MD3 filled primary button (icon-only on mobile, label on sm+) */}
-        <Button
-          onClick={onAddTask}
-          aria-label="Add task"
-          className="h-10 w-10 gap-2 p-0 sm:w-[132px] sm:px-5"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Task</span>
-        </Button>
+        <div className="flex items-center gap-1.5" aria-label="Daily task date">
+          <Button variant="ghost" size="icon" onClick={() => onDateChange(-1)} aria-label="Previous day" className="size-8">
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="inline-flex items-center gap-2 whitespace-nowrap text-label-large text-on-surface">
+            <CalendarDays className="hidden size-4 sm:block" aria-hidden="true" />
+            {new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).format(selectedDate)}
+          </span>
+          <Button variant="ghost" size="icon" onClick={() => onDateChange(1)} disabled={toDateKey(selectedDate) >= toDateKey(new Date())} aria-label="Next day" className="size-8">
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
