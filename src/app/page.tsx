@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -91,7 +92,7 @@ import {
 } from "@/components/ui/popover";
 import {
   ChartNoAxesColumnIncreasing,
-  Check,
+  ChevronDown,
   HeartPulse,
   AlignCenter,
   AlignJustify,
@@ -524,24 +525,24 @@ function dailyIntensityTone(value: number): string {
   return "#16a34a";
 }
 
-function ContributionHeatmap({ tasks, dailyTasks }: { tasks: Task[]; dailyTasks?: DailyTask[] }) {
+function ContributionHeatmap({ task }: { task: DailyTask }) {
   const currentYear = new Date().getFullYear();
   const [reviewYear, setReviewYear] = useState(currentYear);
-  const { cells, total } = buildContributionGrid(tasks, dailyTasks ?? [], reviewYear);
+  const { cells, total } = buildContributionGrid([], [task], reviewYear);
   const weeks = Array.from({ length: cells.length / 7 }, (_, index) => index);
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
     <div className="h-full bg-transparent p-0">
-      <div className="flex items-center justify-between gap-3 px-4 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-3 pt-3">
         <div className="flex items-center gap-3">
           <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
             <CalendarDays className="size-4" />
           </div>
           <div>
-            <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#1f2430]">Year in Review</h3>
+            <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-[#1f2430]">Year in Review</h3>
             <p className="text-[13px] text-[#5d6470]">
-              Darker squares mean higher task completion or stronger daily focus.
+              Daily intensity for this task.
             </p>
           </div>
         </div>
@@ -666,7 +667,8 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
   selectedDate: Date;
   setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
 }) {
-  const tasks = useAllTasks();
+  const reviewPanelPrefix = useId();
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(() => new Set());
   const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
   const [dailyTitle, setDailyTitle] = useState("");
   const [dailyTag, setDailyTag] = useState("");
@@ -723,6 +725,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
     .map((task) => {
       const dateKey = historyAnchorKey;
       return {
+        task,
         id: task.id,
         title: task.title,
         tagLabel: task.tag || "General",
@@ -825,7 +828,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
   }, [dailyIntensity, dailyTag, dailyTitle, editingDailyTaskId, editingDailyDateKey, selectedDate]);
 
   return (
-    <aside className="flex h-full min-h-0 flex-col gap-3 bg-transparent px-0 py-0 lg:pl-5">
+    <aside className="flex h-full min-h-0 flex-col bg-transparent px-0 py-0 lg:pl-5">
       <section className="@container relative z-0 flex min-h-[420px] flex-[1_1_0] flex-col overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
         <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 rounded-t-[18px] border-b border-outline-variant bg-white px-4 py-3">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -859,7 +862,8 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
               </div>
             ) : (
               dailyRows.map((row) => {
-                const isDone = row.progress >= 100;
+                const expanded = expandedTaskIds.has(row.id);
+                const reviewPanelId = `${reviewPanelPrefix}-${row.id}`;
                 const isPaused = row.paused;
                 const canEdit = canEditSelectedDate(new Date(`${row.dateKey}T12:00:00`)) && !isPaused;
                 const activeCount = Math.min(4, Math.max(0, Math.ceil(row.progress / 25)));
@@ -870,16 +874,21 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                     key={row.id}
                     className={`@container relative grid grid-cols-[24px_minmax(0,1fr)] gap-x-2 rounded-lg border border-outline-variant bg-card px-3 py-1.5 sm:gap-x-3 transition-[background-color,border-color] hover:bg-on-surface/[0.04] sm:px-4 ${isPaused ? "opacity-75" : ""}`}
                   >
-                      <span
-                        role="checkbox"
-                        aria-checked={isDone}
-                        aria-disabled="true"
-                        aria-label={`${row.title}: ${isDone ? "Completed" : "Not completed"}`}
-                        title="Automatically completed at 100% intensity"
-                        className={`col-start-1 row-span-2 row-start-1 flex size-6 self-center items-center justify-center rounded-none border-2 transition-colors ${isDone ? "border-[#49b974] bg-[#e1f7e7] text-[#22a65a] shadow-[inset_0_0_0_2px_rgba(255,255,255,0.55)]" : "border-[#8bd5a4] bg-transparent text-[#c5cbd3]"}`}
-                      >
-                        <Check className="size-5" strokeWidth={3} aria-hidden="true" />
-                      </span>
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={reviewPanelId}
+                      aria-label={`${expanded ? "Hide" : "Show"} Year in Review for ${row.title}`}
+                      onClick={() => setExpandedTaskIds((current) => {
+                        const next = new Set(current);
+                        if (next.has(row.id)) next.delete(row.id);
+                        else next.add(row.id);
+                        return next;
+                      })}
+                      className="col-start-1 row-span-2 row-start-1 flex size-6 self-center items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-on-surface/[0.08] hover:text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      <ChevronDown className={`size-4 transition-transform duration-200 ${expanded ? "rotate-0" : "-rotate-90"}`} aria-hidden="true" />
+                    </button>
                     <div className="col-start-2 row-start-1 flex min-w-0 items-start gap-2 sm:gap-3">
                       <button
                         type="button"
@@ -1013,6 +1022,11 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                         </div>
                       </div>
                     </div>
+                    {expanded && (
+                      <div id={reviewPanelId} role="region" aria-label={`Year in Review for ${row.title}`} className="col-span-2 col-start-1 row-start-3 mt-2 min-w-0 border-t border-outline-variant">
+                        <ContributionHeatmap task={row.task} />
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -1020,10 +1034,6 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="mt-0 min-h-[260px] flex-none overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
-        <ContributionHeatmap tasks={tasks} dailyTasks={dailyTasks} />
       </section>
 
       {dailyTaskOpen && (
