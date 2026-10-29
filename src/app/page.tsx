@@ -673,14 +673,11 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
   const [dailyTaskOpen, setDailyTaskOpen] = useState(false);
   const [dailyTitle, setDailyTitle] = useState("");
   const [dailyTag, setDailyTag] = useState("");
-  const [dailyIntensity, setDailyIntensity] = useState(0);
   const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null);
   const [editingDailyTaskId, setEditingDailyTaskId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const dailyTasks = useDailyTasks();
-  const [editingDailyDateKey, setEditingDailyDateKey] = useState("");
   const todayKeyRef = useRef(toDateKey(new Date()));
-  const intensityInputRef = useRef<HTMLInputElement | null>(null);
   const optionButtonRef = useRef<HTMLButtonElement | null>(null);
   const optionMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -694,10 +691,6 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
     }, 30_000);
     return () => window.clearInterval(timer);
   }, [setSelectedDate]);
-
-  useEffect(() => {
-    if (dailyTaskOpen && editingDailyTaskId) intensityInputRef.current?.focus();
-  }, [dailyTaskOpen, editingDailyTaskId]);
 
   useEffect(() => {
     if (!openTaskMenuId) return;
@@ -742,9 +735,6 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
       };
     });
 
-  const editingDailyTask = dailyTasks.find((task) => task.id === editingDailyTaskId);
-  const savedDailyIntensity = editingDailyTask ? dailyTaskIntensityOnDate(editingDailyTask, editingDailyDateKey) : 0;
-
   const canEditSelectedDate = useCallback((date: Date) => {
     const today = new Date();
     const target = new Date(date);
@@ -784,14 +774,13 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
     toast.success("Daily task deleted");
   }, []);
 
-  const openDailyTaskEditor = useCallback((task: { id: string; title: string; tagLabel: string; progress: number; dateKey: string }) => {
+  const openDailyTaskEditor = useCallback((task: { id: string; title: string; tagLabel: string }) => {
     setEditingDailyTaskId(task.id);
     setDailyTitle(task.title);
     setDailyTag(task.tagLabel === "General" ? "" : task.tagLabel);
-    setDailyIntensity(task.progress);
-    setEditingDailyDateKey(task.dateKey);
     setDailyTaskOpen(true);
     setOpenTaskMenuId(null);
+    setMenuPosition(null);
   }, []);
 
   const handleDailyTaskSubmit = useCallback(async (event: FormEvent) => {
@@ -806,8 +795,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
       await updateDailyTask(editingDailyTaskId, {
         title,
         tag: dailyTag.trim() || "General",
-        intensity: dailyIntensity,
-      }, editingDailyDateKey);
+      });
       toast.success("Daily task updated", { description: title });
     } else {
       await createDailyTask({
@@ -824,8 +812,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
     setEditingDailyTaskId(null);
     setDailyTitle("");
     setDailyTag("");
-    setDailyIntensity(0);
-  }, [dailyIntensity, dailyTag, dailyTitle, editingDailyTaskId, editingDailyDateKey, selectedDate]);
+  }, [dailyTag, dailyTitle, editingDailyTaskId, setSelectedDate]);
 
   return (
     <aside className="flex h-full min-h-0 flex-col bg-transparent px-0 py-0 lg:pl-5">
@@ -840,7 +827,6 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
               setEditingDailyTaskId(null);
               setDailyTitle("");
               setDailyTag("");
-              setDailyIntensity(0);
               setDailyTaskOpen(true);
             }}
             aria-label="Add daily task"
@@ -890,14 +876,9 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                       <ChevronDown className={`size-4 transition-transform duration-200 ${expanded ? "rotate-0" : "-rotate-90"}`} aria-hidden="true" />
                     </button>
                     <div className="col-start-2 row-start-1 flex min-w-0 items-start gap-2 sm:gap-3">
-                      <button
-                        type="button"
-                        disabled={isPaused}
-                        onClick={() => openDailyTaskEditor(row)}
-                        className={`min-w-0 flex-1 rounded-md text-left text-body-large font-medium leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] ${isPaused ? "text-[#667085] line-through" : "text-[#171e2b] hover:text-[#1f8d4d]"}`}
-                      >
+                      <span className={`min-w-0 flex-1 text-body-large font-medium leading-6 ${isPaused ? "text-[#667085] line-through" : "text-[#171e2b]"}`}>
                         {row.title}
-                      </button>
+                      </span>
                       <div className="relative z-[80] shrink-0">
                         <button
                           ref={openTaskMenuId === row.id ? optionButtonRef : null}
@@ -907,7 +888,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                             const rect = event.currentTarget.getBoundingClientRect();
                             setMenuPosition({
                               x: Math.min(window.innerWidth - 176, rect.right - 144),
-                              y: Math.min(window.innerHeight - 120, rect.bottom + 8),
+                              y: Math.min(window.innerHeight - 152, rect.bottom + 8),
                             });
                             setOpenTaskMenuId((current) => current === row.id ? null : row.id);
                           }}
@@ -923,6 +904,13 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                               style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
                               className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                             >
+                              <button
+                                type="button"
+                                onClick={() => openDailyTaskEditor(row)}
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                              >
+                                Edit
+                              </button>
                               <button
                                 type="button"
                                 onClick={(event) => {
@@ -966,25 +954,19 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                         <span className="truncate">{row.tagLabel}</span>
                       </span>
                       <div className="flex min-w-0 items-center gap-[clamp(3px,1cqw,7px)] border-l border-[#e5e5ed] pl-[clamp(4px,1.5cqw,12px)]">
-                        <button
-                          type="button"
-                          disabled={isPaused}
-                          onClick={() => openDailyTaskEditor(row)}
-                          className="inline-flex shrink-0 items-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1 focus-visible:outline-2 focus-visible:outline-[#22a65a]"
-                          aria-label={`Edit intensity for ${row.title}, currently ${row.progress}%`}
-                        >
+                        <span className="inline-flex shrink-0 items-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1">
                           <ChartNoAxesColumnIncreasing className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                           Intensity
-                        </button>
+                        </span>
                         <div className="grid min-w-0 flex-1 grid-cols-4 gap-[clamp(2px,0.6cqw,4px)]" role="group" aria-label={`Intensity for ${row.title}: ${row.progress}%`}>
                           {Array.from({ length: 4 }, (_, index) => (
                             <button
                               key={index}
                               type="button"
-                              aria-label={`Set intensity to ${(index + 1) * 25}% for ${row.title}`}
+                              aria-label={`${row.progress === (index + 1) * 25 ? "Clear" : `Set to ${(index + 1) * 25}%`} intensity for ${row.title}`}
                               aria-pressed={index < activeCount}
-                              disabled={!canEdit || (index + 1) * 25 <= row.progress}
-                              onClick={() => void handleAdjustIntensity(row.id, (index + 1) * 25, row.dateKey)}
+                              disabled={!canEdit}
+                              onClick={() => void handleAdjustIntensity(row.id, row.progress === (index + 1) * 25 ? 0 : (index + 1) * 25, row.dateKey)}
                               className="aspect-square w-full max-w-3.5 rounded-[clamp(2px,0.7cqw,4px)] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
                               style={{
                                 backgroundColor: index < activeCount ? ["#dcf3e2", "#8bd5a4", "#4fbb76", "#16a34a"][index] : "#ffffff",
@@ -1054,8 +1036,10 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
 
             <form onSubmit={handleDailyTaskSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-label-large text-on-surface">Daily Task Title</label>
+                <label htmlFor="daily-task-title" className="text-label-large text-on-surface">Daily Task Title</label>
                 <input
+                  id="daily-task-title"
+                  autoFocus
                   value={dailyTitle}
                   onChange={(event) => setDailyTitle(event.target.value)}
                   className="w-full rounded-xl border border-outline-variant bg-surface px-3 py-2.5 text-body-large text-on-surface outline-none ring-0 placeholder:text-on-surface-variant focus:border-primary"
@@ -1072,28 +1056,6 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                   placeholder="Health, Focus, Learning"
                 />
               </div>
-
-              {editingDailyTaskId && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="daily-intensity" className="text-label-large text-on-surface">Intensity</label>
-                    <span className="text-label-medium text-on-surface-variant">{Math.max(savedDailyIntensity, dailyIntensity)}%</span>
-                  </div>
-                  <input
-                    ref={intensityInputRef}
-                    id="daily-intensity"
-                    type="range"
-                    min={savedDailyIntensity}
-                    max={100}
-                    value={Math.max(savedDailyIntensity, dailyIntensity)}
-                    onChange={(event) => setDailyIntensity(Math.max(savedDailyIntensity, Number(event.target.value)))}
-                    disabled={savedDailyIntensity >= 100 || !canEditSelectedDate(new Date(`${editingDailyDateKey}T12:00:00`))}
-                    className="h-2 w-full accent-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-                  />
-                  <p className="text-label-small text-on-surface-variant">Saved intensity can only increase.</p>
-                </div>
-
-              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <button

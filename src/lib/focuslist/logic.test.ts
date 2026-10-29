@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
 import { isUpcomingReminderDate } from "./calendar-reminders";
-import { dailyTaskRollingDates, dailyTaskWeekDates, advanceDailyTaskIntensity, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
+import { dailyTaskRollingDates, dailyTaskWeekDates, setDailyTaskIntensityForDate, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
 import {
   DEFAULT_SORT,
   DETAIL_FIELDS,
@@ -398,23 +398,23 @@ test("recurring daily tasks start fresh and preserve separate intensity for prev
 });
 
 
-test("saved daily intensity cannot decrease or reset, and increases stay separate by date", () => {
+test("daily intensity can be changed or cleared without changing other dates", () => {
   const dailyTask: DailyTask = {
     id: "daily-1", title: "Exercise", tag: "Health", dateKey: "2026-10-19",
     timeSetup: "Any time", intensity: 75, paused: false,
     createdAt: "2026-10-19T08:00:00Z", updatedAt: "2026-10-19T08:00:00Z",
     intensityByDate: { "2026-10-20": 50 },
   };
-  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-19", 25).intensity, 75);
-  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-19", 100).intensity, 100);
+  assert.equal(setDailyTaskIntensityForDate(dailyTask, "2026-10-19", 25).intensity, 25);
+  assert.equal(setDailyTaskIntensityForDate(dailyTask, "2026-10-19", 100).intensity, 100);
   const completed = { ...dailyTask, intensity: 100 };
-  assert.equal(advanceDailyTaskIntensity(completed, "2026-10-19", 0).intensity, 100);
-  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-20", 0).intensityByDate?.["2026-10-20"], 50);
-  const advanced = advanceDailyTaskIntensity(dailyTask, "2026-10-20", 75);
+  assert.equal(setDailyTaskIntensityForDate(completed, "2026-10-19", 0).intensity, 0);
+  assert.equal(setDailyTaskIntensityForDate(dailyTask, "2026-10-20", 0).intensityByDate?.["2026-10-20"], 0);
+  const advanced = setDailyTaskIntensityForDate(dailyTask, "2026-10-20", 75);
   assert.equal(advanced.intensity, 75);
   assert.equal(advanced.intensityByDate?.["2026-10-20"], 75);
-  assert.equal(advanceDailyTaskIntensity(completed, "2026-10-21", 25).intensityByDate?.["2026-10-21"], 25);
-  assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-19", NaN).intensity, 75);
+  assert.equal(setDailyTaskIntensityForDate(completed, "2026-10-21", 25).intensityByDate?.["2026-10-21"], 25);
+  assert.equal(setDailyTaskIntensityForDate(dailyTask, "2026-10-19", NaN).intensity, 75);
 });
 
 
@@ -429,10 +429,10 @@ test("daily task cells stay Monday through Sunday with Thursday in the fourth po
 });
 
 
-test("rolling daily history shows the selected day last and the preceding six dates", () => {
-  assert.deepEqual(dailyTaskRollingDates("2026-10-29"), ["2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29"]);
-  assert.equal(dailyTaskRollingDates("2027-01-01")[0], "2026-12-26");
-  assert.equal(dailyTaskRollingDates("2026-11-02")[6], "2026-11-02");
+test("rolling daily history excludes the selected date and retains the preceding seven days", () => {
+  assert.deepEqual(dailyTaskRollingDates("2026-10-29"), ["2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28"]);
+  assert.equal(dailyTaskRollingDates("2027-01-01")[0], "2026-12-25");
+  assert.equal(dailyTaskRollingDates("2026-11-02")[6], "2026-11-01");
 });
 
 
@@ -457,4 +457,25 @@ test("account year review retains main task marks and combines all daily task hi
   assert.equal(count("2026-10-28"), 4);
   assert.equal(grid.total, 4);
   assert.equal(JSON.stringify({ mainTasks, dailyTasks }), original);
+});
+
+
+test("seven-day history rolls forward and back without deleting saved scores", () => {
+  const dailyTask: DailyTask = {
+    id: "daily-1", title: "Exercise", tag: "Health", dateKey: "2026-10-22",
+    timeSetup: "Any time", intensity: 25, paused: false,
+    createdAt: "2026-10-22T08:00:00Z", updatedAt: "2026-10-29T08:00:00Z",
+    intensityByDate: { "2026-10-28": 75, "2026-10-29": 50 },
+  };
+  const history = (date: string) => dailyTaskRollingDates(date).map((key) => [key, dailyTaskIntensityOnDate(dailyTask, key)]);
+  const before = history("2026-10-29");
+  assert.deepEqual(before[0], ["2026-10-22", 25]);
+  assert.deepEqual(before[6], ["2026-10-28", 75]);
+  const nextDay = history("2026-10-30");
+  assert.deepEqual(nextDay[0], ["2026-10-23", 0]);
+  assert.deepEqual(nextDay[6], ["2026-10-29", 50]);
+  assert.deepEqual(history("2026-10-29"), before);
+  assert.equal(dailyTaskIntensityOnDate(dailyTask, "2026-10-30"), 0);
+  const newTask = { ...dailyTask, dateKey: "2026-10-29", intensity: 0, intensityByDate: {} };
+  assert.ok(dailyTaskRollingDates("2026-10-29").every((key) => dailyTaskIntensityOnDate(newTask, key) === 0));
 });

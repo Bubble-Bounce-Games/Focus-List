@@ -208,11 +208,11 @@ export function dailyTaskHistoryOffsets(startDateKey: string, selectedDateKey: s
   return Array.from({ length: days + 1 }, (_, index) => index);
 }
 
-/** Persisted daily intensity can only advance, independently for each date. */
-export function advanceDailyTaskIntensity(task: DailyTask, dateKey: string, requested: number): Pick<DailyTask, "intensity" | "intensityByDate"> {
+/** Set the chosen intensity for one date without changing any other day. */
+export function setDailyTaskIntensityForDate(task: DailyTask, dateKey: string, requested: number): Pick<DailyTask, "intensity" | "intensityByDate"> {
   if (dateKey < task.dateKey) return { intensity: task.intensity };
   const current = dailyTaskIntensityOnDate(task, dateKey);
-  const next = Math.max(current, Number.isFinite(requested) ? Math.min(100, Math.max(0, Math.round(requested))) : current);
+  const next = Number.isFinite(requested) ? Math.min(100, Math.max(0, Math.round(requested))) : current;
   return dateKey === task.dateKey
     ? { intensity: next }
     : { intensity: task.intensity, intensityByDate: { ...task.intensityByDate, [dateKey]: next } };
@@ -229,12 +229,12 @@ export function dailyTaskWeekDates(dateKey: string): string[] {
   });
 }
 
-/** Rolling history ends on the selected day, with the previous six days first. */
+/** History contains the seven completed calendar days before the selected date. */
 export function dailyTaskRollingDates(dateKey: string): string[] {
   const end = new Date(`${dateKey}T12:00:00`);
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(end);
-    date.setDate(end.getDate() - 6 + index);
+    date.setDate(end.getDate() - 7 + index);
     return toDateKey(date);
   });
 }
