@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
 import { isUpcomingReminderDate } from "./calendar-reminders";
-import { advanceDailyTaskIntensity, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
+import { dailyTaskWeekDates, advanceDailyTaskIntensity, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
 import {
   DEFAULT_SORT,
   DETAIL_FIELDS,
@@ -415,4 +415,15 @@ test("saved daily intensity cannot decrease or reset, and increases stay separat
   assert.equal(advanced.intensityByDate?.["2026-10-20"], 75);
   assert.equal(advanceDailyTaskIntensity(completed, "2026-10-21", 25).intensityByDate?.["2026-10-21"], 25);
   assert.equal(advanceDailyTaskIntensity(dailyTask, "2026-10-19", NaN).intensity, 75);
+});
+
+
+test("daily task cells stay Monday through Sunday with Thursday in the fourth position", () => {
+  const week = dailyTaskWeekDates("2026-10-29");
+  assert.deepEqual(week, ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"]);
+  assert.equal(week.indexOf("2026-10-29"), 3);
+  assert.deepEqual(dailyTaskWeekDates("2026-10-26"), week);
+  assert.deepEqual(dailyTaskWeekDates("2026-11-01"), week);
+  assert.equal(dailyTaskWeekDates("2026-11-02")[0], "2026-11-02");
+  assert.equal(dailyTaskWeekDates("2027-01-01")[4], "2027-01-01");
 });

@@ -217,3 +217,14 @@ export function advanceDailyTaskIntensity(task: DailyTask, dateKey: string, requ
     ? { intensity: next }
     : { intensity: task.intensity, intensityByDate: { ...task.intensityByDate, [dateKey]: next } };
 }
+
+/** Calendar weeks always display Monday first and Sunday last. */
+export function dailyTaskWeekDates(dateKey: string): string[] {
+  const monday = new Date(`${dateKey}T12:00:00`);
+  monday.setDate(monday.getDate() - (monday.getDay() + 6) % 7);
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + index);
+    return toDateKey(date);
+  });
+}

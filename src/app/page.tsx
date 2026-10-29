@@ -53,6 +53,7 @@ import {
   buildContributionGrid,
   dailyTaskIntensityOnDate,
   dailyTaskHistoryOffsets,
+  dailyTaskWeekDates,
   groupDoneByProject,
   matchTask,
   sortTasks,
@@ -745,10 +746,7 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
         dateKey,
         historyOffsets,
         historyOffset,
-        historyCells: Array.from({ length: 7 }, (_, index) => {
-          const cellDate = new Date(`${historyAnchorKey}T12:00:00`);
-          cellDate.setDate(cellDate.getDate() - Math.max(0, historyOffset - 6) - 6 + index);
-          const cellDateKey = toDateKey(cellDate);
+        historyCells: dailyTaskWeekDates(dateKey).map((cellDateKey) => {
           return {
             dateKey: cellDateKey,
             intensity: dailyTaskIntensityOnDate(task, cellDateKey),
@@ -1081,7 +1079,8 @@ function FocusSidePanel({ onAddTask }: { onAddTask: () => void }) {
                         <div className="grid min-w-0 flex-1 grid-cols-7 gap-[clamp(2px,0.8cqw,5px)]">
                           {row.historyCells.map((cell) => {
                             const selected = cell.dateKey === row.dateKey;
-                            const label = `${cell.dateKey}: ${cell.started ? `${cell.intensity}% intensity` : "Not started"}${selected ? ", selected day" : ""}`;
+                            const weekday = new Date(`${cell.dateKey}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" });
+                            const label = `${weekday}, ${cell.dateKey}: ${cell.dateKey > todayKey ? "Upcoming" : cell.started ? `${cell.intensity}% intensity` : "Not started"}${selected ? ", selected day" : ""}`;
                             return (
                               <span
                                 key={cell.dateKey}
