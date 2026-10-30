@@ -238,3 +238,12 @@ export function dailyTaskRollingDates(dateKey: string): string[] {
     return toDateKey(date);
   });
 }
+
+/** Review one daily task's saved history, including days logged before pausing. */
+export function buildDailyTaskReview(task: DailyTask, year: number) {
+  const grid = buildContributionGrid([], [{ ...task, paused: false }], year);
+  return {
+    ...grid,
+    cells: grid.cells.map((cell) => ({ ...cell, intensity: dailyTaskIntensityOnDate(task, cell.date) })),
+  };
+}

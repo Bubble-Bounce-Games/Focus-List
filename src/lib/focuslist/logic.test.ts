@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { colorForName, PALETTE } from "./palette";
 import { isUpcomingReminderDate } from "./calendar-reminders";
-import { dailyTaskRollingDates, dailyTaskWeekDates, setDailyTaskIntensityForDate, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
+import { buildDailyTaskReview, dailyTaskRollingDates, dailyTaskWeekDates, setDailyTaskIntensityForDate, dailyTaskHistoryOffsets, dailyTaskIntensityOnDate, buildContributionGrid, groupDoneByProject, matchTask, sortTasks } from "./selectors";
 import {
   DEFAULT_SORT,
   DETAIL_FIELDS,
@@ -478,4 +478,30 @@ test("seven-day history rolls forward and back without deleting saved scores", (
   assert.equal(dailyTaskIntensityOnDate(dailyTask, "2026-10-30"), 0);
   const newTask = { ...dailyTask, dateKey: "2026-10-29", intensity: 0, intensityByDate: {} };
   assert.ok(dailyTaskRollingDates("2026-10-29").every((key) => dailyTaskIntensityOnDate(newTask, key) === 0));
+});
+
+
+test("daily task review uses its existing logs and excludes other task activity", () => {
+  const dailyTask: DailyTask = {
+    id: "daily-1", title: "Exercise", tag: "Health", dateKey: "2026-10-22",
+    timeSetup: "Any time", intensity: 25, paused: false,
+    createdAt: "2026-10-22T08:00:00Z", updatedAt: "2026-10-30T08:00:00Z",
+    intensityByDate: { "2026-10-28": 75, "2026-10-29": 50, "2026-10-30": 100 },
+  };
+  const before = JSON.stringify(dailyTask);
+  const review = buildDailyTaskReview(dailyTask, 2026);
+  const day = (date: string) => review.cells.find((cell) => cell.date === date);
+  assert.equal(day("2026-10-22")?.intensity, 25);
+  assert.equal(day("2026-10-28")?.intensity, 75);
+  assert.equal(day("2026-10-29")?.intensity, 50);
+  assert.equal(day("2026-10-30")?.intensity, 100);
+  assert.equal(day("2026-10-27")?.count, 0);
+  assert.equal(review.total, 4);
+  const otherTask = { ...dailyTask, id: "daily-2", intensity: 100, intensityByDate: { "2026-10-27": 100 } };
+  const combined = buildContributionGrid([task({ id: "main", progress: 100, updatedAt: "2026-10-27T12:00:00Z" })], [dailyTask, otherTask], 2026);
+  assert.ok((combined.cells.find((cell) => cell.date === "2026-10-27")?.count ?? 0) > 0);
+  assert.equal(day("2026-10-27")?.intensity, 0);
+  assert.deepEqual(buildDailyTaskReview({ ...dailyTask, paused: true }, 2026), review);
+  assert.equal(buildDailyTaskReview(dailyTask, 2025).total, 0);
+  assert.equal(JSON.stringify(dailyTask), before);
 });
