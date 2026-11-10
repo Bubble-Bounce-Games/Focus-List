@@ -1373,7 +1373,7 @@ function DashboardPage() {
 
   if (!ready) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-background">
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-background px-6 text-center">
         <div className="flex flex-col items-center gap-4">
           <span className="flex size-12 items-center justify-center rounded-full bg-primary text-on-primary shadow-e1">
             <ClipboardList className="size-6" />
@@ -1383,7 +1383,11 @@ function DashboardPage() {
             aria-hidden="true"
           />
         </div>
-        <p className="text-body-large text-on-surface-variant">Loading Focus List…</p>
+        <h1 className="text-headline-large text-on-surface">Focus-List — Personal Task Manager</h1>
+        <p className="max-w-md text-body-large text-on-surface-variant">
+          Organize projects, manage daily tasks, track progress, and review your habits.
+        </p>
+        <p role="status" className="text-body-medium text-on-surface-variant">Loading Focus List…</p>
       </div>
     );
   }
@@ -1552,7 +1556,7 @@ function SignInLanding({ account }: { account: AccountSnapshot }) {
               Focus List
             </h1>
             <p className="text-body-small text-on-surface-variant">
-              Sign in to open your dashboard.
+              Organize projects, track daily tasks, and review your progress. Sign in to open your dashboard.
             </p>
           </div>
         </div>
