@@ -511,7 +511,7 @@ function reminderTone(value: string): {
 }
 
 function contributionTone(count: number): string {
-  if (count <= 0) return "#e7ebf0";
+  if (count <= 0) return "var(--md-surface-container-highest)";
   if (count <= 1) return "#d6f5dd";
   if (count <= 2) return "#9ae6b4";
   if (count <= 3) return "#4ade80";
@@ -536,12 +536,12 @@ function ContributionHeatmap({ task }: { task: DailyTask }) {
     <div className="h-full bg-transparent p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 px-3 pt-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-full bg-[#edf2ff] text-[#1f2d5f]">
+          <div className="flex size-8 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
             <CalendarDays className="size-4" />
           </div>
           <div>
-            <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-[#1f2430]">Year in Review</h3>
-            <p className="text-[13px] text-[#5d6470]">
+            <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-on-surface">Year in Review</h3>
+            <p className="text-[13px] text-on-surface-variant">
               Daily intensity history for {task.title}.
             </p>
           </div>
@@ -551,19 +551,19 @@ function ContributionHeatmap({ task }: { task: DailyTask }) {
           <button
             type="button"
             onClick={() => setReviewYear((value) => Math.max(2000, value - 1))}
-            className="flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white hover:bg-[#18264d]"
+            className="flex size-8 items-center justify-center rounded-full border border-primary bg-primary text-on-primary hover:opacity-90"
             aria-label="Previous year"
           >
             ‹
           </button>
-          <span className="inline-flex min-w-[5rem] items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] px-3 py-1.5 text-[13px] font-medium text-white">
+          <span className="inline-flex min-w-[5rem] items-center justify-center rounded-full border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-on-primary">
             {reviewYear}
           </span>
           <button
             type="button"
             disabled={reviewYear >= currentYear}
             onClick={() => setReviewYear((value) => Math.min(currentYear, value + 1))}
-            className={`flex size-8 items-center justify-center rounded-full border border-[#1f2d5f] bg-[#1f2d5f] text-white ${reviewYear >= currentYear ? "cursor-not-allowed opacity-40" : "hover:bg-[#18264d]"}`}
+            className={`flex size-8 items-center justify-center rounded-full border border-primary bg-primary text-on-primary ${reviewYear >= currentYear ? "cursor-not-allowed opacity-40" : "hover:opacity-90"}`}
             aria-label="Next year"
           >
             ›
@@ -574,7 +574,7 @@ function ContributionHeatmap({ task }: { task: DailyTask }) {
       <div className="overflow-x-auto px-4 pb-4 pt-3">
         <div className="min-w-[500px]">
           <div className="grid grid-cols-[18px_minmax(0,1fr)] gap-2">
-            <div className="flex flex-col justify-between pt-6 text-[10px] uppercase tracking-[0.08em] text-[#5d6470]">
+            <div className="flex flex-col justify-between pt-6 text-[10px] uppercase tracking-[0.08em] text-on-surface-variant">
               {dayLabels.filter((_, index) => index % 2 === 0).map((label) => (
                 <span key={label} className="h-2.5 leading-2.5">
                   {label}
@@ -600,7 +600,7 @@ function ContributionHeatmap({ task }: { task: DailyTask }) {
                   return (
                     <span
                       key={`month-${weekIndex}`}
-                      className={`text-center text-[10px] ${showLabel ? "text-[#5d6470]" : "opacity-0"}`}
+                      className={`text-center text-[10px] ${showLabel ? "text-on-surface-variant" : "opacity-0"}`}
                     >
                       {showLabel ? month : ""}
                     </span>
@@ -618,7 +618,7 @@ function ContributionHeatmap({ task }: { task: DailyTask }) {
                 {cells.map((cell) => (
                   <span
                     key={`${cell.date}-${cell.weekIndex}-${cell.dayIndex}`}
-                    className="block h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
+                    className="block h-2.5 w-2.5 rounded-[3px] border border-outline-variant"
                     style={{
                       backgroundColor: contributionTone(cell.count),
                       gridColumn: cell.weekIndex + 1,
@@ -631,21 +631,21 @@ function ContributionHeatmap({ task }: { task: DailyTask }) {
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3 text-[11px] text-[#5d6470]">
+          <div className="mt-4 flex items-center justify-between gap-3 text-[11px] text-on-surface-variant">
             <div className="flex items-center gap-2">
               <span>No activity</span>
               <div className="flex items-center gap-1">
                 {[0, 1, 2, 3, 4].map((level) => (
                   <span
                     key={level}
-                    className="h-2.5 w-2.5 rounded-[3px] border border-[#cdd2dd]/60"
+                    className="h-2.5 w-2.5 rounded-[3px] border border-outline-variant"
                     style={{ backgroundColor: contributionTone(level) }}
                   />
                 ))}
               </div>
               <span>High</span>
             </div>
-            <span className="text-[11px] text-[#5d6470]">{total} focused days this year</span>
+            <span className="text-[11px] text-on-surface-variant">{total} focused days this year</span>
           </div>
         </div>
       </div>
@@ -806,8 +806,8 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
 
   return (
     <aside className="flex h-full min-h-0 flex-col bg-transparent px-0 py-0 lg:pl-5">
-      <section className="@container relative z-0 flex min-h-[420px] flex-[1_1_0] flex-col overflow-visible rounded-[18px] border border-[#d9d5e6] bg-[#f4f2f8] shadow-[0_1px_0_rgba(21,29,38,0.02)]">
-        <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 rounded-t-[18px] border-b border-outline-variant bg-white px-4 py-3">
+      <section className="@container relative z-0 flex min-h-[420px] flex-[1_1_0] flex-col overflow-visible rounded-[18px] border border-outline-variant bg-surface-container shadow-[0_1px_0_rgba(21,29,38,0.02)]">
+        <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 rounded-t-[18px] border-b border-outline-variant bg-surface-container-lowest px-4 py-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <CalendarDays className="size-5 shrink-0 text-on-surface-variant" />
             <h3 className="truncate text-title-large text-on-surface">Daily Tasks</h3>
@@ -830,10 +830,10 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
           <div className="relative z-20 min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-3 pt-2">
             <div className="flex flex-col gap-2">
             {dailyRows.length === 0 ? (
-              <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d9d5e6] bg-[#f9f8fb] px-6">
+              <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-container-low px-6">
                 <div className="text-center">
-                  <p className="text-[15px] font-medium text-[#1f2430]">No daily tasks yet</p>
-                  <p className="mt-1 text-[12px] text-[#5d6470]">Add your first daily task to start tracking progress.</p>
+                  <p className="text-[15px] font-medium text-on-surface">No daily tasks yet</p>
+                  <p className="mt-1 text-[12px] text-on-surface-variant">Add your first daily task to start tracking progress.</p>
                 </div>
               </div>
             ) : (
@@ -848,7 +848,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                 return (
                   <div
                     key={row.id}
-                    className={`@container relative grid grid-cols-[24px_minmax(0,1fr)] gap-x-2 rounded-lg border border-outline-variant bg-card px-3 py-1.5 sm:gap-x-3 transition-[background-color,border-color] hover:bg-on-surface/[0.04] sm:px-4 ${isPaused ? "opacity-75" : ""}`}
+                    className={`@container relative grid grid-cols-[24px_minmax(0,1fr)] gap-x-2 rounded-lg border border-outline-variant bg-card px-3 py-1.5 sm:gap-x-3 transition-[background-color,border-color] hover:bg-surface-container-high sm:px-4 ${isPaused ? "opacity-75" : ""}`}
                   >
                     <button
                       type="button"
@@ -866,7 +866,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                       <ChevronDown className={`size-4 transition-transform duration-200 ${expanded ? "rotate-0" : "-rotate-90"}`} aria-hidden="true" />
                     </button>
                     <div className="col-start-2 row-start-1 flex min-w-0 items-start gap-2 sm:gap-3">
-                      <span className={`min-w-0 flex-1 text-body-large font-medium leading-6 ${isPaused ? "text-[#667085] line-through" : "text-[#171e2b]"}`}>
+                      <span className={`min-w-0 flex-1 text-body-large font-medium leading-6 ${isPaused ? "text-on-surface-variant line-through" : "text-on-surface"}`}>
                         {row.title}
                       </span>
                       <div className="relative z-[80] shrink-0">
@@ -883,7 +883,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                             setOpenTaskMenuId((current) => current === row.id ? null : row.id);
                           }}
                           aria-label={`More options for ${row.title}`}
-                          className={`flex size-6 items-center justify-center rounded-full transition ${isMenuOpen ? "bg-[#edf2ff] text-[#1f2d5f]" : "text-[#5d6470] hover:bg-[#eef0f5]"}`}
+                          className={`flex size-6 items-center justify-center rounded-full transition ${isMenuOpen ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-on-surface/[0.08]"}`}
                         >
                           <EllipsisVertical className="size-4" />
                         </button>
@@ -892,12 +892,12 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                             <div
                               ref={optionMenuRef}
                               style={{ position: "fixed", left: menuPosition.x, top: menuPosition.y, width: 144, zIndex: 99999 }}
-                              className="rounded-lg border border-[#d9d5e6] bg-white p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+                              className="rounded-lg border border-outline-variant bg-surface-container-lowest p-1 shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
                             >
                               <button
                                 type="button"
                                 onClick={() => openDailyTaskEditor(row)}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-on-surface hover:bg-on-surface/[0.08]"
                               >
                                 Edit
                               </button>
@@ -907,7 +907,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                                   event.stopPropagation();
                                   void handleTogglePauseDailyTask(row.id, !row.paused);
                                 }}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-on-surface hover:bg-on-surface/[0.08]"
                               >
                                 {row.paused ? "Resume" : "Pause"}
                               </button>
@@ -917,7 +917,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                                   event.stopPropagation();
                                   void handleArchiveDailyTask(row.id);
                                 }}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#1f2430] hover:bg-[#f3f5f8]"
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-on-surface hover:bg-on-surface/[0.08]"
                               >
                                 Archive
                               </button>
@@ -927,7 +927,7 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                                   event.stopPropagation();
                                   void handleDeleteDailyTask(row.id);
                                 }}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-[#d1242f] hover:bg-[#fff1f2]"
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] text-error hover:bg-error/[0.08]"
                               >
                                 Delete
                               </button>
@@ -938,13 +938,13 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                       </div>
                     </div>
 
-                    <div className="col-start-2 row-start-2 mt-1 grid min-w-0 grid-cols-[minmax(0,0.95fr)_minmax(0,1.3fr)_minmax(0,2fr)] items-center gap-[clamp(4px,1.5cqw,12px)] whitespace-nowrap text-[clamp(7px,1.8cqw,11px)] font-medium text-[#404a63]">
-                      <span className="inline-flex min-w-0 items-center justify-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1" title={isPaused ? `${row.tagLabel} (Paused)` : row.tagLabel}>
+                    <div className="col-start-2 row-start-2 mt-1 grid min-w-0 grid-cols-[minmax(0,0.95fr)_minmax(0,1.3fr)_minmax(0,2fr)] items-center gap-[clamp(4px,1.5cqw,12px)] whitespace-nowrap text-[clamp(7px,1.8cqw,11px)] font-medium text-on-surface-variant">
+                      <span className="inline-flex min-w-0 items-center justify-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-surface-container-highest px-[clamp(4px,1.5cqw,10px)] py-1" title={isPaused ? `${row.tagLabel} (Paused)` : row.tagLabel}>
                         <HeartPulse className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                         <span className="truncate">{row.tagLabel}</span>
                       </span>
-                      <div className="flex min-w-0 items-center gap-[clamp(3px,1cqw,7px)] border-l border-[#e5e5ed] pl-[clamp(4px,1.5cqw,12px)]">
-                        <span className="inline-flex shrink-0 items-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-[#f0eff6] px-[clamp(4px,1.5cqw,10px)] py-1">
+                      <div className="flex min-w-0 items-center gap-[clamp(3px,1cqw,7px)] border-l border-outline-variant pl-[clamp(4px,1.5cqw,12px)]">
+                        <span className="inline-flex shrink-0 items-center gap-[clamp(3px,1cqw,6px)] rounded-full bg-surface-container-highest px-[clamp(4px,1.5cqw,10px)] py-1">
                           <ChartNoAxesColumnIncreasing className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                           Intensity
                         </span>
@@ -959,15 +959,15 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                               onClick={() => void handleAdjustIntensity(row.id, row.progress === (index + 1) * 25 ? 0 : (index + 1) * 25, row.dateKey)}
                               className="aspect-square w-full max-w-3.5 rounded-[clamp(2px,0.7cqw,4px)] border transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22a65a] disabled:cursor-not-allowed"
                               style={{
-                                backgroundColor: index < activeCount ? ["#dcf3e2", "#8bd5a4", "#4fbb76", "#16a34a"][index] : "#ffffff",
-                                borderColor: index < activeCount ? "transparent" : "#e0dfe8",
+                                backgroundColor: index < activeCount ? ["#dcf3e2", "#8bd5a4", "#4fbb76", "#16a34a"][index] : "var(--md-surface-container-lowest)",
+                                borderColor: index < activeCount ? "transparent" : "var(--md-outline-variant)",
                               }}
                             />
                           ))}
                         </div>
                       </div>
-                      <div className="flex min-w-0 items-center gap-[clamp(4px,1.5cqw,10px)] border-l border-[#e5e5ed] pl-[clamp(4px,1.5cqw,12px)]">
-                        <span className="inline-flex shrink-0 items-center gap-[clamp(2px,0.7cqw,5px)] rounded-full bg-[#f0eff6] px-[clamp(3px,1cqw,8px)] py-1">
+                      <div className="flex min-w-0 items-center gap-[clamp(4px,1.5cqw,10px)] border-l border-outline-variant pl-[clamp(4px,1.5cqw,12px)]">
+                        <span className="inline-flex shrink-0 items-center gap-[clamp(2px,0.7cqw,5px)] rounded-full bg-surface-container-highest px-[clamp(3px,1cqw,8px)] py-1">
                           <CalendarDays className="size-[clamp(9px,2.4cqw,14px)] shrink-0" aria-hidden="true" />
                           Last 7 days
                         </span>
@@ -983,8 +983,8 @@ function FocusSidePanel({ selectedDate, setSelectedDate }: {
                                 title={label}
                                 className="block aspect-square w-full max-w-[18px] rounded-[clamp(2px,0.8cqw,5px)] border"
                                 style={{
-                                  backgroundColor: cell.intensity > 0 ? dailyIntensityTone(cell.intensity) : "#ffffff",
-                                  borderColor: cell.intensity > 0 ? "transparent" : "#e0dfe8",
+                                  backgroundColor: cell.intensity > 0 ? dailyIntensityTone(cell.intensity) : "var(--md-surface-container-lowest)",
+                                  borderColor: cell.intensity > 0 ? "transparent" : "var(--md-outline-variant)",
                                 }}
                               />
                             );
@@ -1434,7 +1434,7 @@ function DashboardPage() {
         <section className="fl-scroll flex min-h-[520px] flex-col bg-background px-4 sm:px-6 lg:min-h-0 lg:flex-1 xl:px-10">
           {activeTab === "active" ? (
             <>
-              <div className="mb-2 flex min-h-16 shrink-0 items-center gap-2.5 rounded-lg border-b border-outline-variant bg-white px-4 py-3">
+              <div className="mb-2 flex min-h-16 shrink-0 items-center gap-2.5 rounded-lg border-b border-outline-variant bg-surface-container-lowest px-4 py-3">
                 <ClipboardList className="size-5 shrink-0 text-on-surface-variant" />
                 <h1 className="min-w-0 truncate text-title-large text-on-surface">
                   {selectedProject ? selectedProject.name : "Active Tasks"}
