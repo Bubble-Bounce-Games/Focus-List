@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://focus-list.abhijeet-anand.com/sitemap.xml
